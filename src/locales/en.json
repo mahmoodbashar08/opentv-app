@@ -125,7 +125,7 @@
     "sortBy": "SORT BY",
     "popular": "Popular",
     "noActivityTitle": "No activity yet",
-    "noActivityCaption": "When people you follow watch something, it shows up here.",
+    "noActivityCaption": "When people you follow rate, react or comment, it shows up here.",
     "watchedBy": "Watched by",
     "groups": {
       "anime": "Anime",
@@ -1750,9 +1750,9 @@
     }
   },
   "activity": {
-    "title": "Activity",
+    "title": "Inbox",
     "tabArchive": "TV Time",
-    "tabCommunity": "Activity",
+    "tabCommunity": "Inbox",
     "empty": "Nothing yet — follows, likes and replies show up here.",
     "someone": "someone",
     "follow": "{{who}} followed you",
@@ -3246,5 +3246,23 @@
       "public": "Streak on your public profile",
       "publicSub": "Days and colours only — never which show."
     }
+  },
+  "feed": {
+    "rated": "rated {{title}}",
+    "felt": "reacted to {{title}}",
+    "commented": "commented on {{title}}",
+    "replied": "replied about {{title}}",
+    "picked": "picked a favourite character in {{title}}",
+    "locked": "Watch it to see",
+    "lockedA11y": "Hidden until you watch it",
+    "starsA11y": "{{count}} out of 5",
+    "photo": "Photo",
+    "joinTitle": "Your friends' reactions",
+    "joinCaption": "Join the community to see what the people you follow rate, feel and say — and never anything you haven't watched yet.",
+    "noFollowsTitle": "Follow people to see what they think",
+    "noFollowsCaption": "Their ratings, feelings and comments show up here, newest first.",
+    "unfollow": "Unfollow",
+    "optOut": "Show my reactions to followers",
+    "optOutSub": "Your ratings, feelings, comments and favourite characters appear in the feed of people who follow you."
   }
 }

@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { FeedList } from '@/components/feed-list';
 import { PuzzleCard } from '@/components/puzzle-card';
 import { ContentColumn, EmptyState, Screen } from '@/components/ui';
 import db, { addMovieToWatchlist, addShow, deleteMovie, deleteShow, getMovie, inLibrary, showWatchCount, trackedShowIds } from '@/db';
@@ -356,9 +357,8 @@ export default function ExploreScreen() {
         </ScrollView>
       )}
 
-      {pill === 'Activity' && (
-        <EmptyState title={t('explore.noActivityTitle')} caption={t('explore.noActivityCaption')} />
-      )}
+      {/* The friends feed (2.0.0): components/feed-list.tsx. */}
+      {pill === 'Activity' && <FeedList />}
     </Screen>
   );
 }

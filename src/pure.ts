@@ -2448,6 +2448,9 @@ export const PROFILE_SECTIONS = [
   'shows',
   'movies',
   'comments',
+  // Not a band of the profile but a switch beside them (2.0.0, D6): "Show my
+  // reactions to followers". Hidden = kept out of every follower's feed.
+  'feed',
 ] as const;
 export type ProfileSection = (typeof PROFILE_SECTIONS)[number];
 
@@ -3636,6 +3639,10 @@ export const COMMUNITY_META_KEYS = [
   // These two are only the memory of having sent them, so a re-join re-sends.
   'communityCoverSent',
   'communityAvatarSent',
+  // The friends feed's cache and its throttle stamp (community-feed.ts): one
+  // account's friends, never to be shown to the next one.
+  'communityFeed',
+  'communityFeedAt',
 ] as const;
 
 /**
@@ -3760,6 +3767,10 @@ export const COMMUNITY_SIGN_OUT_META_KEYS = [
   // two in COMMUNITY_ACCOUNT_META_KEYS above.
   'communityCoverSent',
   'communityAvatarSent',
+  // The friends feed's cache and its throttle stamp (community-feed.ts): one
+  // account's friends, never to be shown to the next one.
+  'communityFeed',
+  'communityFeedAt',
 ] as const;
 
 /** A fresh array, for the same reason `metaKeysClearedOnAccountDeletion` returns one. */

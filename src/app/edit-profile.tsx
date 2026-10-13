@@ -68,6 +68,7 @@ const SECTION_LABEL: Record<ProfileSection, LocaleKey> = {
   shows: 'stats.headers.shows',
   movies: 'stats.headers.movies',
   comments: 'editProfile.visibility.comments',
+  feed: 'feed.optOut',
 };
 
 export default function EditProfileScreen() {
@@ -97,7 +98,10 @@ export default function EditProfileScreen() {
     // back is never refused — a free account that hid something before, or
     // whose Plus ended, is not stuck with it — and hiding EVERYTHING stays free
     // under Settings → Private profile, so privacy itself is never sold.
-    if (!show && !requirePlus('profile_sections')) return;
+    //
+    // THE FEED SWITCH IS NEVER PLUS: keeping your reactions out of other
+    // people's feeds is privacy, not curation (2.0.0).
+    if (!show && section !== 'feed' && !requirePlus('profile_sections')) return;
     tapLight();
     const before = hidden;
     const next = withSectionHidden(before, section, !show);
@@ -386,6 +390,7 @@ export default function EditProfileScreen() {
                         your own profile and nobody else's, and saying so is the
                         difference between a control and a false promise. */}
                     {s === 'activity' && <Text style={styles.switchSub}>{t('editProfile.visibility.activitySub')}</Text>}
+                    {s === 'feed' && <Text style={styles.switchSub}>{t('feed.optOutSub')}</Text>}
                   </View>
                   <Switch
                     value={!sectionHidden(hidden, s)}

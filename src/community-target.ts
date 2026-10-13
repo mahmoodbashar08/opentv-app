@@ -22,7 +22,7 @@ import { slug } from '@/pure';
  * library to say it with. When it cannot, the key itself is shown rather than
  * a blank: an unrecognised row is still a row somebody wrote.
  */
-export function targetLabel(c: Comment): string {
+export function targetLabel(c: Pick<Comment, 'target_source' | 'target_key' | 'season' | 'episode'>): string {
   if (c.target_source === 'tvdb') {
     const show = getShowNames().find((s) => String(s.tvdbId) === c.target_key);
     /**
@@ -82,7 +82,9 @@ export function targetLabel(c: Comment): string {
  * which is what it says today — nothing is made worse by a failure, and a
  * comments list must not show an error because a title lookup timed out.
  */
-export async function resolveUnknownTargets(comments: readonly Comment[]): Promise<boolean> {
+export async function resolveUnknownTargets(
+  comments: readonly Pick<Comment, 'target_source' | 'target_key'>[],
+): Promise<boolean> {
   const known = new Set(getShowNames().map((s) => String(s.tvdbId)));
   const missing = [
     ...new Set(
