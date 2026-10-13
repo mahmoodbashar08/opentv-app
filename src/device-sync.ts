@@ -481,7 +481,10 @@ onOpQueued(() => {
  * Stopped the moment the app is not active, so a phone in a pocket asks for
  * nothing.
  */
-const POLL_MS = 60_000;
+// 20 s, down from 60 (14 Oct): a change on the other phone took up to a
+// minute to show, which reads as "sync is slow". Only while the app is open,
+// and a poll with nothing new is a couple of indexed rows.
+const POLL_MS = 20_000;
 let poll: ReturnType<typeof setInterval> | null = null;
 
 function stopPolling(): void {
