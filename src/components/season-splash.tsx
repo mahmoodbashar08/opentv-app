@@ -17,6 +17,12 @@ import { activeEvent, seasonalOn, type SeasonId } from '@/season';
 
 // The native splash: a 76pt image whose logo sits dead centre (app.json).
 const PLAIN_W = 76;
+// THE SAME LOGO WITH NO GROUND. `splash-icon.png` is the native splash's own
+// image and carries an opaque #131313 square, invisible on the splash and
+// plainly visible the moment a bat flew behind it on its way to the pumpkin
+// (14 Oct). This copy is that image with the ground taken out — same size,
+// same place — so the bats pass behind letters, not behind a box.
+const PLAIN = require('@/assets/images/splash-icon-clear.png');
 // The seasonal logos are 720px squares in which the OT is 601px wide and its
 // centre 31.5px below the square's — scaled so the letters land on the plain ones.
 const OT_PT = 47.7;
@@ -75,7 +81,7 @@ export function SeasonSplash() {
       {season.logo != null ? (
         <View style={s.centre}>
           <Animated.View style={{ position: 'absolute', opacity: swap.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }}>
-            <Image source={require('@/assets/images/splash-icon.png')} style={{ width: PLAIN_W, height: PLAIN_W }} />
+            <Image source={PLAIN} style={{ width: PLAIN_W, height: PLAIN_W }} />
           </Animated.View>
           <Animated.View style={{ marginTop: -DROP * 2, opacity: swap, transform: [{ scale: swap.interpolate({ inputRange: [0, 1], outputRange: [0.85, 1] }) }] }}>
             <Image source={season.logo} style={{ width: BOX, height: BOX }} onLoad={() => setReady(true)} />
@@ -83,7 +89,7 @@ export function SeasonSplash() {
         </View>
       ) : (
         <View style={s.centre}>
-          <Image source={require('@/assets/images/splash-icon.png')} style={{ width: PLAIN_W, height: PLAIN_W }} />
+          <Image source={PLAIN} style={{ width: PLAIN_W, height: PLAIN_W }} />
         </View>
       )}
     </Animated.View>
