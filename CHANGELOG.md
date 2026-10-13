@@ -442,6 +442,56 @@ possible"):
     Letterboxd, Trakt and IMDb keep their precision; stats, Wrapped and the
     community averages read the ten-point value.
 
+- **15. PLANNED (13 Oct): Simkl sync — and through it, Nuvio.** Asked for twice
+  on 13 Oct: José (En Beta Permanente) said his community wants Trakt sync,
+  and a TV Time Refugees member asked for Nuvio. One integration answers both.
+  - **Not Trakt.** Researched 13 Oct: since ~30 Jul 2026 creating a Trakt API
+    app needs Trakt VIP, and since 22 Jul a free Trakt account can connect only
+    ONE community app (more needs VIP, ~$60/yr). So it costs us AND most users
+    would have to pay Trakt to use it, and our audience includes r/TraktRejects.
+    José was told this honestly (no promise). The read-only Trakt code from
+    29 Aug is still in `src/trakt.ts` / `src/trakt-sync.ts` if Trakt reopens.
+  - **Not Nuvio directly.** Nuvio has no official API. Its sync endpoints
+    (`sync_pull_watched_items`) are unofficial and unversioned, so they break
+    on Nuvio's schedule, not ours.
+  - **Simkl instead.** Since 1 Aug 2026 Nuvio (mobile 0.4.0, TV 0.8.0) scrobbles
+    to Simkl natively, and Simkl is where people leaving Trakt go. Its API is
+    free with a client id and has no one-app limit. Read-only, like the Trakt
+    code: Simkl is another live export and the phone stays the source of truth.
+    Reuse `externalWatchesToApply` (its four refusals are already tested) and
+    the Plex/Jellyfin/Stremio screen pattern. Match on `ids.tvdb` first; a
+    title-only match needs a confirmation step, as Plex's does.
+  - When it ships: tell José (thread in replies-log) and reply to Itsmericky
+    in the Refugees #opentv thread.
+
+- **16. PLANNED (13 Oct): the TV Time importer as a library, and one open
+  export format.** niceme (TV Time Refugees admin) asked the 90+ developers
+  whether they'd build something shared. We offered what we already have: the
+  importer is MPL-2.0, anyone may use it, and we're open to one shared
+  export/import format so people can move their history between apps and are
+  never stranded again. No date was promised. Worth explaining to other devs:
+  `lists-prod-lists.csv` names a film by uuid only, so a list imports short
+  (8 of 22 on one real export) unless the uuid is resolved across members
+  (`movie-names` on the server: uuid → title, never who supplied it).
+  - Pull the parser out of `src/importer.ts` into a standalone package with no
+    Expo or SQLite imports, and its own tests.
+  - Draft the format with any dev who wants in: shows, episodes with watch
+    dates, films, ratings (out of ten, see item 14), lists, emotions.
+  - Cost: it makes our strongest import easier for competitors to match. Small,
+    because the code is already public and the migration wave is mostly over.
+
+- **17. FIXED (13 Oct, on 1.7.0 → 2.0.0): Play's robots still signed in.** The
+  1.6.6 Test Lab skip read only `firebase.test.lab`, and 7 more robot accounts
+  arrived on 8–12 Oct from 1.6.8 and 1.7.0 builds. `modules/test-lab` now also
+  checks `ActivityManager.isRunningInUserTestHarness()` and `isUserAMonkey()`.
+  Check the dashboard's "Test robots" filter a day after the next Play upload.
+
+- **18. FIXED (13 Oct, on 1.7.0 → 2.0.0): list shows named by their own TheTVDB
+  id.** A show the library never held was listed as `String(tvdbId)`, published
+  as "78857" for Naruto, and drawn as a "7" card. `fillMissingListNames` now
+  treats an id-as-name as nameless, and the publish fingerprint counts posters
+  so the repaired titles reach the profile.
+
 ## 1.6.7 — submitted 7 Oct 2026 (Android 84, iOS 68)
 
 Creator codes, and nothing else, so a podcast's listeners could get Plus at
