@@ -5,7 +5,9 @@
  */
 module.exports = {
   testEnvironment: 'node',
-  testMatch: ['<rootDir>/src/**/*.test.ts'],
+  // `packages/` holds code meant to be used outside this app (the TV Time
+  // export reader); its tests run with everyone else's.
+  testMatch: ['<rootDir>/src/**/*.test.ts', '<rootDir>/packages/**/*.test.ts'],
   moduleNameMapper: {
     // `src/api-config.ts` is gitignored and holds the PRODUCTION host. Tests
     // resolve the committed `.example` instead, so the suite runs on a fresh
