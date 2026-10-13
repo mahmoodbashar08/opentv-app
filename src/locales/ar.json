@@ -3982,5 +3982,27 @@
       "many": "مشتركة · {{count}} شخصاً",
       "other": "مشتركة · {{count}} شخص"
     }
+  },
+  "ratingBreakdown": {
+    "title": "تقييمات المجتمع",
+    "count": {
+      "zero": "{{count}} تقييم",
+      "one": "تقييم واحد",
+      "two": "تقييمان",
+      "few": "{{count}} تقييمات",
+      "many": "{{count}} تقييماً",
+      "other": "{{count}} تقييم"
+    },
+    "averageLabel": "تقييم المجتمع {{value}} من 5، {{ratings}}",
+    "averageHint": "يعرض كيف قيّمه الجميع",
+    "row": {
+      "zero": "{{value}} نجمة، {{percent}}٪",
+      "one": "نجمة واحدة، {{percent}}٪",
+      "two": "نجمتان، {{percent}}٪",
+      "few": "{{value}} نجوم، {{percent}}٪",
+      "many": "{{value}} نجمة، {{percent}}٪",
+      "other": "{{value}} نجمة، {{percent}}٪"
+    },
+    "mine": "تقييمك"
   }
 }

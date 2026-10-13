@@ -3458,5 +3458,19 @@
       "one": "Shared · {{count}} person",
       "other": "Shared · {{count}} people"
     }
+  },
+  "ratingBreakdown": {
+    "title": "Community ratings",
+    "count": {
+      "one": "{{count}} rating",
+      "other": "{{count}} ratings"
+    },
+    "averageLabel": "Community rating {{value}} out of 5, {{ratings}}",
+    "averageHint": "Shows how everyone rated it",
+    "row": {
+      "one": "{{value}} star, {{percent}}%",
+      "other": "{{value}} stars, {{percent}}%"
+    },
+    "mine": "your rating"
   }
 }

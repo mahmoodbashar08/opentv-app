@@ -6,7 +6,7 @@
  * vocabulary as the rest of the app, so the menu is scannable at a glance.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -26,11 +26,15 @@ export function ActionSheet({
   title,
   actions,
   onClose,
+  children,
 }: {
   visible: boolean;
   title?: string;
   actions: SheetAction[];
   onClose: () => void;
+  /** Content in place of (or after) the rows — the rating breakdown is a
+   *  sheet with no actions, and wants this one's slide, backdrop and close. */
+  children?: ReactNode;
 }) {
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
@@ -93,6 +97,7 @@ export function ActionSheet({
             </Text>
           </Pressable>
         ))}
+        {children}
         </ScrollView>
       </Animated.View>
     </Modal>
