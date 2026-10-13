@@ -3381,7 +3381,8 @@
   "halfStars": {
     "label": "Sua nota",
     "value": "{{value}} de 5 estrelas",
-    "unrated": "Sem nota"
+    "unrated": "Sem nota",
+    "hint": "Deslize sobre as estrelas para meias estrelas"
   },
   "feed": {
     "rated": "avaliou {{title}}",

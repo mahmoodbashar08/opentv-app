@@ -843,6 +843,7 @@ export type LocaleKey =
   | "group.sortBy"
   | "group.topic1"
   | "group.topic2"
+  | "halfStars.hint"
   | "halfStars.label"
   | "halfStars.unrated"
   | "halfStars.value"

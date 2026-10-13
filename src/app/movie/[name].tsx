@@ -17,6 +17,7 @@ import {
   deleteMovie,
   getInterest,
   getMovieCharacterVote,
+  getMeta,
   getMovieEmotions,
   getMovieForRoute,
   getMovies,
@@ -30,6 +31,7 @@ import {
   setMovieTvdbId,
   setMovieWatched,
   setMovieWatchedOn,
+  setMeta,
   toggleMovieEmotion,
 } from '@/db';
 import { runtimeLabel } from '@/duration';
@@ -113,6 +115,8 @@ function countLabel(n: number): string {
 }
 
 type RemoteMeta = MovieMeta & { poster: string | null };
+
+const HALF_HINT_KEY = 'halfStarsHintSeen';
 
 export default function MovieScreen() {
   const insets = useSafeAreaInsets();
@@ -500,6 +504,19 @@ export default function MovieScreen() {
   const [stars, setStars] = useState<number | null>(dbMovie?.stars ?? null);
   // the half star under a sliding finger, printed beside the question
   const [starPreview, setStarPreview] = useState<number | null>(null);
+  /*
+   * NOBODY FINDS A GESTURE THEY ARE NOT TOLD ABOUT. Half stars are a slide,
+   * and a tap looks exactly like 1.7's whole stars, so one quiet line says so
+   * under the stars until the first slide, then never again (14 Oct).
+   */
+  const [halfHintSeen, setHalfHintSeen] = useState(() => getMeta(HALF_HINT_KEY) === '1');
+  const slideRating = (next: number | null) => {
+    if (!halfHintSeen) {
+      setMeta(HALF_HINT_KEY, '1');
+      setHalfHintSeen(true);
+    }
+    return setRating(next);
+  };
   const [emotions, setEmotions] = useState<Set<number>>(new Set(dbMovie ? getMovieEmotions(dbMovie.name) : []));
 
   // REVEALED BY YOUR OWN VOTE — see the note on the episode screen. Showing
@@ -1218,7 +1235,7 @@ export default function MovieScreen() {
                   label={t('halfStars.label')}
                   valueText={stars == null ? t('halfStars.unrated') : t('halfStars.value', { value: starNumber(stars) })}
                   onTap={rate}
-                  onSlide={setRating}
+                  onSlide={slideRating}
                   onPreview={setStarPreview}
                 />
                 <View style={styles.starLegend}>
@@ -1237,6 +1254,7 @@ export default function MovieScreen() {
                     </View>
                   ))}
                 </View>
+                {!halfHintSeen && <Text style={styles.halfHint}>{t('halfStars.hint')}</Text>}
 
                 <View style={styles.divider} />
                 <Text style={styles.pollLabel}>{t('media.howDidYouFeelPoll')}</Text>
@@ -1463,6 +1481,7 @@ const styles = StyleSheet.create({
   starLabelMine: { color: colors.text, fontWeight: '800' },
   starLabelOther: { color: colors.faint },
   starPct: { color: colors.dim, fontSize: 11, fontWeight: '600' },
+  halfHint: { color: colors.dim, fontSize: 12, textAlign: 'center', marginTop: 6 },
   starPctMine: { color: colors.text, fontWeight: '800' },
   ratingValue: { color: colors.brand, fontWeight: '800' },
   emoPct: { color: colors.dim, fontSize: 9, fontWeight: '700' },
