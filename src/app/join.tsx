@@ -373,6 +373,8 @@ export default function JoinScreen() {
               and it is literally true — the server has no watch-history table
               (backend/docs/PLAN.md §2). */}
           <Text style={styles.promise}>{t('community.join.promise')}</Text>
+          {/* Watching together (2.0.0) shares one thing more, and says so here. */}
+          <Text style={styles.promise}>{t('together.privacy')}</Text>
         </ScrollView>
 
         <View style={[styles.actions, { paddingBottom: space.sm + insets.bottom }]}>

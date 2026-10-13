@@ -13,6 +13,7 @@ import { NavHeader, PillButton, Screen } from '@/components/ui';
 import { getCustomLists, getMeta, setListsOrder, setMeta } from '@/db';
 import { useJoined } from '@/community-session';
 import { fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
+import { noteTogetherIndex } from '@/community-together';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import { usePlus, requirePlus } from '@/plus';
@@ -111,6 +112,7 @@ export default function ListsScreen() {
       let live = true;
       void fetchSharedLists()
         .then((rows) => {
+          noteTogetherIndex(rows);
           if (live) setSharedLists(rows);
         })
         .catch(() => {
@@ -190,23 +192,6 @@ export default function ListsScreen() {
       <Animated.ScrollView ref={scrollRef} contentContainerStyle={{ paddingTop: 6 }}>
         <View style={{ alignItems: 'center', marginBottom: 16, gap: 10 }}>
           <PillButton label={t('listsIndex.createNewList')} onPress={() => router.push('/lists/create')} />
-          {/*
-           * UNDER THE CREATE BUTTON, because that is where somebody who wants a
-           * list looks -- and joining one is how you get a list you did not
-           * make.
-           *
-           * It spent a version inside the '...' menu, which is titled "Order
-           * lists": nobody holding an invite code somebody just sent them opens
-           * a menu about sort order. This is not the old "Shared lists" door
-           * either, which duplicated the whole idea of a list behind a second
-           * screen; it is one action, named after what it does.
-           */}
-          {joined && (
-            <Pressable accessibilityRole="button" style={sharedStyles.joinRow} onPress={() => router.push('/shared')}>
-              <Ionicons name="enter-outline" size={15} color={colors.yellow} />
-              <Text style={sharedStyles.joinText}>{t('listsIndex.joinWithCode')}</Text>
-            </Pressable>
-          )}
         </View>
         {/* ONE TREE, ALWAYS. Rearranging switches the gesture on, not the view:
             rendering a different list to drag unmounts every band, and an image
@@ -246,13 +231,39 @@ export default function ListsScreen() {
             );
           }}
         />
+        {/*
+         * SHARED WITH FRIENDS, AS ITS OWN SECTION (item 19). Starting one was a
+         * toggle inside "Create a new list", joining was a small link shown only
+         * when signed in, and a shared row differed from yours by a tiny mark.
+         * Now both doors sit under a heading of their own, above the lists they
+         * lead to, for everybody: somebody not signed in lands on the screen
+         * that explains why an account is needed, which is better than not
+         * learning the feature exists. Not for the demo library.
+         */}
+        {!seedLib && (
+          <View style={sharedStyles.section}>
+            <Text accessibilityRole="header" style={sharedStyles.heading}>
+              {t('sharedLists.sectionTitle')}
+            </Text>
+            <View style={sharedStyles.doors}>
+              <PillButton
+                small
+                label={t('shared.startOne')}
+                trackId="shared_start"
+                onPress={() => router.push(joined ? '/shared/create' : '/shared')}
+              />
+              <PillButton small variant="outline" label={t('listsIndex.joinWithCode')} trackId="shared_join" onPress={() => router.push('/shared')} />
+            </View>
+          </View>
+        )}
         {sharedLists.map((sl) => (
           <View key={sl.id} style={{ marginTop: 12 }}>
             <ListCollage
               list={{
-                name: sl.name,
+                name: sl.kind === 'together' ? (sl.show?.title ?? sl.name) : sl.name,
                 items: (sl.posters ?? []).map((poster) => ({ name: '', poster })),
                 shared: true,
+                together: sl.kind === 'together',
                 memberCount: sl.members,
               }}
               cols={COLS}
@@ -325,8 +336,9 @@ const styles = StyleSheet.create({
   upsell: { color: colors.yellow, fontWeight: '700' },
 });
 
-/** Kept apart from `styles` so the join entry point is easy to find in here. */
+/** Kept apart from `styles` so the shared section is easy to find in here. */
 const sharedStyles = StyleSheet.create({
-  joinRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 4 },
-  joinText: { color: colors.blue, fontSize: 13.5, fontWeight: '700' },
+  section: { marginTop: 26, paddingHorizontal: 14, gap: 10 },
+  heading: { color: colors.text, fontSize: 18, fontWeight: '800' },
+  doors: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
 });

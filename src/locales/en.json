@@ -3385,5 +3385,39 @@
     "unfollow": "Unfollow",
     "optOut": "Show my reactions to followers",
     "optOutSub": "Your ratings, feelings, comments and favourite characters appear in the feed of people who follow you."
+  },
+  "together": {
+    "title": "Watching together",
+    "start": "Watch together",
+    "startPlus": "Watch together · Plus",
+    "inviteMessage": "Let's watch {{show}} together on OpenTV — we'll each see which episode the other is on. Code: {{code}}",
+    "inviteBody": "Send the code to whoever you are watching with. They join for free and see which episode you are on.",
+    "notStarted": "Not started",
+    "ahead": {
+      "one": "{{name}} is {{count}} episode ahead",
+      "other": "{{name}} is {{count}} episodes ahead"
+    },
+    "behind": {
+      "one": "You're {{count}} episode ahead of {{name}}",
+      "other": "You're {{count}} episodes ahead of {{name}}"
+    },
+    "level": "You and {{name}} are on the same episode",
+    "labels": "{{name}} is on {{theirs}}, you're on {{mine}}",
+    "alone": "Nobody else yet — invite whoever you are watching with.",
+    "rowWith": "Watching together with {{names}}",
+    "addToMyShows": "Add to my shows",
+    "cantRead": "Can't read your progress in this show on this phone.",
+    "privacy": "If you watch a show together with someone, the furthest episode you have watched of that show is shared with the people you invite — nothing else."
+  },
+  "sharedLists": {
+    "inviteTitle": "Invite someone first",
+    "inviteBody": "A shared list is shared once somebody else is in it. Send them the code — joining is free.",
+    "inviteAction": "Invite a friend",
+    "invite": "Invite",
+    "sectionTitle": "Shared with friends",
+    "badge": {
+      "one": "Shared · {{count}} person",
+      "other": "Shared · {{count}} people"
+    }
   }
 }

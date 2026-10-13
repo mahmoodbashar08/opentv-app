@@ -3385,5 +3385,39 @@
     "unfollow": "Deixar de seguir",
     "optOut": "Mostrar minhas reações aos seguidores",
     "optOutSub": "Suas avaliações, emoções, comentários e personagens favoritos aparecem no feed de quem segue você."
+  },
+  "together": {
+    "title": "Assistindo juntos",
+    "start": "Assistir juntos",
+    "startPlus": "Assistir juntos · Plus",
+    "inviteMessage": "Vamos assistir {{show}} juntos no OpenTV — cada um vê em que episódio o outro está. Código: {{code}}",
+    "inviteBody": "Envie o código para quem assiste com você. A pessoa entra de graça e vê em que episódio você está.",
+    "notStarted": "Não começou",
+    "ahead": {
+      "one": "{{name}} está {{count}} episódio à frente",
+      "other": "{{name}} está {{count}} episódios à frente"
+    },
+    "behind": {
+      "one": "Você está {{count}} episódio à frente de {{name}}",
+      "other": "Você está {{count}} episódios à frente de {{name}}"
+    },
+    "level": "Você e {{name}} estão no mesmo episódio",
+    "labels": "{{name}} está em {{theirs}}, você está em {{mine}}",
+    "alone": "Ninguém mais ainda — convide quem assiste com você.",
+    "rowWith": "Assistindo juntos com {{names}}",
+    "addToMyShows": "Adicionar às minhas séries",
+    "cantRead": "Não foi possível ler seu progresso nesta série neste celular.",
+    "privacy": "Se você assistir a uma série junto com alguém, o episódio mais avançado que você viu dessa série é compartilhado com as pessoas que você convidar — nada mais."
+  },
+  "sharedLists": {
+    "inviteTitle": "Convide alguém primeiro",
+    "inviteBody": "Uma lista compartilhada só é compartilhada quando mais alguém entra. Envie o código — entrar é grátis.",
+    "inviteAction": "Convidar um amigo",
+    "invite": "Convidar",
+    "sectionTitle": "Compartilhadas com amigos",
+    "badge": {
+      "one": "Compartilhada · {{count}} pessoa",
+      "other": "Compartilhada · {{count}} pessoas"
+    }
   }
 }

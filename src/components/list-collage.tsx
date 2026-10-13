@@ -49,6 +49,8 @@ export type CollageList = {
   shared?: boolean;
   /** How many people are in it. Drawn beside the mark when known. */
   memberCount?: number | null;
+  /** A together (2.0.0): a shared list of one show, marked as such. */
+  together?: boolean;
   items?: readonly { name: string; poster: string | null }[];
 };
 
@@ -84,7 +86,10 @@ export function ListCollage({
       accessibilityLabel={[
         list.name,
         list.hidden === true ? t('listsIndex.hiddenBadge') : null,
-        list.shared === true ? t('a11y.sharedList') : null,
+        list.together === true ? t('together.title') : list.shared === true ? t('a11y.sharedList') : null,
+        list.shared === true && list.memberCount != null && list.memberCount > 0
+          ? t('shared.memberCount', { count: list.memberCount })
+          : null,
         list.pinned === true ? t('a11y.pinned') : null,
       ]
         .filter(Boolean)
@@ -113,13 +118,19 @@ export function ListCollage({
         </View>
       )}
       {/* Beside the hidden badge when both apply -- they never do today (a
-          shared list has no hide switch), and the offset costs nothing. */}
+          shared list has no hide switch), and the offset costs nothing.
+          WORDS, NOT ONLY A GLYPH (item 19): a lone people icon and a number
+          was too small a difference for a list other people can change. */}
       {list.shared === true && (
         <View style={[styles.hiddenBadge, list.hidden === true && styles.pinBesideHidden]}>
-          <Ionicons name="people" size={11} color={colors.yellow} />
-          {list.memberCount != null && list.memberCount > 0 && (
-            <Text style={styles.hiddenBadgeText}>{list.memberCount}</Text>
-          )}
+          <Ionicons name={list.together === true ? 'tv' : 'people'} size={11} color={colors.yellow} />
+          <Text style={styles.hiddenBadgeText}>
+            {list.together === true
+              ? t('together.title')
+              : list.memberCount != null && list.memberCount > 0
+                ? t('sharedLists.badge', { count: list.memberCount })
+                : t('a11y.sharedList')}
+          </Text>
         </View>
       )}
       {list.pinned === true && (
