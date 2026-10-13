@@ -10,10 +10,12 @@ import { getEpisodeVote, getMovie, getShowBrief } from '@/db';
 import { episodeMeta, showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
 import { colors, radius, ls } from '@/theme';
+import { tapSelection } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { runtimeLabel } from '@/duration';
 import { withLink } from '@/share-link';
 import { StarRow } from '@/components/half-stars';
+import { oneAtATime } from '@/one-at-a-time';
 
 // A share card is captured as an IMAGE, so a fixed size is correct — it should
 // not reflow with orientation. Clamped so a tablet (or a landscape launch)
@@ -303,7 +305,10 @@ export default function ShareCardScreen() {
             <Pressable accessibilityRole="tab" accessibilityState={{ selected: shape === k }}
               key={k}
               style={[styles.shapeTab, shape === k && styles.shapeTabOn]}
-              onPress={() => setShape(k)}>
+              onPress={() => {
+                tapSelection();
+                setShape(k);
+              }}>
               <Ionicons
                 name={
                   k === 'card' ? 'tablet-landscape-outline' : k === 'post' ? 'square-outline' : 'phone-portrait-outline'
@@ -551,7 +556,7 @@ export default function ShareCardScreen() {
         </View>
         )}
 
-        <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={share}>
+        <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={() => void oneAtATime('share', share)}>
           <Ionicons name="share-outline" size={18} color={colors.onBrand} />
           <Text style={styles.shareText}>{t('shareCard.share')}</Text>
         </Pressable>

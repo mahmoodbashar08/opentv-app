@@ -23,6 +23,7 @@ import { bannerToDocuments, TEMPLATES, type Template } from '@/profile-templates
 import { cardGrid } from '@/pure';
 import { tmdb } from '@/tmdb';
 import { colors, setThemeAccentHex, space } from '@/theme';
+import { tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 
 /** The Ours grid's column gap — one number for the container's `gap` and the
@@ -582,7 +583,10 @@ export default function CoverPickerScreen() {
               style={[styles.tab, tab === k && styles.tabOn]}
               // The row only exists for a Plus user now, so there is nothing
               // left to refuse here.
-              onPress={() => setTab(k)}>
+              onPress={() => {
+                tapSelection();
+                setTab(k);
+              }}>
               <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>
                 {k === 'art' ? t('coverPicker.tabArt') : k === 'ours' ? t('coverPicker.tabOurs') : k === 'gif' ? t('pickGif.gif') : t('coverPicker.tabUpload')}
               </Text>

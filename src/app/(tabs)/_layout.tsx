@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { offerBackupIfDue } from '@/backup-prompt';
 import { offerCommunityIfDue } from '@/community-prompt';
+import { tapSelection } from '@/haptics';
 import { isNotifyScreenOwed } from '@/session-store';
 import { t } from '@/i18n';
 import { colors } from '@/theme';
@@ -74,6 +75,9 @@ export default function TabsLayout() {
     <>
     <WhatsNew />
     <Tabs
+      // The bottom bar is a row of tabs like any other, and ticks like them
+      // (14 Oct): every tab row in the app goes through `tapSelection`.
+      screenListeners={{ tabPress: () => tapSelection() }}
       screenOptions={{
         headerShown: false,
         sceneStyle: { backgroundColor: colors.bg },

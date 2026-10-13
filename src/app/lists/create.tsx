@@ -25,6 +25,7 @@ import { createList, getCustomLists, renameList, setListHidden } from '@/db';
 import { listsChanged } from '@/community-publish';
 import { PLUS_AVAILABLE } from '@/plus';
 import { colors, radius, space } from '@/theme';
+import { tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 
 export default function CreateListScreen() {
@@ -106,7 +107,10 @@ export default function CreateListScreen() {
                 <Pressable accessibilityRole="radio" accessibilityState={{ selected: withFriends === mode }}
                   key={String(mode)}
                   style={[styles.kind, withFriends === mode && styles.kindOn]}
-                  onPress={() => setWithFriends(mode)}>
+                  onPress={() => {
+                    tapSelection();
+                    setWithFriends(mode);
+                  }}>
                   <Text style={[styles.kindText, withFriends === mode && styles.kindTextOn]}>
                     {mode ? t('listCreate.kindWithFriends') : t('listCreate.kindJustMe')}
                   </Text>
