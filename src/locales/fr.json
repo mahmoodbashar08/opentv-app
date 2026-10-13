@@ -3467,6 +3467,7 @@
       "one": "{{value}} étoile, {{percent}} %",
       "other": "{{value}} étoiles, {{percent}} %"
     },
-    "mine": "votre note"
+    "mine": "votre note",
+    "short": "Communauté"
   }
 }

@@ -1722,6 +1722,7 @@ export type LocaleKey =
   | "ratingBreakdown.averageLabel"
   | "ratingBreakdown.mine"
   | "ratingBreakdown.row"
+  | "ratingBreakdown.short"
   | "ratingBreakdown.title"
   | "ratings.allTheSame"
   | "ratings.communityHighest"

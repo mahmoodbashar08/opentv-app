@@ -3995,6 +3995,7 @@
       "many": "{{value}} نجمة، {{percent}}٪",
       "other": "{{value}} نجمة، {{percent}}٪"
     },
-    "mine": "تقييمك"
+    "mine": "تقييمك",
+    "short": "المجتمع"
   }
 }

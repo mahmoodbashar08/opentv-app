@@ -70,6 +70,9 @@ export function CommunityRating({
         accessibilityLabel={label}
         accessibilityHint={t('ratingBreakdown.averageHint')}>
         {children}
+        {/* SAYS WHOSE NUMBER IT IS. Bare stars and "4.3/5" under "Rate this
+            movie" read as a second rating of your own (developer, 14 Oct). */}
+        <Text style={s.who}>{t('ratingBreakdown.short')}</Text>
         <StarRow ten={ten} size={16} on={colors.yellow} off={colors.pillGrey} />
         <Text style={s.lineText}>{line}</Text>
         {/* it opens something, and says so — the reason "Stats" without a ›
@@ -114,6 +117,7 @@ export function CommunityRating({
 }
 
 const s = StyleSheet.create({
+  who: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   line: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   lineText: { color: colors.dim, fontSize: 13.5 },
   head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, paddingBottom: 12 },

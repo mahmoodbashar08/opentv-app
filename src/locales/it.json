@@ -3467,6 +3467,7 @@
       "one": "{{value}} stella, {{percent}}%",
       "other": "{{value}} stelle, {{percent}}%"
     },
-    "mine": "il tuo voto"
+    "mine": "il tuo voto",
+    "short": "Community"
   }
 }
