@@ -24,6 +24,7 @@ import { formatCount } from '@/locale-resolve';
 import { requirePlus, usePlus } from '@/plus';
 import { computeCrowdCompare, computeDeepStats, watchYears } from '@/stats-calc';
 import { colors, radius, space, ls } from '@/theme';
+import { oneAtATime } from '@/one-at-a-time';
 
 /** How many of the crowd rows each half of the comparison shows. */
 const CROWD_ROWS = 5;
@@ -96,7 +97,7 @@ function ShareRow({ genres, score }: { genres: string[]; score: number | null })
           <Text style={styles.cardBrandSub}>{t('plus.stats.cardTagline')}</Text>
         </View>
       </View>
-      <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={share}>
+      <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={() => void oneAtATime('share', share)}>
         <Ionicons name="share-outline" size={18} color={colors.onYellow} />
         <Text style={styles.shareText}>{t('plus.stats.share')}</Text>
       </Pressable>

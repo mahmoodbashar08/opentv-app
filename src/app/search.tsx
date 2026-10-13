@@ -18,6 +18,7 @@ import { movieRoute, movieYear, type SearchHistoryEntry } from '@/pure';
 import { colors, space, ls } from '@/theme';
 import { a11yAction } from '@/a11y';
 import { t } from '@/i18n';
+import { oneAtATime } from '@/one-at-a-time';
 
 const TABS = ['Shows & Movies', 'Users', 'Groups'] as const;
 /*
@@ -528,7 +529,7 @@ export default function SearchScreen() {
                     <Ionicons name="checkmark-circle" size={26} color={colors.yellow} />
                   </View>
                 ) : (
-                  <Pressable hitSlop={10} onPress={() => add(item)} accessibilityRole="button" accessibilityLabel={t('a11y.addToLibrary')}>
+                  <Pressable hitSlop={10} onPress={() => void oneAtATime(`add:${item.key}`, () => add(item))} accessibilityRole="button" accessibilityLabel={t('a11y.addToLibrary')}>
                     <Ionicons name="add-circle-outline" size={26} color={colors.text} />
                   </Pressable>
                 )}

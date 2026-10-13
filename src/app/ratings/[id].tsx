@@ -36,6 +36,7 @@ import { fetchSeasonAggregates, readSeasonAggregates } from '@/community-ratings
 import { communityScore, communityScoreFromCounts, ratingGrid } from '@/pure';
 import { filledStarText } from '@/star-rating';
 import { colors, radius, space, ls } from '@/theme';
+import { oneAtATime } from '@/one-at-a-time';
 
 const TABS = ['Overview', 'Episodes'] as const;
 
@@ -339,7 +340,7 @@ export default function RatingsScreen() {
               * bar, no scroll position, no half a row at the bottom.
               */}
             {grid.rated > 0 && (
-              <GridSection title={t('ratings.yourRatings')} onShare={() => void shareCard(mineCard)}>
+              <GridSection title={t('ratings.yourRatings')} onShare={() => void oneAtATime('share', () => shareCard(mineCard))}>
                 <RatingsGrid episodes={episodes} ratings={ratings} />
               </GridSection>
             )}
@@ -347,7 +348,7 @@ export default function RatingsScreen() {
               <GridSection
                 title={t('ratings.communityRatings')}
                 note={grid.rated > 0 ? undefined : t('ratings.gridCommunityNote')}
-                onShare={() => void shareCard(theirsCard)}>
+                onShare={() => void oneAtATime('share', () => shareCard(theirsCard))}>
                 <RatingsGrid episodes={episodes} ratings={community.cells} decimal />
               </GridSection>
             )}

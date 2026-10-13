@@ -11,6 +11,7 @@ import { colors, radius, ls } from '@/theme';
 import { t } from '@/i18n';
 import { getHandle } from '@/community-session';
 import { profilePath, withLink } from '@/share-link';
+import { oneAtATime } from '@/one-at-a-time';
 
 const AVATAR = require('../../assets/profile/avatar.jpg');
 // A share card is captured as an IMAGE, so a fixed size is correct — it should
@@ -199,7 +200,7 @@ export default function ShareProfileScreen() {
         </View>
         </View>
 
-        <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={share}>
+        <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={() => void oneAtATime('share', share)}>
           <Ionicons name="share-outline" size={18} color={colors.onBrand} />
           <Text style={styles.shareText}>{t('shareCard.share')}</Text>
         </Pressable>

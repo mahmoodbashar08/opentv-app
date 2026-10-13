@@ -73,6 +73,7 @@ import {
 } from '@/puzzle-data';
 import { withLink } from '@/share-link';
 import { colors, radius, space, ls } from '@/theme';
+import { oneAtATime } from '@/one-at-a-time';
 
 /** More than this and the list is a wall; fewer and a common word hides the show. */
 const SUGGESTIONS = 8;
@@ -431,7 +432,7 @@ export default function PuzzleScreen() {
         title={t('puzzlePolish.shareTitle')}
         onClose={() => setSharing(false)}
         actions={[
-          { icon: 'image-outline', text: t('puzzlePolish.shareImage'), onPress: () => void shareImageNow() },
+          { icon: 'image-outline', text: t('puzzlePolish.shareImage'), onPress: () => void oneAtATime('share', shareImageNow) },
           { icon: 'text-outline', text: t('puzzlePolish.shareText'), onPress: shareTextNow },
         ]}
       />

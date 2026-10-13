@@ -54,6 +54,7 @@ import { tapLight, tapSelection } from '@/haptics';
 import { t } from '@/i18n';
 import { colors, radius, space, ls } from '@/theme';
 import { withLink } from '@/share-link';
+import { oneAtATime } from '@/one-at-a-time';
 
 export default function SharedListScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -286,7 +287,7 @@ export default function SharedListScreen() {
   const listActions = (): SheetAction[] => [
     ...(list?.invite_code
       ? [
-          { text: t('shared.shareInvite'), icon: 'share-outline' as const, onPress: () => void shareInvite() },
+          { text: t('shared.shareInvite'), icon: 'share-outline' as const, onPress: () => void oneAtATime('share', shareInvite) },
           { text: t('shared.newCode'), icon: 'refresh' as const, onPress: () => void rotate() },
         ]
       : []),
@@ -347,7 +348,7 @@ export default function SharedListScreen() {
           <Text style={styles.code} accessibilityLabel={`${t('shared.inviteLabel')}: ${list.invite_code?.split('').join(' ')}`}>
             {list.invite_code}
           </Text>
-          <PillButton label={t('sharedLists.inviteAction')} onPress={() => void shareInvite()} trackId="shared_invite_first" />
+          <PillButton label={t('sharedLists.inviteAction')} onPress={() => void oneAtATime('share', shareInvite)} trackId="shared_invite_first" />
         </View>
       ) : null}
 
@@ -362,7 +363,7 @@ export default function SharedListScreen() {
                 label: member ? t('shared.memberProgress', { done: m.watched, total }) : '',
               }))
         }
-        onInvite={!inviteFirst && list.invite_code != null ? () => void shareInvite() : undefined}
+        onInvite={!inviteFirst && list.invite_code != null ? () => void oneAtATime('share', shareInvite) : undefined}
       />
 
       {together && member && (
