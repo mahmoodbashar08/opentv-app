@@ -158,7 +158,7 @@ export type Answer = {
    *  it a candidate. */
   watched: boolean;
   /** Films only, from the library row: the key `/movie/[name]` opens, the
-   *  year and runtime the clues start from, and when it was watched. */
+   *  year and runtime (minutes) the clues start from, and when it was watched. */
   film?: { name: string; year: string | null; runtime: number | null; watchedAt: string | null };
 };
 
@@ -208,7 +208,8 @@ export function answerPool(): Answer[] {
       poster: f.poster,
       mine: true,
       watched: f.watchedAt != null,
-      film: { name: f.name, year: f.year, runtime: f.runtime, watchedAt: f.watchedAt },
+      // `movies.runtime` is SECONDS (TV Time's unit); every clue speaks minutes.
+      film: { name: f.name, year: f.year, runtime: f.runtime ? Math.round(f.runtime / 60) : null, watchedAt: f.watchedAt },
     });
   }
   return [...out.values()].sort((a, b) => a.name.localeCompare(b.name));
