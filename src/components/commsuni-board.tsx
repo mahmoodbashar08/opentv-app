@@ -192,7 +192,7 @@ export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'bo
         <>
           <View style={styles.sorts}>
             {(['most_liked', 'most_recent', 'most_relevant'] as const).map((s) => (
-              <Pressable key={s} style={[styles.sort, board.sort === s && styles.sortOn]} onPress={() => board.setSort(s)}>
+              <Pressable accessibilityRole="button" accessibilityState={{ selected: board.sort === s }} key={s} style={[styles.sort, board.sort === s && styles.sortOn]} onPress={() => board.setSort(s)}>
                 <Text style={[styles.sortText, board.sort === s && styles.sortTextOn]}>
                   {t(s === 'most_liked' ? 'commsuni.sortLiked' : s === 'most_recent' ? 'commsuni.sortRecent' : 'commsuni.sortTop')}
                 </Text>
@@ -230,9 +230,12 @@ export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'bo
       )}
 
       <Modal visible={info} transparent animationType="fade" onRequestClose={() => setInfo(false)}>
-        <Pressable style={styles.scrim} onPress={() => setInfo(false)}>
-          <Pressable style={styles.card} onPress={() => {}}>
-            <Text style={styles.cardTitle}>{t('commsuni.infoTitle')}</Text>
+        {/* The scrim wraps the card, so it cannot be an element: a Pressable is
+            a leaf to VoiceOver and the links inside would be unreachable. The
+            escape gesture is the screen reader's way out. */}
+        <Pressable accessible={false} style={styles.scrim} onPress={() => setInfo(false)}>
+          <Pressable accessible={false} accessibilityViewIsModal onAccessibilityEscape={() => setInfo(false)} style={styles.card} onPress={() => {}}>
+            <Text accessibilityRole="header" style={styles.cardTitle}>{t('commsuni.infoTitle')}</Text>
             <View style={styles.cardRow}>
               {commsuniIcon ? <Image source={{ uri: commsuniIcon }} style={styles.bigIcon} /> : null}
               <Text style={styles.cardText}>
@@ -246,10 +249,10 @@ export function BoardBanner({ board, part = 'both' }: { board: Board; part?: 'bo
               </Text>
             </View>
             <Text style={styles.cardNote}>{t('commsuni.infoSolo')}</Text>
-            <Pressable style={styles.support} onPress={() => void Linking.openURL(COMMSUNI_URL)}>
+            <Pressable accessibilityRole="link" style={styles.support} onPress={() => void Linking.openURL(COMMSUNI_URL)}>
               <Text style={styles.supportText}>{t('commsuni.support')}</Text>
             </Pressable>
-            <Pressable style={styles.archive} onPress={() => void Linking.openURL(ARCHIVE_URL)}>
+            <Pressable accessibilityRole="link" style={styles.archive} onPress={() => void Linking.openURL(ARCHIVE_URL)}>
               <Text style={styles.archiveText}>{t('commsuni.archiveLink')}</Text>
             </Pressable>
           </Pressable>
@@ -308,7 +311,7 @@ function Chips({
   return (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
       {items.map((it) => (
-        <Pressable
+        <Pressable accessibilityRole="button" accessibilityState={{ selected: value === it.key }}
           key={it.key ?? '*'}
           style={[styles.sort, value === it.key && styles.sortOn]}
           onPress={() => {
@@ -489,11 +492,11 @@ export function ConsentSheet({ visible, onDone }: { visible: boolean; onDone: ()
   };
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onDone}>
-      <Pressable style={styles.scrim} onPress={onDone}>
-        <Pressable style={styles.card} onPress={() => {}}>
+      <Pressable accessible={false} style={styles.scrim} onPress={onDone}>
+        <Pressable accessible={false} accessibilityViewIsModal onAccessibilityEscape={onDone} style={styles.card} onPress={() => {}}>
           {step === 'share' ? (
             <>
-              <Text style={styles.cardTitle}>{t('commsuni.consent.title')}</Text>
+              <Text accessibilityRole="header" style={styles.cardTitle}>{t('commsuni.consent.title')}</Text>
               <Text style={styles.cardText}>{t('commsuni.consent.body')}</Text>
               <Pressable accessibilityRole="button" style={styles.support} onPress={() => setStep('identity')}>
                 <Text style={styles.supportText}>{t('commsuni.consent.share')}</Text>
@@ -504,7 +507,7 @@ export function ConsentSheet({ visible, onDone }: { visible: boolean; onDone: ()
             </>
           ) : (
             <>
-              <Text style={styles.cardTitle}>{t('commsuni.consent.identityTitle')}</Text>
+              <Text accessibilityRole="header" style={styles.cardTitle}>{t('commsuni.consent.identityTitle')}</Text>
               <Text style={styles.cardText}>{t('commsuni.consent.identityBody')}</Text>
               <Pressable accessibilityRole="button" style={styles.support} onPress={() => finish('share', 'profile')}>
                 <Text style={styles.supportText}>{t('commsuni.consent.asProfile')}</Text>

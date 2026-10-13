@@ -178,7 +178,7 @@ export default function ListsScreen() {
           // WAS A BARE ICON. It looked like a button, had no handler, and a
           // tester reported it as broken — correctly. It sorts now, and drops
           // into a rearrange mode for the order the export never got right.
-          <Pressable hitSlop={12} onPress={() => (reordering ? setReordering(false) : setSheet(true))}>
+          <Pressable accessibilityRole="button" accessibilityLabel={reordering ? undefined : t('listsIndex.sortTitle')} hitSlop={12} onPress={() => (reordering ? setReordering(false) : setSheet(true))}>
             {reordering ? (
               <Text style={styles.doneText}>{t('listsIndex.reorderDone')}</Text>
             ) : (

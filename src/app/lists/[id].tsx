@@ -90,17 +90,17 @@ export default function ListDetailScreen() {
         right={
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
             {!seedLib && mode !== 'view' ? (
-              <Pressable hitSlop={8} onPress={() => setMode('view')}>
+              <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setMode('view')}>
                 <Text style={{ color: colors.blue, fontSize: 15.5, fontWeight: '700' }}>{t('common.done')}</Text>
               </Pressable>
             ) : (
               <>
                 {!seedLib && items.length > 0 && (
-                  <Pressable hitSlop={8} onPress={() => setMode('edit')}>
+                  <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setMode('edit')}>
                     <Text style={{ color: colors.blue, fontSize: 15.5, fontWeight: '600' }}>{t('profile.edit')}</Text>
                   </Pressable>
                 )}
-                <Pressable hitSlop={10} onPress={() => router.push(`/list-menu?name=${encodeURIComponent(id ?? '')}`)}>
+                <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.more')} hitSlop={10} onPress={() => router.push(`/list-menu?name=${encodeURIComponent(id ?? '')}`)}>
                   <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
                 </Pressable>
               </>
@@ -109,7 +109,7 @@ export default function ListDetailScreen() {
         }
       />
       <View style={{ paddingHorizontal: space.lg, gap: 12, paddingBottom: 12 }}>
-        <Text style={styles.title}>{name}</Text>
+        <Text accessibilityRole="header" style={styles.title}>{name}</Text>
         {/* ALWAYS, not only in edit mode. This screen is the owner's own list —
             somebody else's is `/list/[id]` — and adding to it is the thing they
             came here to do. Hiding the only way in behind ⋯ → Edit meant a list

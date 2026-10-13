@@ -75,8 +75,8 @@ export default function ListMenuSheet() {
   };
 
   return (
-    <Pressable style={styles.backdrop} onPress={() => router.back()}>
-      <View style={styles.sheet}>
+    <Pressable accessible={false} style={styles.backdrop} onPress={() => router.back()}>
+      <View style={styles.sheet} accessibilityViewIsModal onAccessibilityEscape={() => router.back()}>
         <Pressable accessibilityRole="button"
           style={styles.row}
           onPress={() => go(name ? `/lists/create?edit=${encodeURIComponent(name)}` : '/lists/create')}>

@@ -521,7 +521,7 @@ export default function PublicProfileScreen() {
       // This screen is a modal, so the bell's place in the bar is the way out
       // of it. The tab has no such control because a tab cannot be dismissed.
       barLeft={
-        <Pressable hitSlop={10} onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} hitSlop={10} onPress={() => router.back()}>
           <Ionicons name="chevron-down" size={22} color={colors.text} />
         </Pressable>
       }
@@ -530,7 +530,7 @@ export default function PublicProfileScreen() {
       // menu whose every item is inapplicable is worse than no menu.
       barRight={
         !isSelf && joined ? (
-          <Pressable hitSlop={10} onPress={() => setMenu(true)}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.more')} hitSlop={10} onPress={() => setMenu(true)}>
             <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
           </Pressable>
         ) : undefined

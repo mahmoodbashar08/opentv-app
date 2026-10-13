@@ -13,7 +13,7 @@ export default function CreateTopicScreen() {
   return (
     <Screen>
       <View style={styles.head}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} onPress={() => router.back()} hitSlop={8}>
           <Ionicons name="close" size={24} color={colors.text} />
         </Pressable>
         <PillButton label={t('createTopic.post')} small onPress={() => router.back()} />

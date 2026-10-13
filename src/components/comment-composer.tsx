@@ -156,7 +156,7 @@ export function CommentComposer({
           editable={!sending}
         />
 
-        <Pressable
+        <Pressable accessibilityRole="button" accessibilityLabel={t('community.comments.send')} accessibilityState={{ disabled: bodyFailure !== null || sending }}
           hitSlop={8}
           disabled={bodyFailure !== null || sending}
           style={[styles.send, (bodyFailure !== null || sending) && styles.sendOff]}

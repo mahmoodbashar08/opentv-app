@@ -136,7 +136,7 @@ export default function AddToListScreen() {
         renderItem={({ item: l }) => {
           const on = inList(l.name);
           return (
-            <Pressable style={styles.row} onPress={() => toggle(l.name)}>
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} style={styles.row} onPress={() => toggle(l.name)}>
               <Text style={styles.name} numberOfLines={1}>
                 {l.name}
               </Text>

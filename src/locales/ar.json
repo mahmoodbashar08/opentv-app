@@ -3528,6 +3528,9 @@
     "favourite": "مفضل",
     "showPassword": "إظهار كلمة المرور",
     "hidePassword": "إخفاء كلمة المرور",
-    "colour": "اللون {{n}}"
+    "colour": "اللون {{n}}",
+    "attachImage": "إرفاق صورة",
+    "like": "إعجاب",
+    "newTopic": "موضوع جديد"
   }
 }

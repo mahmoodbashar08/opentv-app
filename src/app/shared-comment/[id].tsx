@@ -369,7 +369,7 @@ export default function SharedCommentScreen() {
             <View style={styles.gifRow}>
               <Image source={{ uri: gif }} style={styles.gifThumb} contentFit="cover" />
               <View style={{ flex: 1 }} />
-              <Pressable hitSlop={10} onPress={() => setGif(null)}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('common.remove')} hitSlop={10} onPress={() => setGif(null)}>
                 <Ionicons name="close-circle" size={22} color={colors.dim} />
               </Pressable>
             </View>
@@ -377,7 +377,7 @@ export default function SharedCommentScreen() {
           <View style={[styles.tools, { paddingBottom: Math.max(insets.bottom, 10) }]}>
             {/* PLUS, as a picture on a comment is everywhere else in the app. */}
             {plusUi && (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 hitSlop={8}
                 style={styles.toolBtn}
                 disabled={sending}
@@ -391,7 +391,7 @@ export default function SharedCommentScreen() {
                 <Text style={[styles.gifLabel, gif != null && { color: colors.yellow }]}>{t('commsuni.gif')}</Text>
               </Pressable>
             )}
-            <Pressable
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: spoiler }}
               hitSlop={8}
               style={[styles.spoiler, spoiler && styles.spoilerOn]}
               onPress={() => {
@@ -405,8 +405,8 @@ export default function SharedCommentScreen() {
           <Modal visible={gifOpen} animationType="slide" onRequestClose={() => setGifOpen(false)}>
             <View style={[styles.writeScreen, { paddingTop: insets.top + 8 }]}>
               <View style={styles.writeHead}>
-                <Text style={styles.postText}>{t('pickGif.title')}</Text>
-                <Pressable hitSlop={12} onPress={() => setGifOpen(false)}>
+                <Text accessibilityRole="header" style={styles.postText}>{t('pickGif.title')}</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} hitSlop={12} onPress={() => setGifOpen(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </Pressable>
               </View>

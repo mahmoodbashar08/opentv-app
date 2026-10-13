@@ -185,7 +185,7 @@ export default function FollowingScreen() {
           </Pressable>
         )}
 
-        <Text style={styles.sectionTitle}>
+        <Text accessibilityRole="header" style={styles.sectionTitle}>
           {showFollowers
             ? t('following.followersSection', { count: rows.length })
             : t('following.followingSection', { count: rows.length })}

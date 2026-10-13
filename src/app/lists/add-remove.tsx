@@ -126,7 +126,7 @@ export default function AddRemoveScreen() {
         renderItem={({ item }) => {
           const on = inList(item);
           return (
-            <Pressable style={styles.row} onPress={() => toggle(item)}>
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} style={styles.row} onPress={() => toggle(item)}>
               {item.poster ? (
                 <Image source={{ uri: item.poster }} style={styles.thumb} contentFit="cover" cachePolicy="disk" />
               ) : (

@@ -702,11 +702,11 @@ export default function CommentsScreen() {
       )}
 
       {/* own-comment / share sheets, like the real app */}
+      {/* THE BACKDROP IS NOT AN ELEMENT. A Pressable is a leaf to VoiceOver,
+          and this one wraps the whole sheet — so the rows inside could never
+          be reached. The sheet confines the reader instead, and the escape
+          gesture (two-finger Z) is the way out. */}
       {sheet && (
-        {/* THE BACKDROP IS NOT AN ELEMENT. A Pressable is a leaf to VoiceOver,
-            and this one wraps the whole sheet — so the rows inside could never
-            be reached. The sheet confines the reader instead, and the escape
-            gesture (two-finger Z) is the way out. */}
         <Pressable style={styles.backdrop} onPress={() => setSheet(null)} accessible={false}>
           <View style={styles.sheet} accessibilityViewIsModal onAccessibilityEscape={() => setSheet(null)}>
             {sheet.kind === 'own' ? (

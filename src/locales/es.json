@@ -3092,6 +3092,9 @@
     "favourite": "Favorito",
     "showPassword": "Mostrar la contraseña",
     "hidePassword": "Ocultar la contraseña",
-    "colour": "Color {{n}}"
+    "colour": "Color {{n}}",
+    "attachImage": "Adjuntar una imagen",
+    "like": "Me gusta",
+    "newTopic": "Nuevo tema"
   }
 }

@@ -294,7 +294,7 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           contentContainerStyle={{ padding: space.lg, gap: 8 }}
           columnWrapperStyle={{ gap: 8 }}
           renderItem={({ item }) => (
-            <Pressable onPress={() => onPick(item)} style={{ width: cell }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('pickGif.gif')} onPress={() => onPick(item)} style={{ width: cell }}>
               <Image source={{ uri: item.preview }} style={[s.gif, { width: cell }]} contentFit="cover" cachePolicy="memory-disk" recyclingKey={item.id} />
               {busyId === item.id && (
                 <View style={s.savingVeil}>

@@ -290,17 +290,17 @@ export default function SharedListScreen() {
           member ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
               {editing ? (
-                <Pressable hitSlop={8} onPress={() => setEditing(false)}>
+                <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setEditing(false)}>
                   <Text style={styles.action}>{t('common.done')}</Text>
                 </Pressable>
               ) : (
                 <>
                   {list.items.length > 0 && (
-                    <Pressable hitSlop={8} onPress={() => setEditing(true)}>
+                    <Pressable accessibilityRole="button" hitSlop={8} onPress={() => setEditing(true)}>
                       <Text style={styles.action}>{t('profile.edit')}</Text>
                     </Pressable>
                   )}
-                  <Pressable hitSlop={10} onPress={() => setSheet(true)}>
+                  <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.more')} hitSlop={10} onPress={() => setSheet(true)}>
                     <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
                   </Pressable>
                 </>
@@ -393,7 +393,7 @@ export default function SharedListScreen() {
               {/* Only YOUR tick is drawn here; everybody's progress is the
                   member row above. A visitor sees neither. */}
               {member && (
-                <Pressable
+                <Pressable accessibilityRole="checkbox" accessibilityLabel={t('a11y.watched')} accessibilityState={{ checked: ticked }}
                   style={[styles.gridTick, ticked && styles.gridTickOn]}
                   hitSlop={6}
                   disabled={busy === item.id}
@@ -403,7 +403,7 @@ export default function SharedListScreen() {
               )}
 
               {editing && (
-                <Pressable style={styles.remove} hitSlop={8} onPress={() => setMenu(item)}>
+                <Pressable accessibilityRole="button" accessibilityLabel={t('common.remove')} style={styles.remove} hitSlop={8} onPress={() => setMenu(item)}>
                   <Ionicons name="close" size={13} color="#000" />
                 </Pressable>
               )}
@@ -441,7 +441,7 @@ export default function SharedListScreen() {
         <View style={styles.pickerVeil}>
           <View style={styles.pickerHead}>
             <Text style={styles.pickerTitle}>{t('shared.addTitle')}</Text>
-            <Pressable hitSlop={12} onPress={() => setPicking(false)}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} hitSlop={12} onPress={() => setPicking(false)}>
               <Ionicons name="close" size={24} color={colors.text} />
             </Pressable>
           </View>
