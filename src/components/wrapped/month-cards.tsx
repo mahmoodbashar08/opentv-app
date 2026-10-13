@@ -17,7 +17,7 @@ import { PixelRatio, StyleSheet, Text, View, type LayoutChangeEvent, type ViewSt
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { WRAPPED_SUMMARY, filmOfTheMonth, watchingType, wrappedSummaryLayout, wrappedSummaryRoomGuess } from '@/pure';
-import { starsValue, starText } from '@/film-rating';
+import { starsValue, starText } from '@/star-rating';
 import type { Wrapped } from '@/stats-calc';
 
 import type { CardProps } from './cards';

@@ -37,7 +37,7 @@ import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { filmFromStars, filmFromTen } from '@/film-rating';
+import { ratingFromStars, ratingFromTen } from '@/star-rating';
 import { effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, tvtimeSignIn, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 import { isNetworkError, netIsOpen, netReachable, netUnreachable } from '@/net-circuit';
@@ -747,7 +747,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // A backup written before half stars says nothing about its scale, and its
   // film stars are whole ones — read as out of ten they would all halve.
   const sidecarTen = (v: number | null | undefined): number | null =>
-    extras.movieScale === 10 ? filmFromTen(v) : filmFromStars(v);
+    extras.movieScale === 10 ? ratingFromTen(v) : ratingFromStars(v);
 
   // images bundled by our own exporter/backups (TV Time's CDN is dead, so
   // these files ARE the pictures now) — restore them to Documents up front so
@@ -1044,7 +1044,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   const movieRatings = foreignMovieRatings.length
     ? foreignMovieRatings
     : readMovieRatings(csv('ratings-live-votes.csv'))
-        .map((r) => ({ name: r.name, ten: filmFromStars(r.stars) }))
+        .map((r) => ({ name: r.name, ten: ratingFromStars(r.stars) }))
         .filter((r): r is typeof r & { ten: number } => r.ten != null);
   const movieEmotions = readMovieEmotions(csv('emotions-live-votes.csv'));
 

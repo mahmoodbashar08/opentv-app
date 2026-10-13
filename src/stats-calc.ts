@@ -5,7 +5,7 @@
 import db, { getCharacterVoteStats, getComments, getMovies, getMovieTotals, getShowNames, getTotals } from '@/db';
 import metadata, { showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
-import { starsValue, wholeStars } from '@/film-rating';
+import { starsValue, wholeStars } from '@/star-rating';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import {

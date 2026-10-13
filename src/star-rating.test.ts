@@ -1,14 +1,14 @@
 import {
-  filmFromStars,
-  filmFromTen,
-  filmRatingAt,
-  filmRatingForTap,
+  ratingFromStars,
+  ratingFromTen,
+  ratingAt,
+  ratingForTap,
   starSlots,
   starsValue,
   starText,
-  stepFilmRating,
+  stepRating,
   wholeStars,
-} from '@/film-rating';
+} from '@/star-rating';
 import { starPercents } from '@/pure';
 
 /*
@@ -18,24 +18,24 @@ import { starPercents } from '@/pure';
 
 describe('the conversions', () => {
   it('keeps a score already out of ten, and refuses what is not one', () => {
-    expect(filmFromTen(7)).toBe(7);
-    expect(filmFromTen(10)).toBe(10);
-    expect(filmFromTen(1)).toBe(1);
-    expect(filmFromTen(0)).toBeNull();
-    expect(filmFromTen(11)).toBeNull();
-    expect(filmFromTen(NaN)).toBeNull();
-    expect(filmFromTen('7')).toBeNull();
-    expect(filmFromTen(null)).toBeNull();
+    expect(ratingFromTen(7)).toBe(7);
+    expect(ratingFromTen(10)).toBe(10);
+    expect(ratingFromTen(1)).toBe(1);
+    expect(ratingFromTen(0)).toBeNull();
+    expect(ratingFromTen(11)).toBeNull();
+    expect(ratingFromTen(NaN)).toBeNull();
+    expect(ratingFromTen('7')).toBeNull();
+    expect(ratingFromTen(null)).toBeNull();
   });
 
   it('reads stars out of five, halves exactly — Letterboxd 3.5 is 7', () => {
-    expect(filmFromStars(3.5)).toBe(7);
-    expect(filmFromStars(0.5)).toBe(1);
-    expect(filmFromStars(5)).toBe(10);
-    expect(filmFromStars(4)).toBe(8); // an old whole-star row doubles
-    expect(filmFromStars(0)).toBeNull();
-    expect(filmFromStars(6)).toBe(10); // clamped, as the importers always were
-    expect(filmFromStars(undefined)).toBeNull();
+    expect(ratingFromStars(3.5)).toBe(7);
+    expect(ratingFromStars(0.5)).toBe(1);
+    expect(ratingFromStars(5)).toBe(10);
+    expect(ratingFromStars(4)).toBe(8); // an old whole-star row doubles
+    expect(ratingFromStars(0)).toBeNull();
+    expect(ratingFromStars(6)).toBe(10); // clamped, as the importers always were
+    expect(ratingFromStars(undefined)).toBeNull();
   });
 
   it('rounds a half UP to a whole star for places that only have whole stars', () => {
@@ -78,50 +78,50 @@ describe('a finger on the star row', () => {
   const W = 200; // five stars, 40 points each, 20 per half
 
   it('gives the half star under the finger', () => {
-    expect(filmRatingAt(130, W)).toBe(7); // first half of the fourth star
-    expect(filmRatingAt(150, W)).toBe(8); // second half of the fourth star
-    expect(filmRatingAt(10, W)).toBe(1);
-    expect(filmRatingAt(199, W)).toBe(10);
+    expect(ratingAt(130, W)).toBe(7); // first half of the fourth star
+    expect(ratingAt(150, W)).toBe(8); // second half of the fourth star
+    expect(ratingAt(10, W)).toBe(1);
+    expect(ratingAt(199, W)).toBe(10);
   });
 
   it('holds the end values when the slide runs off the row', () => {
-    expect(filmRatingAt(-30, W)).toBe(1);
-    expect(filmRatingAt(0, W)).toBe(1);
-    expect(filmRatingAt(400, W)).toBe(10);
+    expect(ratingAt(-30, W)).toBe(1);
+    expect(ratingAt(0, W)).toBe(1);
+    expect(ratingAt(400, W)).toBe(10);
   });
 
   it('measures from the right in a right-to-left layout', () => {
-    expect(filmRatingAt(190, W, true)).toBe(1);
-    expect(filmRatingAt(70, W, true)).toBe(7);
-    expect(filmRatingAt(0, W, true)).toBe(10);
+    expect(ratingAt(190, W, true)).toBe(1);
+    expect(ratingAt(70, W, true)).toBe(7);
+    expect(ratingAt(0, W, true)).toBe(10);
   });
 
   it('survives a row that has not been measured yet', () => {
-    expect(filmRatingAt(50, 0)).toBe(1);
+    expect(ratingAt(50, 0)).toBe(1);
   });
 
   it('a TAP is a whole star, exactly as before half stars', () => {
-    expect(filmRatingForTap(0)).toBe(2);
-    expect(filmRatingForTap(3)).toBe(8);
-    expect(filmRatingForTap(4)).toBe(10);
-    expect(filmRatingForTap(9)).toBe(10);
+    expect(ratingForTap(0)).toBe(2);
+    expect(ratingForTap(3)).toBe(8);
+    expect(ratingForTap(4)).toBe(10);
+    expect(ratingForTap(9)).toBe(10);
   });
 });
 
 describe('the screen reader steps half a star', () => {
   it('moves up and down by halves', () => {
-    expect(stepFilmRating(7, 1)).toBe(8);
-    expect(stepFilmRating(7, -1)).toBe(6);
+    expect(stepRating(7, 1)).toBe(8);
+    expect(stepRating(7, -1)).toBe(6);
   });
 
   it('starts at half a star, and takes the rating back below it', () => {
-    expect(stepFilmRating(null, 1)).toBe(1);
-    expect(stepFilmRating(1, -1)).toBeNull();
-    expect(stepFilmRating(null, -1)).toBeNull();
+    expect(stepRating(null, 1)).toBe(1);
+    expect(stepRating(1, -1)).toBeNull();
+    expect(stepRating(null, -1)).toBeNull();
   });
 
   it('stops at five stars', () => {
-    expect(stepFilmRating(10, 1)).toBe(10);
+    expect(stepRating(10, 1)).toBe(10);
   });
 });
 

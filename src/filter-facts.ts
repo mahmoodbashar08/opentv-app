@@ -16,7 +16,7 @@ import { getShowFilterFacts, type MovieRow, type ShowProgress } from '@/db';
 import { showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
 import { runtimeBand, seasonAirState, type TitleFacts } from '@/pure';
-import { starsValue } from '@/film-rating';
+import { starsValue } from '@/star-rating';
 import { airedTotalOf } from '@/show-status';
 
 /** '1994' -> '1990s'. Anything that isn't a plausible year is no decade. */

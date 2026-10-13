@@ -12,7 +12,7 @@ import { designSnapshot, isDesignKey } from '@/sync-ops';
 import { interestKey, libraryOwnerFrom, parseInterest, disambiguatedMovieName, displayTitle, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 import { COMMSUNI_ELIGIBLE_WHERE } from '@/commsuni-scope';
-import { wholeStars } from '@/film-rating';
+import { wholeStars } from '@/star-rating';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
 
@@ -503,7 +503,7 @@ try {
 /*
  * FILM RATINGS ARE OUT OF TEN FROM 2.0.0 — half stars (plan item 14). Until
  * now `movies.stars` held whole stars, 1–5; from here it holds 1–10, the
- * server's own scale, so 3.5 stars is 7. See `film-rating.ts`.
+ * server's own scale, so 3.5 stars is 7. See `star-rating.ts`.
  *
  * ONCE, IN THE SAME TRANSACTION AS ITS FLAG. Doubling is not idempotent: a
  * second pass would turn a four-star film into a ten. The flag and the UPDATE
@@ -2652,7 +2652,7 @@ export type MovieRow = {
   poster: string | null;
   year: string | null;
   tmdbId: number | null;
-  /** OUT OF TEN since 2.0.0 (7 = three and a half stars) — see `film-rating.ts`. */
+  /** OUT OF TEN since 2.0.0 (7 = three and a half stars) — see `star-rating.ts`. */
   stars: number | null;
   watchedAt: string | null;
   runtime: number | null;
@@ -2797,7 +2797,7 @@ export function deleteMovie(name: string): void {
 
 /**
  * A film's rating, OUT OF TEN — 7 is three and a half stars. See
- * `film-rating.ts`; `episode_ratings` is still five whole stars.
+ * `star-rating.ts`; `episode_ratings` is still five whole stars.
  *
  * The sync op carries both: `ten` for a 2.0.0 phone, and `stars` rounded to a
  * whole star for one still on 1.7, which reads only that field and would

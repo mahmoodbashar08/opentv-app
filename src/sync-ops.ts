@@ -20,7 +20,7 @@
  * is `device-sync.ts`, which is the only part that needs either.
  */
 
-import { filmFromTen, wholeStars } from '@/film-rating';
+import { ratingFromTen, wholeStars } from '@/star-rating';
 
 /** Everything a device can tell another device. Deliberately small: this is
  *  the set of things somebody does several times a day and would notice being
@@ -205,7 +205,7 @@ export function parseOp(kind: string, payload: string): Action | null {
       if (!name) return null;
       if ('ten' in o) {
         if (o.ten === null) return { t: 'movieStars', name, ten: null, stars: null };
-        const ten = filmFromTen(o.ten);
+        const ten = ratingFromTen(o.ten);
         return ten != null ? { t: 'movieStars', name, ten, stars: wholeStars(ten) } : null;
       }
       if (o.stars === null) return { t: 'movieStars', name, ten: null, stars: null };

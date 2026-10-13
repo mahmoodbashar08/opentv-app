@@ -24,7 +24,7 @@
  */
 
 import { starsFromTen } from '@/pure';
-import { filmFromStars, filmFromTen } from '@/film-rating';
+import { ratingFromStars, ratingFromTen } from '@/star-rating';
 
 /** The GDPR-shaped rows the importer consumes. Strings throughout, as CSV. */
 export type ForeignRows = {
@@ -151,7 +151,7 @@ export function letterboxdRows(files: Record<string, Record<string, string>[]>):
    * go somewhere and went up, which made 3.5 and 4 the same film.
    */
   for (const r of table('ratings')) {
-    const ten = filmFromStars(Number(r.rating));
+    const ten = ratingFromStars(Number(r.rating));
     if (!r.name || ten == null) continue;
     rows.movieRatings.push({ name: r.name, ten });
   }
@@ -277,7 +277,7 @@ export function letterboxdImportRows(table: readonly Record<string, string>[]): 
        two resolutions, and ten points survives the trip better: 3.5 stars is
        7, and reading the 3.5 means deciding where the half goes all over
        again. */
-    const ten = filmFromTen(Number(r.rating10)) ?? filmFromStars(Number(r.rating));
+    const ten = ratingFromTen(Number(r.rating10)) ?? ratingFromStars(Number(r.rating));
 
     /*
      * A DATE OR A SCORE MEANS WATCHED; NEITHER MEANS WATCHLIST.
@@ -353,7 +353,7 @@ export function imdbRows(table: readonly Record<string, string>[]): ForeignRows 
     const year = r.year ?? '';
     const score = Number(r['your rating'] || r['you rated']);
     // Out of ten, kept out of ten: a 7 and an 8 are two different films.
-    const ten = filmFromTen(score);
+    const ten = ratingFromTen(score);
 
     if (ten == null) {
       /* No score: a watchlist or a list row. `Created` is when it went on the
@@ -561,7 +561,7 @@ export function traktRows(payload: {
     const movie = item.movie ?? (item.type === 'movie' ? item : null);
     const score = item.rating ?? item.user_rating;
     if (!movie?.title || score == null) continue;
-    const ten = filmFromTen(score);
+    const ten = ratingFromTen(score);
     if (ten != null) rows.movieRatings.push({ name: movie.title, ten });
   }
 

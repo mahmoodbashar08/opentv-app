@@ -13,7 +13,7 @@ import seed from '@/seed';
 import db, { getComments, getCustomLists, getMeta } from '@/db';
 import { isSeedLibrary } from '@/library';
 import { listObjectsColumn } from '@/pure';
-import { wholeStars } from '@/film-rating';
+import { wholeStars } from '@/star-rating';
 import { TVTIME_HEADERS } from '@/tvtime-headers';
 
 type Cell = string | number | null | undefined;

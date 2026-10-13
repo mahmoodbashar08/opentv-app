@@ -6,7 +6,7 @@
  */
 
 // Also dependency-free: a film's rating out of ten (2.0.0, half stars).
-import { filmFromTen } from '@/film-rating';
+import { ratingFromTen } from '@/star-rating';
 
 /*
  * THE TV TIME EXPORT ITSELF IS READ BY `packages/tvtime-export`, a standalone
@@ -2926,7 +2926,7 @@ export function localRatingToSeed(
   resolveTarget: RatingTargetResolver,
 ): RatingSeedItem | null {
   // A film's stars are already the server's ten points; an episode's double.
-  const score = row.kind === 'movie' ? filmFromTen(row.stars) : seedScore(row.stars);
+  const score = row.kind === 'movie' ? ratingFromTen(row.stars) : seedScore(row.stars);
   const emotions = emotionNames(row.emotions);
   if (score === null && emotions.length === 0) return null;
 
