@@ -777,6 +777,16 @@ function EpisodePage({
                   under a sliding finger, then what was given */}
               {(starPreview ?? stars) != null && <Text style={styles.ratingValue}>{`  ${starNumber(starPreview ?? stars ?? 0)}`}</Text>}
             </Text>
+            {/* THE COMMUNITY'S AVERAGE AND ITS ›, right under the question it
+                answers. It sat at the bottom in "Episode info", where TV Time
+                printed its 4.9/5, and nobody found the breakdown there (14 Oct,
+                the developer: "the arrow should be next to Rate this episode").
+                Shown with the percentages, by the same rule. */}
+            {starPct != null && (
+              <View style={styles.communityLine}>
+                <CommunityRating counts={agg?.score_counts} mine={stars} />
+              </View>
+            )}
             {/* stars in the box, names and figures under it — the design's
                 layout (design/referance/12-episode-page-top.png), and the only
                 one that leaves room for a percentage per column. The film
@@ -961,22 +971,6 @@ function EpisodePage({
 
           <View style={styles.hair} />
           <Text style={styles.h2}>{t('episode.episodeInfoTitle')}</Text>
-          {/*
-           * THE COMMUNITY'S SCORE, where TV Time printed it
-           * (design/referance/13-episode-page-bottom.png): "T ★★★★☆ 3.9/5"
-           * and how many rated it, and a tap opens all ten half-star steps.
-           * `EpisodeMeta.rating` is never populated, so this was always the
-           * room's number; it is now worked out from every score as given —
-           * a 3.5 counts as 3.5 — and the line is gone, not "—/5", when nobody
-           * has scored the episode.
-           */}
-          <View style={{ marginTop: 10 }}>
-            <CommunityRating counts={agg?.score_counts} mine={stars}>
-              <View style={styles.tBadge}>
-                <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
-              </View>
-            </CommunityRating>
-          </View>
           {/* the only prose paragraph on this screen — capped so a 1366pt
               iPad doesn't render the synopsis as one enormous line; the rest
               of this page (rows, controls, rating/emotion pickers) is full width */}
@@ -1460,7 +1454,7 @@ const styles = StyleSheet.create({
   // changing your mind is one tap and must not feel like undoing something.
   charDim: { opacity: 0.4 },
   h2: { color: colors.text, fontSize: 21, fontWeight: '800' },
-  tBadge: { backgroundColor: colors.yellow, borderRadius: 4, paddingHorizontal: 6, paddingVertical: 1 },
+  communityLine: { alignItems: 'center', marginTop: 4, marginBottom: 10 },
   synopsis: { color: colors.text, fontSize: 15.5, lineHeight: 22, marginTop: 10 },
   commentsRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18 },
   commentsPillFloat: {
