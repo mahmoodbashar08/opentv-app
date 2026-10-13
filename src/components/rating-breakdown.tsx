@@ -57,6 +57,7 @@ export function CommunityRating({
   // the average drawn to the nearest half star — 3.9 is four, 3.7 three and a half
   const ten = Math.round(b.average * 2);
 
+  const top = Math.max(0, ...b.steps.map((r) => r.percent));
   return (
     <>
       <Pressable
@@ -81,6 +82,10 @@ export function CommunityRating({
         </View>
         {/* Five stars down to half a star, every step present: a 0% step is an
             empty bar, which is itself the answer to "did anyone give it 2.5". */}
+        {/* Bars against the BIGGEST step, as Letterboxd draws them: against
+            100% a 23% top step filled under a quarter of the track and every
+            row looked alike (14 Oct). The figure beside each bar stays the
+            true share. */}
         {b.steps.map((r) => {
           const yours = r.ten === mine;
           const said = t('ratingBreakdown.row', { count: starsValue(r.ten), value: stepText(r.ten), percent: r.percent });
@@ -95,7 +100,7 @@ export function CommunityRating({
                 <Text style={[s.valueText, yours && s.mineText]}>{stepText(r.ten)}</Text>
               </View>
               <View style={s.track}>
-                <View style={[s.fill, { width: `${r.percent}%`, backgroundColor: yours ? colors.brand : colors.dim }]} />
+                <View style={[s.fill, { width: `${top > 0 ? (r.percent / top) * 100 : 0}%`, backgroundColor: yours ? colors.brand : colors.dim }]} />
               </View>
               <Text style={[s.pct, yours && s.mineText]}>{`${r.percent}%`}</Text>
               <Text style={[s.count, yours && s.mineText]}>{r.count.toLocaleString(currentLocale())}</Text>
