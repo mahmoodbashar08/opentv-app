@@ -446,7 +446,7 @@
     "version": "Version {{version}}",
     "intro": "The open-source home for your TV Time. Track shows and movies, import your full TV Time history, and export everything back out at any time — your library belongs to you.",
     "privacyTitle": "Your privacy",
-    "privacyBody": "Your library, watch history, votes, comments and photos live in a local database on your device. Nothing is sent anywhere unless you join the community — and then only what your profile shows: your comments and ratings, your totals, and which shows and films you watch. The per-episode history, with its dates, never leaves this phone. Without the community the app makes network requests only to TheTVDB and TMDB, for artwork and show information — no account, no analytics, no tracking.",
+    "privacyBody": "Your library, watch history, votes, comments and photos live in a local database on your device. Nothing is sent anywhere unless you join the community or turn on a backup. Joining sends only what your profile shows: your comments and ratings, your totals, and which shows and films you watch. The per-episode history, with its dates, leaves this phone only if you turn on OpenTV Backup or Sync, which keep a copy on our server for you; iCloud and Google Drive backups go to your own account. Otherwise the app makes network requests only to TheTVDB and TMDB, for artwork and show information — no account, no analytics, no tracking.",
     "dataSourcesTitle": "Data sources",
     "dataSourcesBody": "Show and movie metadata and artwork — episode lists, names, air dates, artwork, genres and cast — are supplied by TheTVDB, the same database TV Time was built on. Please consider adding missing information there, or subscribing to support them.",
     "tvdbLink": "thetvdb.com",
@@ -2513,7 +2513,7 @@
     "keyBadBoth": "Both the TMDB token and the TheTVDB key were refused. Nothing was changed.",
     "keyBadTmdb": "The TMDB token was refused. Nothing was changed.",
     "keyBadTvdb": "The TheTVDB key was refused. Nothing was changed.",
-    "foot": "Your library, watch history and backups never leave the phone and are not affected by any of this. The official server is {{url}}.",
+    "foot": "Your library and watch history stay on the phone and are not affected by any of this. The official server is {{url}}.",
     "tmdbLabel": "TMDB token"
   },
   "cloudBackup": {

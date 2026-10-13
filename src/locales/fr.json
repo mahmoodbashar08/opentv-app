@@ -446,7 +446,7 @@
     "version": "Version {{version}}",
     "intro": "La maison open source de ton TV Time. Suis tes séries et tes films, importe tout ton historique TV Time, et exporte tout à tout moment — ta bibliothèque t'appartient.",
     "privacyTitle": "Ta vie privée",
-    "privacyBody": "Votre bibliothèque, votre historique, vos votes, commentaires et photos vivent dans une base de données locale sur votre appareil. Rien n’est envoyé nulle part sauf si vous rejoignez la communauté — et alors uniquement ce que votre profil affiche : vos commentaires et notes, vos totaux, et quelles séries et films vous regardez. L’historique épisode par épisode, avec ses dates, ne quitte jamais ce téléphone. Sans la communauté, l’app ne contacte que TheTVDB et TMDB pour les visuels et les informations — sans compte, sans analytique, sans pistage.",
+    "privacyBody": "Votre bibliothèque, votre historique, vos votes, commentaires et photos vivent dans une base de données locale sur votre appareil. Rien n’est envoyé nulle part sauf si vous rejoignez la communauté ou activez une sauvegarde. Rejoindre n’envoie que ce que votre profil affiche : vos commentaires et notes, vos totaux, et quelles séries et films vous regardez. L’historique épisode par épisode, avec ses dates, ne quitte ce téléphone que si vous activez la Sauvegarde ou la Synchronisation OpenTV, qui en gardent une copie sur notre serveur pour vous ; les sauvegardes iCloud et Google Drive vont sur votre propre compte. Sinon, l’app ne contacte que TheTVDB et TMDB pour les visuels et les informations — sans compte, sans analytique, sans pistage.",
     "dataSourcesTitle": "Sources des données",
     "dataSourcesBody": "Les métadonnées et visuels des séries et films — listes d'épisodes, noms, dates de diffusion, images, genres et distribution — sont fournis par TheTVDB, la même base de données sur laquelle TV Time était construit. Pense à y ajouter les informations manquantes, ou à t'y abonner pour les soutenir.",
     "tvdbLink": "thetvdb.com",
@@ -2513,7 +2513,7 @@
     "keyBadBoth": "Le jeton TMDB et la clé TheTVDB ont été refusés. Rien n’a été changé.",
     "keyBadTmdb": "Le jeton TMDB a été refusé. Rien n’a été changé.",
     "keyBadTvdb": "La clé TheTVDB a été refusée. Rien n’a été changé.",
-    "foot": "Votre bibliothèque, votre historique et vos sauvegardes ne quittent jamais le téléphone. Le serveur officiel est {{url}}.",
+    "foot": "Votre bibliothèque et votre historique restent sur le téléphone et ne sont pas concernés. Le serveur officiel est {{url}}.",
     "tmdbLabel": "Jeton TMDB"
   },
   "cloudBackup": {

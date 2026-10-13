@@ -446,7 +446,7 @@
     "version": "Versão {{version}}",
     "intro": "O lar open source do seu TV Time. Acompanhe séries e filmes, importe todo o seu histórico do TV Time e exporte tudo de volta a qualquer momento — sua biblioteca é sua.",
     "privacyTitle": "Sua privacidade",
-    "privacyBody": "Sua biblioteca, histórico, votos, comentários e fotos ficam em um banco de dados local no seu aparelho. Nada é enviado a lugar nenhum a menos que você entre na comunidade — e então apenas o que seu perfil mostra: seus comentários e avaliações, seus totais e quais séries e filmes você assiste. O histórico por episódio, com suas datas, nunca sai deste telefone. Sem a comunidade, o app faz requisições apenas ao TheTVDB e ao TMDB, para imagens e informações — sem conta, sem análises, sem rastreamento.",
+    "privacyBody": "Sua biblioteca, histórico, votos, comentários e fotos ficam em um banco de dados local no seu aparelho. Nada é enviado a lugar nenhum a menos que você entre na comunidade ou ative um backup. Entrar envia apenas o que seu perfil mostra: seus comentários e avaliações, seus totais e quais séries e filmes você assiste. O histórico por episódio, com suas datas, só sai deste telefone se você ativar o Backup ou a Sincronização do OpenTV, que guardam uma cópia no nosso servidor para você; os backups no iCloud e no Google Drive vão para a sua própria conta. Fora isso, o app faz requisições apenas ao TheTVDB e ao TMDB, para imagens e informações — sem conta, sem análises, sem rastreamento.",
     "dataSourcesTitle": "Fontes de dados",
     "dataSourcesBody": "Os metadados e imagens de séries e filmes — listas de episódios, nomes, datas de exibição, imagens, gêneros e elenco — são fornecidos pelo TheTVDB, o mesmo banco de dados em que o TV Time foi construído. Considere adicionar informações faltantes lá, ou assinar para apoiá-los.",
     "tvdbLink": "thetvdb.com",
@@ -2513,7 +2513,7 @@
     "keyBadBoth": "O token do TMDB e a chave do TheTVDB foram recusados. Nada foi alterado.",
     "keyBadTmdb": "O token do TMDB foi recusado. Nada foi alterado.",
     "keyBadTvdb": "A chave do TheTVDB foi recusada. Nada foi alterado.",
-    "foot": "Sua biblioteca, histórico e backups nunca saem do telefone. O servidor oficial é {{url}}.",
+    "foot": "Sua biblioteca e seu histórico ficam no telefone e não são afetados por nada disso. O servidor oficial é {{url}}.",
     "tmdbLabel": "Token do TMDB"
   },
   "cloudBackup": {
