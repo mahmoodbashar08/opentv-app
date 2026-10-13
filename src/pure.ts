@@ -7107,6 +7107,184 @@ export function nextWatchWatermark(rows: readonly ExternalWatchRow[], previous: 
 }
 
 /**
+ * An ISO instant from another service, as `watches.watchedAt` stores it:
+ * 'YYYY-MM-DD HH:MM:SS' in UTC — the same text `markWatched` writes by default.
+ *
+ * Null for anything that is not a date, so the caller can fall back to "now"
+ * rather than write a watch dated "undefined". Simkl and Nuvio both keep the
+ * moment of each episode, and an app whose whole argument is that it keeps the
+ * dates should not throw theirs away the way the Plex path still does.
+ */
+export function watchStampFromIso(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return null;
+  return new Date(ms).toISOString().slice(0, 19).replace('T', ' ');
+}
+
+/** One show from Simkl's `/sync/all-items`, reduced to what a sync needs. */
+export type SimklShow = {
+  simklId: number;
+  title: string;
+  year: number | null;
+  /** Null when Simkl has no NUMERIC TheTVDB id — it sometimes holds a slug there. */
+  tvdbId: number | null;
+  imdb: string | null;
+  episodes: { season: number; episode: number; watchedAt: string }[];
+};
+
+/**
+ * Simkl's `GET /sync/all-items/{shows|anime}?extended=full&episode_watched_at=yes`
+ * reply, flattened (api.simkl.org/api-reference/simkl/get-all-items).
+ *
+ * DEFENSIVE ON EVERY FIELD. The reply is `null` for an empty library, ids
+ * arrive as numbers or strings, and `ids.tvdb` is documented as "int / string"
+ * — `153021` or `the-walking-dead`. A slug is not an id this app can key on,
+ * so it reads as no id at all and the show goes down the confirmation path.
+ *
+ * ANIME ONLY THROUGH TheTVDB's NUMBERING. Simkl numbers anime episodes its own
+ * way (absolute, one long season); with `extended=full_anime_seasons` each
+ * episode also carries `tvdb: { season, episode }`, and that is the only pair
+ * used. An anime episode without it is skipped: ticking "E148" as S1E148 on a
+ * show TheTVDB splits into eight seasons is a wrong tick, and a wrong tick is
+ * worse than a missing one.
+ *
+ * AN EPISODE WITH NO DATE OF ITS OWN takes the show's `last_watched_at`, the
+ * same compromise the Simkl FILE import makes (`simklRows`).
+ */
+export function simklShowsFromItems(json: unknown, kind: 'shows' | 'anime'): SimklShow[] {
+  const list = (json as Record<string, unknown> | null)?.[kind];
+  if (!Array.isArray(list)) return [];
+  const out: SimklShow[] = [];
+  for (const raw of list as Record<string, unknown>[]) {
+    const show = (raw?.show ?? {}) as { title?: unknown; year?: unknown; ids?: Record<string, unknown> };
+    const ids = show.ids ?? {};
+    const simklId = Number(ids.simkl);
+    if (!(simklId > 0)) continue;
+    const tvdbText = String(ids.tvdb ?? '');
+    const imdb = typeof ids.imdb === 'string' && /^tt\d+$/.test(ids.imdb) ? ids.imdb : null;
+    const fallback = typeof raw.last_watched_at === 'string' ? raw.last_watched_at : '';
+    const episodes: SimklShow['episodes'] = [];
+    for (const season of Array.isArray(raw.seasons) ? (raw.seasons as Record<string, unknown>[]) : []) {
+      for (const ep of Array.isArray(season?.episodes) ? (season.episodes as Record<string, unknown>[]) : []) {
+        const mapped = ep?.tvdb as { season?: unknown; episode?: unknown } | undefined;
+        const s = Number(kind === 'anime' ? mapped?.season : season.number);
+        const e = Number(kind === 'anime' ? mapped?.episode : ep?.number);
+        if (!Number.isInteger(s) || !Number.isInteger(e) || s < 0 || e < 1) continue;
+        episodes.push({ season: s, episode: e, watchedAt: typeof ep.watched_at === 'string' ? ep.watched_at : fallback });
+      }
+    }
+    const year = Number(show.year);
+    out.push({
+      simklId,
+      title: typeof show.title === 'string' ? show.title : '',
+      year: Number.isInteger(year) && year > 0 ? year : null,
+      tvdbId: /^\d+$/.test(tvdbText) && Number(tvdbText) > 0 ? Number(tvdbText) : null,
+      imdb,
+      episodes,
+    });
+  }
+  return out;
+}
+
+/** A title folded for comparison: case, accents, punctuation and a leading "The" do not count. */
+function foldShowTitle(name: string): string {
+  return name
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '')
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/^the\s+/, '')
+    .replace(/[^a-z0-9]+/g, '');
+}
+
+/**
+ * The one tracked show a title-only Simkl entry could be — a SUGGESTION, never
+ * an answer. The caller files it for the user to confirm and writes nothing.
+ *
+ * NAME MATCHING IS THE BUG THIS APP KEEPS PAYING FOR (the stale-tvdbId split,
+ * the search that offered "ADD SHOW" for a show already tracked), so it gets
+ * the narrowest possible job: only shows the user tracks, only an exact match
+ * once case and punctuation are folded, and only when it is UNIQUE. Two
+ * "Shameless" in the library are told apart by the year in the name — "(2011)",
+ * the way TheTVDB names remakes — or not at all.
+ */
+export function simklTitleCandidate(
+  title: string,
+  year: number | null,
+  library: readonly { tvdbId: number; name: string }[],
+): { tvdbId: number; name: string } | null {
+  const want = foldShowTitle(title.replace(/\s*\(\d{4}\)\s*$/, ''));
+  if (!want) return null;
+  const hits = library.filter((s) => foldShowTitle(s.name.replace(/\s*\(\d{4}\)\s*$/, '')) === want);
+  const yearOf = (name: string): number | null => {
+    const m = /\((\d{4})\)\s*$/.exec(name);
+    return m ? Number(m[1]) : null;
+  };
+  if (hits.length === 1) {
+    const y = yearOf(hits[0].name);
+    return y != null && year != null && y !== year ? null : hits[0];
+  }
+  const sameYear = year == null ? [] : hits.filter((s) => yearOf(s.name) === year);
+  return sameYear.length === 1 ? sameYear[0] : null;
+}
+
+/** One watched episode from a Nuvio account, before its show is resolved. */
+export type NuvioEpisode = { contentId: string; season: number; episode: number; watchedAt: string };
+
+/**
+ * Rows from Nuvio's `sync_pull_watched_items`, or the upserts among
+ * `sync_pull_watched_items_delta` events (nuvio.tv/docs/nuvio-public-api.md,
+ * "Watch history"). Films and anything malformed are dropped here.
+ *
+ * `watched_at` IS EPOCH MILLISECONDS, not ISO, and is turned into ISO so the
+ * row speaks the same language as every other source. A delete event is
+ * ignored: this sync only ever adds, and unticking an episode here because it
+ * was unticked in another app is exactly the two-way coupling it refuses.
+ */
+export function nuvioEpisodesFromRows(raw: unknown): NuvioEpisode[] {
+  if (!Array.isArray(raw)) return [];
+  const out: NuvioEpisode[] = [];
+  for (const r of raw as Record<string, unknown>[]) {
+    if (r?.content_type !== 'series' || typeof r.content_id !== 'string') continue;
+    if (r.operation != null && r.operation !== 'upsert') continue;
+    const season = Number(r.season);
+    const episode = Number(r.episode);
+    if (!Number.isInteger(season) || !Number.isInteger(episode) || season < 0 || episode < 1) continue;
+    const ms = Number(r.watched_at);
+    out.push({
+      contentId: r.content_id,
+      season,
+      episode,
+      watchedAt: ms > 0 ? new Date(ms).toISOString() : '',
+    });
+  }
+  return out;
+}
+
+/** The highest `event_id` in a delta page, or `previous` when there is none higher. */
+export function nuvioMaxEventId(raw: unknown, previous: number): number {
+  let best = previous;
+  for (const r of Array.isArray(raw) ? (raw as Record<string, unknown>[]) : []) {
+    const id = Number(r?.event_id);
+    if (Number.isFinite(id) && id > best) best = id;
+  }
+  return best;
+}
+
+/**
+ * What a Nuvio `content_id` names. Nuvio stores whatever id the addon that
+ * produced the row used: an IMDb id (`tt0903747`, Cinemeta's) or `tmdb:1396`.
+ * Anything else — a Kitsu or addon-private id — names nothing this app can
+ * look up, and is left out rather than guessed at.
+ */
+export function nuvioContentRef(contentId: string): { imdb: string } | { tmdb: number } | null {
+  if (/^tt\d+$/.test(contentId)) return { imdb: contentId };
+  const m = /^tmdb:(\d+)$/.exec(contentId);
+  return m && Number(m[1]) > 0 ? { tmdb: Number(m[1]) } : null;
+}
+
+/**
  * Whether a failed lookup for the preserved TV Time export is worth another go.
  *
  * `null` from the lookup means "not available right now", and the startup
