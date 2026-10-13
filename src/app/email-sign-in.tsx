@@ -147,7 +147,7 @@ export default function EmailSignInScreen() {
       // as the link — a code is only accepted with the address it was sent to,
       // and asking somebody to retype what they typed one screen ago is rude.
       router.replace(
-        `/verify-email?email=${encodeURIComponent(email.trim())}${next ? `&next=${encodeURIComponent(next)}` : ''}`,
+        `/verify-email?email=${encodeURIComponent(email.trim())}${next ? `&next=${encodeURIComponent(next)}` : ''}${wantJoin === '1' ? '&join=1' : ''}`,
       );
       return;
     }
