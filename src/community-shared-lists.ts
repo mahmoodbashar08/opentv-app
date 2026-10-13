@@ -36,6 +36,14 @@ export type SharedListRow = {
    * possibly empty rather than assuming artwork exists.
    */
   posters?: string[];
+  /**
+   * 'together' is a shared list of exactly one show whose tick became a
+   * position (2.0.0, `community-together.ts`). Absent on an older server, which
+   * only ever had ordinary lists.
+   */
+  kind?: 'list' | 'together';
+  /** The one show, for a together; null for an ordinary list. */
+  show?: { target_source: 'tvdb'; target_key: string; title: string | null; poster: string | null } | null;
 };
 
 export type SharedMember = {
@@ -59,6 +67,8 @@ export type SharedItem = {
   poster: string | null;
   created_at: string;
   watched_by: string[];
+  /** Members only, and only on a together: each member's furthest episode. */
+  positions?: { member_id: string; season: number; episode: number; updated_at: string }[];
 };
 
 export type SharedListDetail = {
@@ -76,6 +86,7 @@ export type SharedListDetail = {
    * screen exactly as it was.
    */
   is_member?: boolean;
+  kind?: 'list' | 'together';
   created_at: string;
   members: SharedMember[];
   items: SharedItem[];
@@ -110,8 +121,10 @@ export async function createSharedList(name: string): Promise<{ id: string; invi
 }
 
 /** FREE, at every tier. See the note in `backend/src/routes/shared-lists.ts`. */
-export async function joinSharedList(code: string): Promise<{ id: string; name: string; joined: boolean }> {
-  return api<{ id: string; name: string; joined: boolean }>('/v1/shared-lists/join', {
+export async function joinSharedList(
+  code: string,
+): Promise<{ id: string; name: string; joined: boolean; kind?: 'list' | 'together' }> {
+  return api<{ id: string; name: string; joined: boolean; kind?: 'list' | 'together' }>('/v1/shared-lists/join', {
     method: 'POST',
     token: await token(),
     // `invite_code`, which is what the route reads. Sending `code` meant the

@@ -20,6 +20,7 @@ import { getToken, refreshSession, useUnverifiedEmail } from '@/community-sessio
 import { SeasonSplash } from '@/components/season-splash';
 import { offerSeasonIcon } from '@/season-icon';
 import { maybeReconcileFriends, syncArchiveIfNeeded } from '@/community-seed';
+import { startTogetherSync, syncTogetherIfNeeded } from '@/community-together';
 import { registerForPush } from '@/push';
 import { downloadPendingCommentImages, recoverProfileCover } from '@/importer';
 import { dedupeOwnComments } from '@/db';
@@ -434,6 +435,9 @@ export default function RootLayout() {
           })
           .catch(() => {});
         await syncArchiveIfNeeded();
+        // Watching together: a no-op unless this account is in one (see the module).
+        startTogetherSync();
+        void syncTogetherIfNeeded();
         /*
          * RECONNECTION ON LAUNCH, not only at the moment of joining. It used to
          * run from the join screen alone, so every member who joined before
@@ -562,6 +566,7 @@ export default function RootLayout() {
           void (async () => {
             await syncArchiveIfNeeded();
             void maybePrefetchAggregates();
+            void syncTogetherIfNeeded();
           })();
         });
       }
