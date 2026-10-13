@@ -5,49 +5,20 @@
  * import diagnostics) so that logic has real test coverage.
  */
 
-/**
- * The export's CSV dialect: quoted fields with embedded commas and newlines,
- * doubled quotes as an escape, CRLF or LF.
- *
- * Lives here rather than in `importer.ts` because it is the first thing every
- * import runs and the last thing anything can mock away — an "imported 0" bug
- * is far more likely to be a parse that quietly returned `[]` than a database
- * failure. Being here it can be run against the real export files in a test.
+/*
+ * THE TV TIME EXPORT ITSELF IS READ BY `packages/tvtime-export`, a standalone
+ * MPL-2.0 package other tracker apps may use (2.0.0 plan item 16). These four
+ * lived here first and are re-exported so every existing caller and test keeps
+ * importing them from `@/pure`.
  */
-export function parseCsv(text: string): Record<string, string>[] {
-  const rows: string[][] = [];
-  let field = '';
-  let row: string[] = [];
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (inQuotes) {
-      if (c === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i++;
-        } else inQuotes = false;
-      } else field += c;
-    } else if (c === '"') inQuotes = true;
-    else if (c === ',') {
-      row.push(field);
-      field = '';
-    } else if (c === '\n' || c === '\r') {
-      if (c === '\r' && text[i + 1] === '\n') i++;
-      row.push(field);
-      field = '';
-      if (row.length > 1 || row[0] !== '') rows.push(row);
-      row = [];
-    } else field += c;
-  }
-  if (field !== '' || row.length) {
-    row.push(field);
-    rows.push(row);
-  }
-  const [header, ...data] = rows;
-  if (!header) return [];
-  return data.map((r) => Object.fromEntries(header.map((h, i) => [h, r[i] ?? ''])));
-}
+export {
+  commentText,
+  disambiguatedMovieName,
+  parseCsv,
+  tvtimeSignIn,
+  type TvTimeProvider,
+  type TvTimeSignIn,
+} from '../packages/tvtime-export/src';
 
 /** true when a < b, comparing dotted numeric versions ("1.2" < "1.10"). */
 export function olderThan(a: string, b: string): boolean {
@@ -61,26 +32,6 @@ export function olderThan(a: string, b: string): boolean {
 }
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-/**
- * A comment's text, with the export's own placeholders read as empty.
- *
- * SOME EXPORTS CARRY THE STRING "null" WHERE THE CAPTION SHOULD BE — a
- * serialisation artefact from TV Time's side, not something anybody typed.
- * Taken literally it becomes a comment whose entire body is the word `null`,
- * shown to the reader and published to their profile. Found in production: 29
- * of them across 8 people, every one imported and not one written in the app,
- * which is what rules out the alternative reading — that somebody meant it.
- *
- * A photo-only comment is a real thing and stays one: this returns empty, the
- * caller keeps the row when there is an image, and drops it when there is
- * neither. A caption of "null" with no picture was never a comment at all.
- */
-export function commentText(raw: string | null | undefined): string {
-  const v = (raw ?? '').trim();
-  const low = v.toLowerCase();
-  return low === 'null' || low === 'undefined' || low === '<nil>' ? '' : v;
-}
 
 /** Placeholder name for a TV Time private list (its real name is gone). */
 export function listPlaceholderName(createdAt: string): string {
@@ -132,28 +83,6 @@ export function mergeCustomLists<T extends ListLike>(imported: T[], userLists: T
  *  behind itself and a create lands where the array put it. */
 export function renumberLists<T extends ListLike>(lists: readonly T[]): T[] {
   return lists.map((l, i) => ({ ...l, order: i }));
-}
-
-/**
- * A storage name for a film, disambiguated when two genuinely different films
- * share a title.
- *
- * `movies.name` is the primary key, so "Ghostbusters" (1984) and "Ghostbusters"
- * (2016) overwrite each other — five films were silently lost from a real
- * 546-film export that way. When the source tells us they are different works
- * (different ids), the later one takes a year suffix, which is how TV Time
- * itself disambiguates and what the deduper already understands.
- */
-export function disambiguatedMovieName(title: string, year: string | null | undefined, taken: Set<string>): string {
-  const base = title.trim();
-  if (!taken.has(base.toLowerCase())) return base;
-  const y = (year ?? '').trim().slice(0, 4);
-  if (/^\d{4}$/.test(y) && !taken.has(`${base} (${y})`.toLowerCase())) return `${base} (${y})`;
-  for (let n = 2; n < 50; n++) {
-    const alt = `${base} (${n})`;
-    if (!taken.has(alt.toLowerCase())) return alt;
-  }
-  return base;
 }
 
 export type MovieCandidate = { name?: string | null; year?: string | null };
@@ -5325,85 +5254,6 @@ export function heatLevel(count: number, busy: number): 0 | 1 | 2 | 3 | 4 {
   if (count <= 0) return 0;
   const step = Math.max(1, busy) / 4;
   return Math.min(4, Math.ceil(count / step)) as 1 | 2 | 3 | 4;
-}
-
-/* ── What they signed in to TV Time with ────────────────────────────────────
- *
- * A TV Time GDPR export names the account it came from: `auth-prod-login.csv`
- * has one row per sign-in method, with a `provider` column and the address
- * that provider handed over. `user.csv` carries the address a second time as
- * `mail`.
- *
- * WHY IT IS WORTH READING. The join screen asks "Apple, Google, or email?" of
- * somebody who has just imported an account that already answers it — and
- * picking the wrong one does not fail, it silently creates a SECOND empty
- * profile. The export knows. Telling them is free.
- *
- * IT IS A HINT AND NEVER A CHOICE. What somebody used on TV Time is evidence
- * about what they will want here, not a decision: plenty will deliberately use
- * something else, and the provider that matters is whichever one gives OpenTV
- * the same address. So every button stays on screen and nothing is preselected.
- *
- * FACEBOOK IS THE CASE THAT ACTUALLY NEEDS HELP. TV Time took Facebook logins
- * and OpenTV has none, so those users cannot reproduce their sign-in at all —
- * and Facebook hands over no address either ('<no-email-set>' in the export),
- * which is why the fallback to `user.csv` matters for them more than anyone.
- */
-
-export type TvTimeProvider = 'apple' | 'google' | 'facebook' | 'email';
-export type TvTimeSignIn = { provider: TvTimeProvider | null; email: string | null };
-
-/** TV Time's own placeholder for "this provider gave us nothing". */
-const NO_EMAIL = '<no-email-set>';
-
-/** Providers OpenTV can actually offer, best first — the order the hint prefers. */
-const USABLE: TvTimeProvider[] = ['apple', 'google', 'email'];
-
-function cleanEmail(raw: string | undefined): string | null {
-  const v = (raw ?? '').trim();
-  if (!v || v === NO_EMAIL) return null;
-  // Deliberately loose: this is a hint, and refusing to show somebody their own
-  // address because of an unusual domain helps nobody. It only has to look like
-  // an address rather than like a placeholder or an id.
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? v.toLowerCase() : null;
-}
-
-/**
- * The sign-in worth suggesting, from the export's auth rows and user row.
- *
- * Prefers a provider OpenTV HAS — an account with both Apple and Facebook is
- * an Apple account as far as this screen is concerned — and falls back to
- * whatever was there so a Facebook-only user still learns why none of the
- * buttons look familiar. The address is the best one found anywhere, because
- * the row naming the provider is often not the row carrying the email.
- */
-export function tvtimeSignIn(
-  authRows: readonly Record<string, string>[],
-  userRow?: Record<string, string>,
-): TvTimeSignIn {
-  const seen: TvTimeProvider[] = [];
-  let email: string | null = null;
-  for (const r of authRows) {
-    const p = (r.provider ?? '').trim().toLowerCase();
-    /*
-     * 'tvtime' IS THE EMAIL ACCOUNT, and it is a real value in the file rather
-     * than a blank — checked against the owner's own export, which holds three
-     * rows: apple, facebook, and a `tvtime` row carrying the username and the
-     * password hash. A password hash alone is kept as a second signal, but the
-     * name is what the data actually says.
-     */
-    const provider: TvTimeProvider | null =
-      p === 'apple' || p === 'google' || p === 'facebook'
-        ? p
-        : p === 'tvtime' || (r.password_hash ?? '').trim() !== ''
-          ? 'email'
-          : null;
-    if (provider && !seen.includes(provider)) seen.push(provider);
-    email ??= cleanEmail(r.email);
-  }
-  email ??= cleanEmail(userRow?.mail);
-  const provider = USABLE.find((p) => seen.includes(p)) ?? seen[0] ?? null;
-  return { provider, email };
 }
 
 /**

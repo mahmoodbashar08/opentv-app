@@ -8,12 +8,36 @@ import * as DocumentPicker from 'expo-document-picker';
 import { Directory, File, Paths } from 'expo-file-system';
 import { strFromU8, unzipSync } from 'fflate';
 
+import {
+  exportReader,
+  isTvTimeExport,
+  isV1EpisodeWatch,
+  listEntries,
+  movieNamesByUuid,
+  readCharacterVotes,
+  readComments,
+  readCommunityExport,
+  readEpisodeEmotions,
+  readEpisodeRatings,
+  readEpisodeWatchedOn,
+  readEpisodeWatches,
+  readFavorites,
+  readFriendIds,
+  readMovieEmotions,
+  readMovieRatings,
+  readMovies,
+  readNotifications,
+  readProfile,
+  readShows,
+  tvdbRescueUrl,
+  unzipExport,
+} from '../packages/tvtime-export/src';
 import { classifyForeignJson, cp1252, detectForeignSource, imdbRows, isImdbCsv, isLetterboxdImportCsv, letterboxdImportRows, letterboxdRows, serializdRows, simklRows, traktRows, type SerializdLink, type SerializdRecord } from '@/foreign-import';
 import { importVerdict, type ImportDiagnosis } from '@/pure';
 
 import db, { dedupeDuplicateMovies, dedupeDuplicateShows, deletedMovieNames, deletedShowIds, getMeta, hasLibrary, libraryOwner, mergeImportedCustomLists, recountShow, setMeta, unmarkedEpisodeKeys, wipeAllData } from '@/db';
 import { withImportLock } from '@/import-lock';
-import { commentText, disambiguatedMovieName, effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, tvtimeSignIn, uniqueListName, v1WatchIsStale } from '@/pure';
+import { effectiveEpisodesSeen, episodeKey, foundCsvsMessage, listPlaceholderName, orderImportedLists, parseCsv, shouldBulkFill, tvtimeSignIn, uniqueListName, v1WatchIsStale } from '@/pure';
 import { tmdb, pool } from '@/tmdb';
 import { isNetworkError, netIsOpen, netReachable, netUnreachable } from '@/net-circuit';
 
@@ -75,6 +99,18 @@ export type ImportResult = {
 // export files; re-exported here because that is where callers already import
 // it from.
 export { parseCsv } from '@/pure';
+
+/*
+ * READING THE TV TIME EXPORT LIVES IN `packages/tvtime-export` (2.0.0 plan item
+ * 16): a standalone, MPL-2.0 package with no Expo, React Native or SQLite in it,
+ * so another tracker app can import a TV Time export with the same code. What
+ * stays in this file is OpenTV's half — what to BELIEVE (stale legacy rows,
+ * inflated counters, deleted shows), matching, artwork, and the SQLite writes.
+ *
+ * A relative import rather than `@/`: the package sits beside `src/`, not in
+ * it, and must resolve the same way in Metro, Jest and tsc with no alias.
+ */
+export { tvdbRescueUrl };
 
 function b64ToBytes(b64: string): Uint8Array {
   const bin = globalThis.atob(b64);
@@ -153,11 +189,7 @@ export function backfillCommentUuidsFromZip(zipBytes?: Uint8Array): number {
   } catch {
     return 0;
   }
-  const key = Object.keys(files).find(
-    (k) => k.toLowerCase().endsWith('comments-prod-comments.csv') && !k.includes('__MACOSX'),
-  );
-  if (!key) return 0;
-  const rows = parseCsv(strFromU8(files[key]));
+  const rows = exportReader(files).csv('comments-prod-comments.csv');
   if (!rows.length) return 0;
 
   let filled = 0;
@@ -285,11 +317,7 @@ export function restoreWatchesFromExport(tvdbIds: number[]): number {
   } catch {
     return 0; // no preserved export, or it couldn't be read/unzipped
   }
-  const csv = (suffix: string): Record<string, string>[] => {
-    const lo = suffix.toLowerCase();
-    const key = Object.keys(files).find((k) => k.toLowerCase().endsWith(lo) && !k.includes('__MACOSX'));
-    return key ? parseCsv(strFromU8(files[key])) : [];
-  };
+  const { csv } = exportReader(files);
   type W = { showId: number; season: number; episode: number; watchedAt: string; rewatch: number; runtime: number | null };
   const watches: W[] = [];
   const seenKey = new Set<string>();
@@ -308,7 +336,7 @@ export function restoreWatchesFromExport(tvdbIds: number[]): number {
     });
   }
   for (const r of csv('tracking-prod-records.csv')) {
-    if (r.type !== 'watch' || r.entity_type !== 'episode' || !r.series_id || !r.episode_number || !r.season_number) continue;
+    if (!isV1EpisodeWatch(r)) continue;
     if (!ids.has(Number(r.series_id))) continue;
     const k = `${r.series_id}-${Number(r.season_number)}-${Number(r.episode_number)}`;
     if (seenKey.has(k)) continue;
@@ -379,17 +407,8 @@ async function fetchToDocuments(url: string, name: string, timeoutMs = 15000): P
   }
 }
 
-// TV Time served profile covers from TheTVDB's retired CloudFront mirror,
-// deleted along with the shutdown — but the same fanart still exists on
-// TheTVDB's current CDN under the legacy banners path:
-//   dg31sz3gwrwan.cloudfront.net/fanart/<seriesId>/<upload>-<n>-q80.jpg
-//     → artworks.thetvdb.com/banners/fanart/original/<seriesId>-<n>.jpg
-export function tvdbRescueUrl(url: string): string | null {
-  const m = /^https?:\/\/dg31sz3gwrwan\.cloudfront\.net\/fanart\/(\d+)\/\d+-(\d+)(?:-q\d+)?\.(jpe?g|png)$/i.exec(url);
-  return m ? `https://artworks.thetvdb.com/banners/fanart/original/${m[1]}-${m[2]}.${m[3]}` : null;
-}
-
-// the original link first, then the TheTVDB rewrite now that the original is dead
+// the original link first, then the TheTVDB rewrite (`tvdbRescueUrl`, in the
+// package) now that the original is dead
 async function fetchCoverToDocuments(url: string, name: string): Promise<string | null> {
   const direct = await fetchToDocuments(url, name);
   if (direct) return direct;
@@ -428,36 +447,6 @@ export async function recoverProfileCover(): Promise<void> {
 function decodeCsv(bytes: Uint8Array): string {
   const utf8 = strFromU8(bytes);
   return utf8.includes('\uFFFD') ? cp1252(bytes) : utf8;
-}
-
-/**
- * Is this the TV Time GDPR export, rather than somebody else's library?
- *
- * By CONTENT, like every other detector here. The official export is a ZIP
- * with these CSVs at some depth inside it; a nested ZIP counts, because the
- * importer already unwraps those.
- */
-function holdsTvTimeExport(bytes: Uint8Array, isZip: boolean): boolean {
-  if (!isZip) return false;
-  const wanted = (names: string[]) =>
-    names.some((k) => {
-      const base = (k.split('/').pop() ?? '').toLowerCase();
-      return (
-        !k.includes('__MACOSX') &&
-        (base === 'user_tv_show_data.csv' ||
-          base.startsWith('tracking-prod-records') ||
-          base.startsWith('comments-prod-comments'))
-      );
-    });
-  try {
-    const files = unzipSync(bytes);
-    const names = Object.keys(files);
-    if (wanted(names)) return true;
-    const inner = names.find((k) => k.toLowerCase().endsWith('.zip') && !k.includes('__MACOSX'));
-    return inner ? wanted(Object.keys(unzipSync(files[inner]))) : false;
-  } catch {
-    return false;
-  }
 }
 
 export async function pickAndImport(
@@ -532,7 +521,7 @@ export async function pickAndImport(
     // alone. Detected the same way the importer detects everything else: by
     // what is actually inside the file.
     try {
-      if (holdsTvTimeExport(bytes, isZip)) {
+      if (isTvTimeExport(bytes)) {
         const orig = new File(Paths.document, 'tvtime-original.zip');
         if (orig.exists) orig.delete();
         orig.write(bytes);
@@ -551,7 +540,7 @@ export async function pickAndImport(
     // Same guard as the local promote — iCloud holds the OTHER copy of the one
     // file the self-repair reads, and overwriting it with an IMDb CSV loses the
     // export on every device signed into that account, not just this one.
-    if (ICloud?.isAvailable() && holdsTvTimeExport(bytes, isZip)) {
+    if (ICloud?.isAvailable() && isTvTimeExport(bytes)) {
       await ICloud.writeFile('TV Time Original.zip', b64);
     }
   } catch {
@@ -723,24 +712,8 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   const isZip = zipBytes.length > 1 && zipBytes[0] === 0x50 && zipBytes[1] === 0x4b;
   
   if (isZip) {
-    files = unzipSync(zipBytes);
-
-    // ---- unwrap nested ZIPs (double-zipped exports) --------------------------------
-    // Some users' downloads arrive as a .zip containing another .zip with no CSVs
-    // at the outer level. If we find zero CSVs but an inner .zip, unwrap it
-    // automatically so the import just works instead of reporting "0 items".
-    const outerKeys = Object.keys(files);
-    const hasAnyCsv = outerKeys.some((k) => k.toLowerCase().endsWith('.csv') && !k.includes('__MACOSX'));
-    if (!hasAnyCsv) {
-      const innerZipKey = outerKeys.find((k) => k.toLowerCase().endsWith('.zip') && !k.includes('__MACOSX'));
-      if (innerZipKey) {
-        try {
-          files = unzipSync(files[innerZipKey]);
-        } catch {
-          // inner zip was corrupt — fall through to the normal "0 items" error
-        }
-      }
-    }
+    // a double-zipped download is unwrapped here — see `unzipExport`
+    files = unzipExport(zipBytes);
   } else if (singleFileName) {
     // raw file upload (e.g., a single csv or json from an alternative export)
     files = { [singleFileName]: zipBytes };
@@ -794,21 +767,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     }
   };
 
-  const csv = (suffix: string): Record<string, string>[] => {
-    const lo = suffix.toLowerCase();
-    const key = Object.keys(files).find((k) => k.toLowerCase().endsWith(lo) && !k.includes('__MACOSX'));
-    return key ? parseCsv(strFromU8(files[key])) : [];
-  };
-  // exact filename first — "episode_comment" must never match
-  // episode_comment_like.csv; loose match only as fallback for renamed files
-  const csvLoose = (part: string): Record<string, string>[] => {
-    const lo = part.toLowerCase();
-    const keys = Object.keys(files).filter((k) => k.toLowerCase().endsWith('.csv') && !k.includes('__MACOSX'));
-    const key =
-      keys.find((k) => { const kl = k.toLowerCase(); return kl === `${lo}.csv` || kl.endsWith(`/${lo}.csv`); }) ??
-      keys.find((k) => k.toLowerCase().includes(lo));
-    return key ? parseCsv(strFromU8(files[key])) : [];
-  };
+  // exact filename first in `csvLoose` — "episode_comment" must never match
+  // episode_comment_like.csv; see `exportReader` for all three lookups
+  const reader = exportReader(files);
+  const { csv, csvLoose } = reader;
 
   onProgress({ phase: 'Parsing your history…', done: 0, total: 1 });
 
@@ -931,67 +893,16 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   }
 
   if (v2all.length === 0 && showRows.length === 0 && v1.length === 0) {
-    // match a community-export CSV by its basename tokens, tolerant of the date
-    // suffix the extension appends (tvtime-series-2026-07-02.csv). `mustNot`
-    // keeps the series file from also matching tvtime-series-EPISODES.
-    const communityCsv = (must: string, mustNot?: string): Record<string, string>[] => {
-      const key = Object.keys(files).find((k) => {
-        if (k.includes('__MACOSX') || !k.toLowerCase().endsWith('.csv')) return false;
-        const base = (k.split('/').pop() ?? '').toLowerCase();
-        return base.includes(must) && (!mustNot || !base.includes(mustNot));
-      });
-      return key ? parseCsv(strFromU8(files[key])) : [];
-    };
-    const altSeries = communityCsv('tvtime-series', 'episodes'); // series, NOT the episodes file
-    if (altSeries.length > 0) {
-      showRows = altSeries.map((r) => ({
-        tv_show_id: r.tvdb_id,
-        tv_show_name: r.title,
-        // "stopped"/"stopped_watching" → archived; everything else stays followed
-        is_followed: '1',
-        is_favorited: '0',
-        archived: (r.status || '').toLowerCase().includes('stop') ? '1' : '0',
-      }));
-    }
-    const altEpisodes = communityCsv('tvtime-series-episodes');
-    if (altEpisodes.length > 0) {
-      v2all = altEpisodes
-        .filter((r) => r.is_watched?.toLowerCase() === 'true')
-        .map((r) => ({
-          s_id: r.series_tvdb_id,
-          season_number: r.season,
-          episode_number: r.episode,
-          created_at: r.watched_at,
-          rewatch_count: r.rewatch_count,
-          series_name: r.title,
-        }));
-    }
-    const altMovies = communityCsv('tvtime-movies');
-    if (altMovies.length > 0) {
-      // watched → a watch row; not-yet-watched → a watchlist (towatch) row, so
-      // the user's movie watchlist survives too (was previously dropped)
-      v1 = altMovies.map((r) => {
-        const watched = r.is_watched?.toLowerCase() === 'true';
-        return {
-          type: watched ? 'watch' : 'towatch',
-          entity_type: 'movie',
-          movie_name: r.title,
-          // the extension knows exactly which film this is — carry its TheTVDB
-          // id and year through instead of making the matcher guess from a
-          // title later. Every row in a real export had both.
-          movie_tvdb_id: r.tvdb_id,
-          movie_year: r.year,
-          created_at: watched ? r.watched_at || r.created_at : r.created_at,
-          // the extension puts the rewatch total inline on the watched row (GDPR
-          // uses separate rewatch rows) — the movie builder reads it below
-          rewatch_count: (watched && r.rewatch_count) || '0',
-        };
-      });
-    }
+    // the browser-extension export (tvtime-series-<date>.csv and friends),
+    // mapped onto the GDPR columns by the package. All three piles are empty on
+    // the way in, so taking its empty answer for a missing file changes nothing.
+    const community = readCommunityExport(reader);
+    showRows = community.showRows;
+    v2all = community.episodeRows;
+    v1 = community.movieRows;
   }
 
   // ---- shows + follow state --------------------------------------------------
-  const archived = new Map(csv('followed_tv_show.csv').map((r) => [r.tv_show_id, r.archived === '1']));
   for (const r of showRows) {
     if (!r.tv_show_id && r.tv_show_name) {
       notImported.push({ kind: 'show', name: r.tv_show_name, reason: 'Export row has no TV Time show id' });
@@ -1011,39 +922,18 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   {
     const watchedIds = new Set<number>();
     for (const r of v2all) if (r.s_id && r.episode_number && r.season_number) watchedIds.add(Number(r.s_id));
-    for (const r of v1)
-      if (r.type === 'watch' && r.entity_type === 'episode' && r.series_id && r.episode_number && r.season_number)
-        watchedIds.add(Number(r.series_id));
+    for (const r of v1) if (isV1EpisodeWatch(r)) watchedIds.add(Number(r.series_id));
     const revived = [...dead].filter((id) => watchedIds.has(id));
     if (revived.length) {
       for (const id of revived) dead.delete(id);
       setMeta('deletedShows', JSON.stringify([...dead]));
     }
   }
-  const shows = showRows
-    .filter((r) => r.tv_show_id && !dead.has(Number(r.tv_show_id)))
-    .map((r) => ({
-      tvdbId: Number(r.tv_show_id),
-      name: r.tv_show_name,
-      episodesSeen: Number(r.nb_episodes_seen || 0),
-      followed: r.is_followed === '1',
-      favorited: r.is_favorited === '1',
-      // GDPR carries archived state in followed_tv_show.csv; the community export
-      // carries it inline (mapped to r.archived) — honour whichever is present
-      archived: archived.get(r.tv_show_id) ?? r.archived === '1',
-    }));
+  // GDPR carries archived state in followed_tv_show.csv; the community export
+  // carries it inline — `readShows` honours whichever is present
+  const shows = readShows(showRows, csv('followed_tv_show.csv')).filter((s) => !dead.has(s.tvdbId));
 
-  const watches = v2all
-    .filter((r) => r.s_id && r.episode_number && r.season_number)
-    .map((r) => ({
-      showId: Number(r.s_id),
-      season: Number(r.season_number),
-      episode: Number(r.episode_number),
-      watchedAt: r.created_at || '',
-      rewatch: Number(r.rewatch_count || 0) > 0 ? 1 : 0,
-      runtime: r.runtime ? Number(r.runtime) : null,
-      episodeId: Number(r.episode_id) || null,
-    }));
+  const watches = readEpisodeWatches(v2all);
   // rows from the legacy tracking file that TV Time's own migration dropped
   const staleV1: { showId: number; season: number; episode: number; watchedAt: string }[] = [];
   // shows the CURRENT tracking file has episodes for. Needed twice: to ignore
@@ -1059,7 +949,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     // the export as a whole: an export with no v2 episodes at all is simply
     // old, and v1 is then the only record there is.)
     for (const r of v1) {
-      if (r.type !== 'watch' || r.entity_type !== 'episode' || !r.series_id || !r.episode_number || !r.season_number) continue;
+      if (!isV1EpisodeWatch(r)) continue;
       if (v1WatchIsStale(showsInV2.has(Number(r.series_id)), exportHasV2Episodes)) {
         // an earlier version imported this row; remember it precisely so the
         // merge pass below can take it back out. The generic retraction can't:
@@ -1105,186 +995,59 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   }
 
   // ---- movies: watched + watchlist from v1 tracking ---------------------------
-  type Movie = { name: string; watchedAt: string | null; addedAt: string | null; runtime: number | null; rewatches: number; tvdbId: number | null; year: string | null };
-  const movieMap = new Map<string, Movie>();
-  // What the EXPORT contained, before any of our own parsing narrows it. The
-  // summary's totals are derived from what we managed to parse, so a dropped
-  // row shrinks the numerator AND the denominator and the gap becomes
+  //
+  // Two genuinely different films can share a title ("Ghostbusters" 1984 and
+  // 2016), and `movies.name` is the primary key — five films vanished from a
+  // real 546-film export that way. `readMovies` splits them only when the
+  // source says they ARE different works, and keeps a watched "Dune (2021)"
+  // from coming back as an unwatched "Dune" off the export's own to-watch row.
+  //
+  // `audit` is what the EXPORT contained, before any of our own parsing narrows
+  // it. The summary's totals are derived from what we managed to parse, so a
+  // dropped row shrinks the numerator AND the denominator and the gap becomes
   // invisible — which is exactly why a tester reporting "far fewer movies than
   // I watched" could not be diagnosed. These counters are the raw truth.
-  const rawWatchRows = new Set<string>();
-  const rawWatchRowCount = { n: 0 };
-  const namelessMovieRows = { n: 0 };
-  // two genuinely different films can share a title ("Ghostbusters" 1984 and
-  // 2016). `movies.name` is the primary key, so without this the second
-  // overwrites the first — five films vanished from a real 546-film export.
-  // Only splits when the source says they ARE different works.
-  const movieIdOfName = new Map<string, number>();
-  const takenMovieNames = new Set<string>();
-  const nameFor = (title: string, tvdbId: number | null, year: string | null): string => {
-    const known = movieIdOfName.get(title);
-    if (tvdbId && known && known !== tvdbId) {
-      const alt = disambiguatedMovieName(title, year, takenMovieNames);
-      takenMovieNames.add(alt.toLowerCase());
-      return alt;
-    }
-    takenMovieNames.add(title.toLowerCase());
-    if (tvdbId && !known) movieIdOfName.set(title, tvdbId);
-    return title;
-  };
-  for (const r of v1) {
-    if (r.type === 'watch' && r.entity_type === 'movie') {
-      rawWatchRowCount.n++;
-      if (r.movie_name) rawWatchRows.add(r.movie_name);
-      else namelessMovieRows.n++;
-    }
-    if (r.type !== 'watch' || !r.movie_name) continue;
-    const key = nameFor(r.movie_name, Number(r.movie_tvdb_id) || null, r.movie_year || null);
-    const cur = movieMap.get(key);
-    const at = r.created_at || '';
-    if (!cur || (cur.watchedAt ?? '') < at) {
-      movieMap.set(key, {
-        name: key,
-        watchedAt: at,
-        addedAt: null,
-        tvdbId: Number(r.movie_tvdb_id) || cur?.tvdbId || null,
-        year: r.movie_year || cur?.year || null,
-        runtime: r.runtime ? Number(r.runtime) : (cur?.runtime ?? null),
-        // GDPR carries rewatches in separate rows (folded in below); the
-        // community export puts the total inline on the watch row — take either
-        rewatches: Math.max(cur?.rewatches ?? 0, Number(r.rewatch_count || 0)),
-      });
-    }
-  }
-  // rewatches live in their own row types: 'rewatch' (one per event, with a
-  // running count) and 'rewatch_count' (the total) — take the max seen
-  for (const r of v1) {
-    if ((r.type === 'rewatch' || r.type === 'rewatch_count') && r.movie_name) {
-      const cur = movieMap.get(r.movie_name);
-      if (cur) cur.rewatches = Math.max(cur.rewatches, Number(r.rewatch_count || 0));
-    }
-  }
-  for (const r of v1) {
-    if (r.type !== 'towatch' || !r.movie_name) continue;
-    // `movieMap` is keyed by the name `nameFor` settled on, which is NOT the
-    // raw title once two films shared it — "Dune" watched becomes
-    // "Dune (2021)". Asking the map about the raw title then missed the watch
-    // and the export's own to-watch row re-added the film as a SECOND,
-    // UNWATCHED row, which is what the Movies tab lists. A film you had
-    // watched reappeared in the watch list (reported by a tester).
-    // `takenMovieNames` is every title a watch row claimed, raw and lowercased.
-    if (movieMap.has(r.movie_name) || takenMovieNames.has(r.movie_name.toLowerCase())) continue;
-    movieMap.set(r.movie_name, {
-      name: r.movie_name,
-      watchedAt: null,
-      addedAt: r.created_at || '',
-      runtime: null,
-      rewatches: 0,
-      tvdbId: Number(r.movie_tvdb_id) || null,
-      year: r.movie_year || null,
-    });
-  }
+  const { movies: parsedMovies, audit: movieRaw } = readMovies(v1);
   // movies the user deleted on purpose stay deleted (repair does INSERT OR
   // REPLACE, which would otherwise resurrect them); replace mode wipes meta,
   // so a clean start re-imports everything
   const deadMovies = deletedMovieNames();
-  const movies = [...movieMap.values()].filter((m) => !deadMovies.has(m.name));
+  const movies = parsedMovies.filter((m) => !deadMovies.has(m.name));
 
   // ---- episode + movie votes ---------------------------------------------------
-  // TV Time rates on a 0..3 scale (BAD, GOOD, GREAT, WOW) for BOTH episodes
-  // and movies — verified against real exports (no 4s among 150+ votes)
-  const VOTE_TO_STARS: Record<number, number> = { 0: 1, 1: 3, 2: 4, 3: 5 };
-  // ratings carry TWO id formats in the same file: the current 0..3 scale
-  // and a legacy 26..30 five-level scale (28=GOOD, 29=GREAT — confirmed
-  // against real votes). Emotion ids 28..39 exist ONLY in the emotions file;
-  // the numeric overlap is coincidence, the id spaces are per-file.
-  const LEGACY_TO_STARS: Record<number, number> = { 26: 1, 27: 2, 28: 3, 29: 4, 30: 5 };
-  const ratingStars = (v: number): number | null => VOTE_TO_STARS[v] ?? LEGACY_TO_STARS[v] ?? null;
+  // TV Time's 0..3 and legacy 26..30 scales both arrive as 1–5 stars from the
+  // package (`ratingStars`); emotion ids are per-file, see `readEpisodeEmotions`
   const epRatings = [
-    ...csv('ratings-3-prod-episode_votes.csv')
-      .map((r) => ({
-        name: r.series_name,
-        season: Number(r.season_number),
-        episode: Number(r.episode_number),
-        stars: ratingStars(Number((r.vote_key || '').split('-').pop())),
-        epId: Number(r.episode_id) || null,
-      }))
-      .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null),
+    ...readEpisodeRatings(csv('ratings-3-prod-episode_votes.csv')),
     // A foreign export's are already stars, and carry no TV Time row id.
     ...foreignEpRatings.map((r) => ({ ...r, epId: null })),
   ];
-  const epEmotions = csv('emotions-3-prod-episode_votes.csv')
-    .map((r) => ({
-      name: r.series_name,
-      season: Number(r.season_number),
-      episode: Number(r.episode_number),
-      emotion: Number((r.vote_key || '').split('-').pop()) - 28,
-      epId: Number(r.episode_id) || null,
-    }))
-    .filter((r) => r.name && r.emotion >= 0 && r.emotion <= 11);
+  const epEmotions = readEpisodeEmotions(csv('emotions-3-prod-episode_votes.csv'));
   // "where did you watch" per episode — source id 3 is TV Time's Computer
-  // bucket (confirmed against real usage); anything else lands on Other
-  const epWatchedOn = csv('watched_on_episode.csv')
-    .map((r) => ({
-      name: r.tv_show_name,
-      season: Number(r.episode_season_number),
-      episode: Number(r.episode_number),
-      src: Number(r.watched_on_source_id),
-      epId: Number(r.episode_id) || null,
-    }))
-    .filter((r) => r.name && r.episode > 0 && Number.isFinite(r.src));
-
+  // bucket; anything else lands on Other (see the write below)
+  const epWatchedOn = readEpisodeWatchedOn(csv('watched_on_episode.csv'));
   // "who was your favorite?" votes — TV Time stored only its internal
   // character id, so the vote imports as a count (name stays unknown);
   // OpenTV's own backups carry the name in the sidecar instead
-  const charVotes = csv('show_character_episode_vote.csv')
-    .map((r) => ({
-      name: r.tv_show_name,
-      season: Number(r.episode_season_number),
-      episode: Number(r.episode_number),
-      charId: Number(r.show_character_id) || null,
-      epId: Number(r.episode_id) || null,
-    }))
-    .filter((r) => r.name && r.episode > 0);
+  const charVotes = readCharacterVotes(csv('show_character_episode_vote.csv'));
 
   // A foreign export brings its own, already on this app's 1–5 scale; a GDPR
   // one has them in a file of vote keys.
-  const movieRatings = foreignMovieRatings.length
-    ? foreignMovieRatings
-    : csv('ratings-live-votes.csv')
-        .map((r) => ({ name: (r.movie_name || '').trim(), stars: ratingStars(Number((r.vote_key || '').split('-').pop())) }))
-        .filter((r): r is typeof r & { stars: number } => !!r.name && r.stars != null);
-  const movieEmotions = csv('emotions-live-votes.csv')
-    .map((r) => ({ name: (r.movie_name || '').trim(), value: Number((r.vote_key || '').split('-').pop()) }))
-    .filter((r) => r.name && r.value >= 28 && r.value <= 39);
+  const movieRatings = foreignMovieRatings.length ? foreignMovieRatings : readMovieRatings(csv('ratings-live-votes.csv'));
+  const movieEmotions = readMovieEmotions(csv('emotions-live-votes.csv'));
 
   // ---- favorites: shows also live in the favorite-series list (with order),
   // movies only in favorite-movies as tracking uuids -----------------------------
   // uuid → movie name, from BOTH tracking eras — a list movie whose uuid only
   // appears in v2 would otherwise be dropped from the list
-  const uuidToMovie = new Map<string, string>();
-  for (const r of [...v1, ...v2all]) {
-    if (r.uuid && r.movie_name && !uuidToMovie.has(r.uuid)) uuidToMovie.set(r.uuid, r.movie_name);
-  }
+  const uuidToMovie = movieNamesByUuid(v1, v2all);
   const listRows = csvLoose('lists-prod-lists');
-  const rowText = (r: Record<string, string>) => Object.values(r).join(' ');
-  const listRow = (key: string) => listRows.find((r) => Object.values(r).includes(key));
-  const favMovieRow = listRow('favorite-movies');
-  const favMovieNames = favMovieRow
-    ? [...rowText(favMovieRow).matchAll(/uuid:([0-9a-f-]{36})/g)]
-        .map((m) => uuidToMovie.get(m[1]))
-        .filter((n): n is string => !!n)
-    : [];
-  const favSeriesRow = listRow('favorite-series');
-  // [\s[] before "id:" keeps uuid:… fragments from matching
-  const favShowIds = favSeriesRow
-    ? [...rowText(favSeriesRow).matchAll(/[\s[]id:(\d+)/g)].map((m) => Number(m[1]))
-    : [];
+  const { showIds: favShowIds, movieNames: favMovieNames } = readFavorites(listRows, uuidToMovie);
 
   // ---- profile + the TV Time ids that reconnect the social graph later ----------
-  const userRow = csv('routing-prod-users.csv')[0];
-  const username = userRow?.username ?? null;
-  const tvtimeUserId = userRow?.user_id ?? null;
+  const profile = readProfile(reader);
+  const username = profile.username;
+  const tvtimeUserId = profile.userId;
   /*
    * WHICH BUTTON THE JOIN SCREEN SHOULD POINT AT. The export names the account
    * it came from; the join screen otherwise asks a question this file already
@@ -1293,9 +1056,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
    * screen has no zip, and `auth-prod-login.csv` is only ever in the file.
    */
   const signIn = tvtimeSignIn(csv('auth-prod-login.csv'), csv('user.csv')[0]);
-  const friendIds = csv('friend.csv')
-    .map((r) => r.friend_id)
-    .filter(Boolean);
+  const friendIds = readFriendIds(csv('friend.csv'));
   // votes reference shows by NAME only — match case/space-insensitively and
   // learn alias spellings from the tracking rows, or ratings silently vanish
   const nameKey = (s: string) => s.trim().toLowerCase().replace(/\s+/g, ' ');
@@ -1324,77 +1085,15 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
 
   // ---- personal info + profile photos (download now, before TV Time's CDN
   // goes dark); unique filenames because expo-image caches by uri ------------------
-  const personal = csvLoose('user_personal_data');
-  const pval = (k: string) => personal.find((r) => r.name === k)?.value?.trim() || null;
-  const avatarUrl = userRow?.image_url || null;
-  const coverUrl = pval('cover');
-  const countryCode = pval('country-code');
-  const bio = pval('bio');
-  // gender + birthday live in the connected-account files, not personal_data
-  const fbRow = csvLoose('user_facebook_data')[0];
-  const socialRow = csvLoose('user_social_data')[0];
-  const cap = (s: string | undefined | null) => (s ? s[0].toUpperCase() + s.slice(1) : null);
-  const gender = pval('gender') ?? cap(fbRow?.gender) ?? cap(socialRow?.gender);
-  const birthday = fbRow?.birthday || socialRow?.birthday || '';
-  const birthYear = pval('birth-year') ?? (/^(\d{4})-/.exec(birthday)?.[1] ?? null);
+  const { avatarUrl, coverUrl, countryCode, bio, gender, birthYear } = profile;
 
   // ---- your own comments, from both comment systems -------------------------------
-  // 'like' rows are likes you gave, not comments — skip them
-  const imgUrlOf = (blob: string) => /url:(https?:\/\/[^\s\]]+)/.exec(blob || '')?.[1] ?? null;
-  const imgRatioOf = (blob: string) => {
-    const w = Number(/width:(\d+)/.exec(blob || '')?.[1]);
-    const h = Number(/height:(\d+)/.exec(blob || '')?.[1]);
-    return w > 0 && h > 0 ? w / h : null;
-  };
+  // see `readComments`. The uuid it keeps
+  // is TV TIME'S OWN, kept because nothing else can stand in for it: it is what
+  // CommsUni's archive is addressed by, and therefore the only way the pictures
+  // that died with TV Time's CDN ever come back.
   const commentRows = [
-    ...csvLoose('comments-prod-comments')
-      .filter((r) => (r.type === 'comment' || r.type === 'reply') && (r.movie_name || r.series_name))
-      .filter((r) => commentText(r.text) || r.image)
-      .map((r) => ({
-        type: r.type,
-        entity: (r.movie_name || r.series_name).trim(),
-        text: commentText(r.text),
-        date: r.created_at || '',
-        likes: Number(r.like_count || 0),
-        replies: Number(r.reply_count || 0),
-        imageUrl: imgUrlOf(r.image),
-        ratio: imgRatioOf(r.image),
-        /*
-         * TV TIME'S OWN UUID, KEPT BECAUSE NOTHING ELSE CAN STAND IN FOR IT.
-         * It is what CommsUni's archive is addressed by, and therefore the only
-         * way the pictures that died with TV Time's CDN ever come back. The
-         * column carried `comment_uuid` in every export seen; `uuid` is the
-         * fallback the same file uses for its own row id.
-         */
-        tvtimeUuid: (r.comment_uuid || r.uuid || '').trim() || null,
-      })),
-    ...(() => {
-      // legacy episode comments: memes/photos live in meme.csv, joined by id
-      const memes = csvLoose('meme');
-      const memeUrlOf = (commentId: string) => {
-        const m = memes.find((x) => x.episode_comment_id === commentId);
-        if (!m) return null;
-        return (
-          [m.url, m.medium_url, m.gif_url, m.gif_medium_url, m.small_url].find((u) => u && u.startsWith('http')) ?? null
-        );
-      };
-      return csvLoose('episode_comment')
-        .filter((r) => r.tv_show_name)
-        .map((r) => ({
-          type: 'comment',
-          entity: `${r.tv_show_name} S${Number(r.episode_season_number || 0)}E${Number(r.episode_number || 0)}`,
-          text: commentText(r.comment) || commentText(r.extended_comment),
-          date: r.created_at || '',
-          likes: Number(r.nb_likes || 0),
-          replies: 0,
-          imageUrl: memeUrlOf(r.id),
-          ratio: null,
-          // The legacy episode-comment file predates the uuid scheme the
-          // archive is keyed by, so there is nothing honest to put here.
-          tvtimeUuid: null,
-        }))
-        .filter((c) => c.text || c.imageUrl);
-    })(),
+    ...readComments(reader),
     // Reviews from a foreign export: text on a show or an episode, nothing
     // else — no likes, no picture, no TV Time uuid to find one by.
     ...foreignComments.map((c) => ({
@@ -1439,24 +1138,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
     // Diagnostics must never be the reason an import fails.
   }
 
-  const notifications = csvLoose('notifications-prod-notifications');
-  const blobOf = (r: Record<string, string>) => `${r.data || ''} ${r.objects || ''}`;
-  const profileIdOf = (r: Record<string, string>) =>
-    /profile\/(\d+)/.exec(`${r.url} ${blobOf(r)}`)?.[1] ?? /\/user\/(\d+)\//.exec(r.image || '')?.[1] ?? null;
-  const nameFromLocKey = (r: Record<string, string>) =>
-    /"loc-key":"(.+?) (followed|liked|commented|replied|mentioned|sent)/.exec(blobOf(r))?.[1]?.trim() || null;
-  const idName = new Map<string, { name: string; imageUrl: string | null }>();
-  const followers: { id: string; name: string; imageUrl: string | null }[] = [];
-  for (const r of notifications) {
-    const id = profileIdOf(r);
-    const name = nameFromLocKey(r);
-    if (!id || !name) continue;
-    const imageUrl = (r.image || '').startsWith('http') ? r.image : null;
-    if (!idName.has(id)) idName.set(id, { name, imageUrl });
-    if ((r.type === 'user-followed' || r.type === 'user-followed-back') && !followers.some((f) => f.id === id)) {
-      followers.push({ id, name, imageUrl });
-    }
-  }
+  const { people: idName, followers, feed } = readNotifications(csvLoose('notifications-prod-notifications'));
   onProgress({ phase: 'Fetching your profile photos…', done: 0, total: 1 });
   const stamp = Date.now();
   // a copy bundled in the ZIP (our own backup/export) beats re-fetching a
@@ -1523,22 +1205,12 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   );
 
   // the notification history itself — badge unlocks, follows, likes, comments
-  const notificationFeed = notifications
-    .map((r) => {
-      const text = (r.text || '').trim() || (/"loc-key":"(.+?)"/.exec(blobOf(r))?.[1] ?? '');
-      const time = Number(r.time || 0);
-      const imageUrl = (r.image || '').startsWith('http') ? r.image : null;
-      return {
-        text,
-        time,
-        date: time ? new Date(time).toISOString().slice(0, 10) : '',
-        image: imageUrl ? (socialImages.get(imageUrl) ?? imageUrl) : null,
-      };
-    })
-    .filter((n) => n.text)
-    .sort((a, b) => b.time - a.time)
-    .slice(0, 100)
-    .map(({ text, date, image }) => ({ text, date, image }));
+  // (newest 100, already sorted by the package; only the picture is ours)
+  const notificationFeed = feed.map(({ text, date, imageUrl }) => ({
+    text,
+    date,
+    image: imageUrl ? (socialImages.get(imageUrl) ?? imageUrl) : null,
+  }));
 
   // ---- resolve artwork from TMDB, on the phone -----------------------------------
   let doneCount = 0;
@@ -1935,11 +1607,10 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       // the true list size shows and a future uuid→movie map can fill them in.
       const unresolved: string[] = [];
       let total = 0;
-      for (const mm of (r.objects || '').matchAll(/map\[([^\]]*)\]/g)) {
-        const body = mm[1];
-        if (/type:series/.test(body)) {
+      for (const entry of listEntries(r.objects)) {
+        if (entry.kind === 'show') {
           total++;
-          const id = Number(/id:(\d+)/.exec(body)?.[1]);
+          const id = entry.tvdbId;
           /*
            * A LIST IS MOSTLY THINGS YOU HAVE NOT WATCHED, and this used to keep
            * only the ones you had.
@@ -1962,9 +1633,9 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
               poster: showPosters.get(id) ?? null,
             });
           }
-        } else if (/type:movie/.test(body)) {
+        } else {
           total++;
-          const uuid = /uuid:([0-9a-f-]{36})/.exec(body)?.[1];
+          const uuid = entry.uuid;
           const nm = uuid ? uuidToMovie.get(uuid) : null;
           if (nm) items.push({ kind: 'movie', name: nm, poster: movieInfo.get(nm)?.poster ?? null });
           else if (uuid) unresolved.push(uuid);
@@ -2502,8 +2173,8 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // titles the export listed as watched but that never reached the library —
   // two different films sharing one name collapse, because `movies.name` is
   // the primary key. Reported so the loss is visible rather than guessed at.
-  const movieRowsInExport = rawWatchRowCount.n;
-  const movieTitlesInExport = rawWatchRows.size;
+  const movieRowsInExport = movieRaw.watchRows;
+  const movieTitlesInExport = movieRaw.watchTitles.size;
   const watchlistTotal = movies.filter((m) => !m.watchedAt).length;
   const libCount = (sql: string) => db.getFirstSync<{ n: number }>(sql)?.n ?? 0;
   return {
@@ -2524,7 +2195,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
       rowsInExport: movieRowsInExport,
       titlesInExport: movieTitlesInExport,
       imported: moviesWatchedTotal,
-      nameless: namelessMovieRows.n,
+      nameless: movieRaw.namelessWatchRows,
     },
     stats: {
       shows: { total: shows.length, added: added.shows, existing: existing.shows, nameOnly: nameOnly.shows },

@@ -1,0 +1,12 @@
+{
+  "name": "tvtime-export",
+  "version": "0.1.0",
+  "description": "Read the TV Time GDPR export: shows, episode watches, films, ratings, emotions, lists, comments and profile, as plain objects.",
+  "license": "MPL-2.0",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "dependencies": {
+    "fflate": "^0.8.3"
+  }
+}
