@@ -108,6 +108,22 @@ export default function PuzzleScreen() {
   const [query, setQuery] = useState('');
   const [added, setAdded] = useState(false);
   const cardRef = useRef<View>(null);
+  /*
+   * THE KEYBOARD HID THE SUGGESTIONS. The answer box sits under the picture and
+   * five clue rows, so the list it opens landed behind the keyboard (developer,
+   * 14 Oct). Focusing the box scrolls it to the top of the screen, and the
+   * scroll view takes the keyboard's height as an inset so the list can be
+   * reached below it.
+   */
+  const scrollRef = useRef<ScrollView>(null);
+  const searchY = useRef(0);
+  const liftAnswerBox = () => scrollRef.current?.scrollTo({ y: Math.max(0, searchY.current - 12), animated: true });
+  // Again once the suggestions exist: before them the page may be too short to
+  // scroll, and the keyboard inset alone leaves the box where it was.
+  const hasQuery = query.trim().length > 0;
+  useEffect(() => {
+    if (hasQuery) liftAnswerBox();
+  }, [hasQuery]);
 
   useEffect(() => {
     let cancelled = false;
@@ -254,7 +270,11 @@ export default function PuzzleScreen() {
           </View>
         }
       />
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 40 }}>
+      <ScrollView
+        ref={scrollRef}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={{ paddingBottom: 40 }}>
         <ContentColumn>
           {/* THE STILL. Blur is `expo-image`'s own, lowered per miss — on the
               phone, free, and nothing is uploaded anywhere. */}
@@ -317,7 +337,7 @@ export default function PuzzleScreen() {
                   their names, and the classics. A guess is matched by id, so
                   the French title and the English one are one title — and
                   Fargo the film and Fargo the series are two. */}
-              <View style={s.searchRow}>
+              <View style={s.searchRow} onLayout={(e) => (searchY.current = e.nativeEvent.layout.y)}>
                 <Ionicons name="search" size={20} color={colors.dim} />
                 <TextInput
                   style={s.searchInput}
@@ -325,6 +345,7 @@ export default function PuzzleScreen() {
                   placeholderTextColor={colors.dim}
                   value={query}
                   onChangeText={setQuery}
+                  onFocus={() => setTimeout(liftAnswerBox, 250)}
                   autoCorrect={false}
                   accessibilityLabel={t('puzzle.answerPlaceholder')}
                 />
