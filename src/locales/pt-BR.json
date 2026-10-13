@@ -3201,10 +3201,6 @@
     "cardProgress": "Tentativa {{n}} de 6 — continue",
     "cardWon": "Resolvido em {{score}}",
     "cardLost": "Hoje não. Amanhã tem outro título.",
-    "streakDays": {
-      "one": "Sequência de {{count}} dia",
-      "other": "Sequência de {{count}} dias"
-    },
     "fromLibrary": "Da sua biblioteca",
     "classic": "Um clássico",
     "clueYear": "Estreou em {{year}}",
@@ -3231,28 +3227,17 @@
     "added": "Na sua lista de espera",
     "share": "Compartilhar",
     "tomorrow": "Amanhã tem outro título",
-    "freezeUsed": "❄️ O congelamento cobriu ontem",
     "pictureOffline": "A imagem precisa de conexão na primeira vez. As dicas abaixo funcionam.",
     "noPuzzle": "Nada para adivinhar ainda — assista a um episódio ou a um filme primeiro.",
-    "notifyTitle": "Sua sequência de desafios termina hoje à noite",
-    "notifyBody": {
-      "one": "{{count}} dia seguido. Um palpite mantém a sequência.",
-      "other": "{{count}} dias seguidos. Um palpite mantém a sequência."
-    },
     "blockPlayed": {
       "one": "{{count}} jogado este mês",
       "other": "{{count}} jogados este mês"
     },
     "settings": {
       "title": "Desafio do dia",
-      "rowSub": "Adivinhe o título, sequência, lembrete",
       "game": "Desafio do dia",
       "gameSub": "Uma série ou um filme por dia para adivinhar a partir de uma imagem borrada. Desligado, some de todo lugar e seu histórico fica guardado.",
-      "remind": "Lembrete da sequência",
-      "remindSub": "Uma vez por dia, só se a sua sequência terminar hoje à noite. Nunca fora disso.",
-      "remindAt": "Lembrar às",
-      "public": "Sequência no seu perfil público",
-      "publicSub": "Só dias e cores — nunca qual título."
+      "remindAt": "Lembrar às"
     },
     "tryOf": "Tentativa {{n}} de {{total}}"
   },
@@ -3511,5 +3496,30 @@
     "actor": "Com {{name}}",
     "openFilm": "Abrir o filme",
     "memoryFilm": "Você assistiu em {{year}}"
+  },
+  "puzzlePolish": {
+    "played": "Jogos",
+    "win": "% de vitórias",
+    "avg": "Média de tentativas",
+    "statsA11y": "{{played}} jogos, {{win}}% de vitórias, média de {{avg}} tentativas",
+    "archive": "Arquivo",
+    "archiveTitle": "Arquivo do puzzle",
+    "archiveSub": "Todos os puzzles passados desde o seu primeiro. O de hoje é sempre grátis; jogar de novo um dia passado faz parte do Plus.",
+    "archiveEmpty": "Os puzzles passados se juntam aqui, a partir do dia seguinte ao seu primeiro.",
+    "notPlayed": "Não jogado",
+    "solvedIn": "Acertou em {{score}}",
+    "missed": "Errou",
+    "archiveNote": "Do arquivo. Não conta para as suas estatísticas.",
+    "needsPlus": "Requer Plus",
+    "shareTitle": "Compartilhe seu resultado",
+    "shareImage": "Compartilhar como imagem",
+    "shareText": "Compartilhar como texto",
+    "notifyTitle": "O puzzle de hoje está esperando",
+    "notifyBody": "Você ainda não jogou o puzzle de hoje.",
+    "rowSub": "Adivinhe o título, lembrete, arquivo",
+    "remind": "Lembrete diário",
+    "remindSub": "Uma vez por dia neste horário, só se você ainda não jogou.",
+    "public": "Puzzle no seu perfil público",
+    "publicSub": "Só dias, cores e estatísticas, nunca qual título."
   }
 }

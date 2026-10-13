@@ -3201,10 +3201,6 @@
     "cardProgress": "Essai {{n}} sur 6 — continuez",
     "cardWon": "Résolue en {{score}}",
     "cardLost": "Pas aujourd'hui. Un nouveau titre demain.",
-    "streakDays": {
-      "one": "{{count}} jour d'affilée",
-      "other": "{{count}} jours d'affilée"
-    },
     "fromLibrary": "De votre bibliothèque",
     "classic": "Un classique",
     "clueYear": "Diffusée pour la première fois en {{year}}",
@@ -3231,28 +3227,17 @@
     "added": "Dans votre liste",
     "share": "Partager",
     "tomorrow": "Un nouveau titre demain",
-    "freezeUsed": "❄️ Votre gel a couvert hier",
     "pictureOffline": "L'image a besoin d'une connexion la première fois. Les indices ci-dessous fonctionnent.",
     "noPuzzle": "Rien à deviner pour l'instant — regardez d'abord un épisode ou un film.",
-    "notifyTitle": "Vos jours d'affilée s'arrêtent ce soir",
-    "notifyBody": {
-      "one": "{{count}} jour d'affilée. Une réponse suffit pour continuer.",
-      "other": "{{count}} jours d'affilée. Une réponse suffit pour continuer."
-    },
     "blockPlayed": {
       "one": "{{count}} jouée ce mois-ci",
       "other": "{{count}} jouées ce mois-ci"
     },
     "settings": {
       "title": "Énigme du jour",
-      "rowSub": "Devinez le titre, jours d'affilée, rappel",
       "game": "Énigme du jour",
       "gameSub": "Une série ou un film par jour à deviner d'après une image floutée. Désactivée, elle disparaît partout et votre historique est conservé.",
-      "remind": "Rappel des jours d'affilée",
-      "remindSub": "Une fois par jour, seulement si vos jours d'affilée s'arrêtent ce soir. Jamais autrement.",
-      "remindAt": "Rappel à",
-      "public": "Jours d'affilée sur votre profil public",
-      "publicSub": "Jours et couleurs seulement — jamais quel titre."
+      "remindAt": "Rappel à"
     },
     "tryOf": "Essai {{n}} sur {{total}}"
   },
@@ -3511,5 +3496,30 @@
     "actor": "Avec {{name}}",
     "openFilm": "Ouvrir le film",
     "memoryFilm": "Vous l'avez vu en {{year}}"
+  },
+  "puzzlePolish": {
+    "played": "Parties",
+    "win": "% gagnées",
+    "avg": "Essais moy.",
+    "statsA11y": "{{played}} parties, {{win}} % gagnées, {{avg}} essais en moyenne",
+    "archive": "Archives",
+    "archiveTitle": "Archives du puzzle",
+    "archiveSub": "Tous les puzzles passés depuis votre premier. Celui du jour reste gratuit ; rejouer un jour passé fait partie de Plus.",
+    "archiveEmpty": "Les puzzles passés s'accumulent ici, à partir du lendemain de votre premier.",
+    "notPlayed": "Pas joué",
+    "solvedIn": "Trouvé en {{score}}",
+    "missed": "Raté",
+    "archiveNote": "Des archives. Ne compte pas dans vos statistiques.",
+    "needsPlus": "Nécessite Plus",
+    "shareTitle": "Partager votre résultat",
+    "shareImage": "Partager en image",
+    "shareText": "Partager en texte",
+    "notifyTitle": "Le puzzle du jour vous attend",
+    "notifyBody": "Vous n'avez pas encore joué au puzzle du jour.",
+    "rowSub": "Devinez le titre, rappel, archives",
+    "remind": "Rappel quotidien",
+    "remindSub": "Une fois par jour à cette heure, seulement si vous n'avez pas encore joué.",
+    "public": "Puzzle sur votre profil public",
+    "publicSub": "Jours, couleurs et statistiques seulement, jamais le titre."
   }
 }
