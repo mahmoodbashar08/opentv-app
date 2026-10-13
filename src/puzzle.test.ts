@@ -7,18 +7,27 @@ import {
   BLUR,
   CLUES,
   MAX_TRIES,
+  MIN_LIBRARY_POOL,
   NO_STREAK,
   PUZZLE_EPOCH,
   SKIP,
   blurFor,
+  candidatePool,
+  clueParts,
   cluesShown,
   daysBetween,
+  filmId,
   freezeAvailable,
+  hashDay,
   guess,
+  isFilmId,
   isOver,
   liveStreak,
   misses,
   newGame,
+  parseGame,
+  parseHistory,
+  parseId,
   parsePublicPuzzle,
   pickForDay,
   pickIndex,
@@ -34,6 +43,7 @@ import {
   titleMatches,
   winLevel,
   withResult,
+  type Clues,
   type Streak,
 } from '@/puzzle';
 
@@ -248,5 +258,173 @@ describe('matching a typed title', () => {
     expect(titleMatches('Dark', '')).toBe(false);
     expect(titleMatches('Dark', '   ')).toBe(false);
     expect(titleMatches('Dark', 'Severance')).toBe(false);
+  });
+});
+
+// ── films (14 Oct) ──────────────────────────────────────────────────────────
+
+describe('a film among the shows', () => {
+  it('keys a film apart from every show', () => {
+    expect(filmId(603, 'The Matrix')).toBe('m:603');
+    expect(filmId(null, 'Paprika')).toBe('m:n:Paprika');
+    // A film called "603" with no TMDB match is not TMDB's 603.
+    expect(filmId(null, '603')).not.toBe(filmId(603, 'x'));
+    expect(isFilmId('m:603')).toBe(true);
+    expect(isFilmId(603)).toBe(false);
+    // TheTVDB 603 and TMDB 603 are two different answers.
+    expect(guess(newGame('2026-11-01', 603), 'm:603').won).toBe(false);
+    expect(guess(newGame('2026-11-01', 'm:603'), 'm:603').won).toBe(true);
+  });
+
+  it('reads ids from either era and nothing else', () => {
+    expect(parseId(81189)).toBe(81189);
+    expect(parseId(SKIP)).toBe(SKIP);
+    expect(parseId('m:603')).toBe('m:603');
+    expect(parseId('m:n:Paprika')).toBe('m:n:Paprika');
+    expect(parseId('81189')).toBeNull();
+    expect(parseId('m:')).toBeNull();
+    expect(parseId(-1)).toBeNull();
+    expect(parseId(null)).toBeNull();
+  });
+
+  it('answers a show-only library exactly as before films existed', () => {
+    // The old comparator, verbatim: a library with no watched film must pick
+    // the same show it always would have.
+    const old = (day: string, ids: number[]) => {
+      const sorted = [...new Set(ids)].sort((a, b) => a - b);
+      return sorted[hashDay(day) % sorted.length];
+    };
+    const ids = [81189, 121361, 305288, 73244, 279121];
+    for (let i = 0; i < 30; i++) {
+      const day = shiftDay('2026-11-01', i);
+      expect(pickForDay(day, ids)).toBe(old(day, ids));
+    }
+  });
+
+  it('picks from shows and films alike, whatever order they arrive in', () => {
+    const a = [81189, 'm:603', 73244, 'm:n:Paprika', 'm:129'];
+    const b = ['m:129', 73244, 'm:n:Paprika', 81189, 'm:603'];
+    const picks = new Set<string | number>();
+    for (let i = 0; i < 40; i++) {
+      const day = shiftDay('2026-11-01', i);
+      expect(pickForDay(day, a)).toBe(pickForDay(day, b));
+      picks.add(pickForDay(day, a)!);
+    }
+    expect([...picks].some(isFilmId)).toBe(true);
+    expect([...picks].some((p) => typeof p === 'number')).toBe(true);
+    // Recently played films are avoided like shows.
+    expect(pickForDay('2026-11-02', ['m:1', 'm:2', 5], ['m:1', 5])).toBe('m:2');
+  });
+
+  it('lets watched films count towards the library, and adds classics only below the floor', () => {
+    const classics = [1, 2, 3];
+    const small = [81189, 'm:603'];
+    expect(candidatePool(small, classics)).toEqual([81189, 'm:603', 1, 2, 3]);
+    const full = Array.from({ length: MIN_LIBRARY_POOL }, (_, i) => (i % 2 ? 1000 + i : `m:${i}`));
+    expect(candidatePool(full, classics)).toEqual(full);
+    // A library of films alone is still a library.
+    const films = Array.from({ length: MIN_LIBRARY_POOL }, (_, i) => `m:${i}`);
+    expect(candidatePool(films, classics)).toEqual(films);
+  });
+});
+
+describe('saves from before films', () => {
+  it('resumes a show game saved by the old build', () => {
+    const old = JSON.parse('{"day":"2026-11-03","id":81189,"guesses":[121361,0],"won":false}');
+    const g = parseGame(old, '2026-11-03');
+    expect(g).toEqual({ day: '2026-11-03', id: 81189, guesses: [121361, SKIP], won: false });
+    expect(squares(guess(g!, 81189))).toBe('🟥⬛🟩');
+    // Yesterday's is not resumed; a broken one is not either.
+    expect(parseGame(old, '2026-11-04')).toBeNull();
+    expect(parseGame({ ...old, guesses: [true] }, '2026-11-03')).toBeNull();
+    expect(parseGame('nope', '2026-11-03')).toBeNull();
+  });
+
+  it('round-trips a film game', () => {
+    const g = guess(guess(newGame('2026-11-03', 'm:n:Paprika'), 81189), 'm:n:Paprika');
+    expect(parseGame(JSON.parse(JSON.stringify(g)), '2026-11-03')).toEqual(g);
+  });
+
+  it('keeps an old history, adds film rows to it, and feeds both to the streak block', () => {
+    const old = JSON.parse(
+      '[{"d":"2026-11-01","id":81189,"tries":3,"won":true},{"d":"2026-11-02","id":73244,"tries":6,"won":false},{"bad":1}]',
+    );
+    const h = parseHistory(old);
+    expect(h).toHaveLength(2);
+    const after = withResult(h, { d: '2026-11-03', id: 'm:603', tries: 1, won: true });
+    expect(recentIds(after)).toEqual([81189, 73244, 'm:603']);
+    expect(parseHistory(JSON.parse(JSON.stringify(after)))).toEqual(after);
+    // The public block is still counts and colours: no id of either kind.
+    const pub = publicPuzzle(after, 3, '2026-11');
+    expect(pub.days).toEqual([
+      ['2026-11-01', 4],
+      ['2026-11-02', 0],
+      ['2026-11-03', 6],
+    ]);
+    expect(JSON.stringify(pub)).not.toContain('603');
+    expect(JSON.stringify(pub)).not.toContain('81189');
+    expect(parseHistory('nope')).toEqual([]);
+  });
+});
+
+describe('the clues for both kinds', () => {
+  const show: Clues = {
+    kind: 'show',
+    year: '2008',
+    genre: 'Drama',
+    network: 'AMC',
+    seasons: 5,
+    director: null,
+    runtime: null,
+    actor: 'Bryan Cranston',
+    character: 'Walter White',
+  };
+  const film: Clues = {
+    kind: 'film',
+    year: '2006',
+    genre: 'Animation',
+    network: null,
+    seasons: null,
+    director: 'Satoshi Kon',
+    runtime: 90,
+    actor: 'Megumi Hayashibara',
+    character: 'Paprika',
+  };
+
+  it('unlocks the kind first, then genre, details, an actor, a character', () => {
+    expect(CLUES).toEqual(['still', 'kindYear', 'genre', 'details', 'actor', 'character']);
+  });
+
+  it('says what a show is', () => {
+    expect(clueParts('kindYear', show)).toEqual([['puzzleTitles.kindShow'], ['puzzle.clueYear', { year: '2008' }]]);
+    expect(clueParts('genre', show)).toEqual([['puzzle.clueGenre', { genre: 'Drama' }]]);
+    expect(clueParts('details', show)).toEqual([
+      ['puzzle.clueNetwork', { network: 'AMC' }],
+      ['show.seasonsCount', { count: 5 }],
+    ]);
+    expect(clueParts('actor', show)).toEqual([['puzzleTitles.actor', { name: 'Bryan Cranston' }]]);
+    expect(clueParts('character', show)).toEqual([['puzzle.clueCharacter', { name: 'Walter White' }]]);
+    expect(clueParts('still', show)).toEqual([]);
+  });
+
+  it('says what a film is', () => {
+    expect(clueParts('kindYear', film)).toEqual([['puzzleTitles.kindFilm'], ['puzzleTitles.released', { year: '2006' }]]);
+    expect(clueParts('details', film)).toEqual([
+      ['puzzleTitles.director', { name: 'Satoshi Kon' }],
+      ['puzzleTitles.runtime', { count: 90 }],
+    ]);
+    expect(clueParts('actor', film)).toEqual([['puzzleTitles.actor', { name: 'Megumi Hayashibara' }]]);
+  });
+
+  it('falls back to what exists and never to an empty piece', () => {
+    const bare: Clues = { ...film, year: null, genre: null, director: null, actor: null, character: null };
+    // The kind is always known.
+    expect(clueParts('kindYear', bare)).toEqual([['puzzleTitles.kindFilm']]);
+    // No director: the runtime alone.
+    expect(clueParts('details', bare)).toEqual([['puzzleTitles.runtime', { count: 90 }]]);
+    // Nothing at all: an empty row, which the screen words as "nothing known".
+    expect(clueParts('details', { ...bare, runtime: null })).toEqual([]);
+    expect(clueParts('actor', bare)).toEqual([]);
+    expect(clueParts('details', { ...show, network: null })).toEqual([['show.seasonsCount', { count: 5 }]]);
   });
 });

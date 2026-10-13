@@ -3194,13 +3194,13 @@
     "from": "Vos données de serializd.com en fichier JSON. Serializd n'a pas encore de bouton d'export — en attendant, transférez votre historique vers Trakt et importez cet export à la place."
   },
   "puzzle": {
-    "title": "Devinez la série",
+    "title": "Devinez le titre",
     "blockName": "Énigme du jour",
     "number": "#{{n}}",
-    "cardSub": "Une série par jour, tirée de votre bibliothèque. Six essais.",
+    "cardSub": "Un titre par jour, tiré de votre bibliothèque. Six essais.",
     "cardProgress": "Essai {{n}} sur 6 — continuez",
-    "cardWon": "Trouvée en {{score}}",
-    "cardLost": "Pas aujourd'hui. Une nouvelle série demain.",
+    "cardWon": "Résolue en {{score}}",
+    "cardLost": "Pas aujourd'hui. Un nouveau titre demain.",
     "streakDays": {
       "one": "{{count}} jour d'affilée",
       "other": "{{count}} jours d'affilée"
@@ -3209,17 +3209,16 @@
     "classic": "Un classique",
     "clueYear": "Diffusée pour la première fois en {{year}}",
     "clueGenre": "Genre : {{genre}}",
-    "clueCountry": "Pays : {{country}}",
     "clueNetwork": "Chaîne : {{network}}",
     "clueCharacter": "Un personnage célèbre : {{name}}",
     "clueLocked": "Se débloque après une erreur",
     "clueUnknown": "Rien de connu ici — l'image devra suffire",
-    "answerPlaceholder": "Quelle est cette série ?",
-    "noMatch": "Aucune série de ce nom — essayez une autre orthographe",
+    "answerPlaceholder": "Quelle série ou quel film est-ce ?",
+    "noMatch": "Aucun titre de ce nom — essayez une autre orthographe",
     "skip": "Passer cet essai",
     "wonTitle": {
-      "one": "Trouvée du premier coup !",
-      "other": "Trouvée en {{count}} essais"
+      "one": "Trouvé du premier coup !",
+      "other": "Trouvé en {{count}} essais"
     },
     "lostTitle": "Pas cette fois",
     "itWas": "C'était {{show}}",
@@ -3231,10 +3230,10 @@
     "addToWatchlist": "Ajouter à ma liste",
     "added": "Dans votre liste",
     "share": "Partager",
-    "tomorrow": "Une nouvelle série demain",
+    "tomorrow": "Un nouveau titre demain",
     "freezeUsed": "❄️ Votre gel a couvert hier",
     "pictureOffline": "L'image a besoin d'une connexion la première fois. Les indices ci-dessous fonctionnent.",
-    "noPuzzle": "Rien à deviner pour l'instant — regardez d'abord un épisode ou deux.",
+    "noPuzzle": "Rien à deviner pour l'instant — regardez d'abord un épisode ou un film.",
     "notifyTitle": "Vos jours d'affilée s'arrêtent ce soir",
     "notifyBody": {
       "one": "{{count}} jour d'affilée. Une réponse suffit pour continuer.",
@@ -3246,14 +3245,14 @@
     },
     "settings": {
       "title": "Énigme du jour",
-      "rowSub": "Devinez la série, jours d'affilée, rappel",
+      "rowSub": "Devinez le titre, jours d'affilée, rappel",
       "game": "Énigme du jour",
-      "gameSub": "Une série par jour à deviner d'après une image floutée. Désactivée, elle disparaît partout et votre historique est conservé.",
+      "gameSub": "Une série ou un film par jour à deviner d'après une image floutée. Désactivée, elle disparaît partout et votre historique est conservé.",
       "remind": "Rappel des jours d'affilée",
       "remindSub": "Une fois par jour, seulement si vos jours d'affilée s'arrêtent ce soir. Jamais autrement.",
       "remindAt": "Rappel à",
       "public": "Jours d'affilée sur votre profil public",
-      "publicSub": "Jours et couleurs seulement — jamais quelle série."
+      "publicSub": "Jours et couleurs seulement — jamais quel titre."
     }
   },
   "a11y": {
@@ -3498,5 +3497,18 @@
     },
     "mine": "votre note",
     "short": "Communauté"
+  },
+  "puzzleTitles": {
+    "kindShow": "Série",
+    "kindFilm": "Film",
+    "released": "Sorti en {{year}}",
+    "director": "Réalisé par {{name}}",
+    "runtime": {
+      "one": "{{count}} min",
+      "other": "{{count}} min"
+    },
+    "actor": "Avec {{name}}",
+    "openFilm": "Ouvrir le film",
+    "memoryFilm": "Vous l'avez vu en {{year}}"
   }
 }

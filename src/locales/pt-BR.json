@@ -3194,13 +3194,13 @@
     "from": "Seus dados do serializd.com como arquivo JSON. O Serializd ainda não tem botão de exportação — enquanto isso, leve seu histórico para o Trakt e importe essa exportação no lugar."
   },
   "puzzle": {
-    "title": "Adivinhe a série",
+    "title": "Adivinhe o título",
     "blockName": "Desafio do dia",
     "number": "#{{n}}",
-    "cardSub": "Uma série por dia, da sua biblioteca. Seis tentativas.",
+    "cardSub": "Um título por dia, da sua biblioteca. Seis tentativas.",
     "cardProgress": "Tentativa {{n}} de 6 — continue",
     "cardWon": "Resolvido em {{score}}",
-    "cardLost": "Hoje não. Amanhã tem outra série.",
+    "cardLost": "Hoje não. Amanhã tem outro título.",
     "streakDays": {
       "one": "Sequência de {{count}} dia",
       "other": "Sequência de {{count}} dias"
@@ -3209,13 +3209,12 @@
     "classic": "Um clássico",
     "clueYear": "Estreou em {{year}}",
     "clueGenre": "Gênero: {{genre}}",
-    "clueCountry": "País: {{country}}",
     "clueNetwork": "Canal: {{network}}",
     "clueCharacter": "Um personagem famoso: {{name}}",
     "clueLocked": "Libera depois de um erro",
     "clueUnknown": "Nada a dizer aqui — a imagem vai ter que bastar",
-    "answerPlaceholder": "Que série é essa?",
-    "noMatch": "Nenhuma série com esse nome — tente escrever de outro jeito",
+    "answerPlaceholder": "Que série ou filme é esse?",
+    "noMatch": "Nada com esse nome — tente escrever de outro jeito",
     "skip": "Pular esta tentativa",
     "wonTitle": {
       "one": "Acertou de primeira!",
@@ -3231,10 +3230,10 @@
     "addToWatchlist": "Adicionar à lista de espera",
     "added": "Na sua lista de espera",
     "share": "Compartilhar",
-    "tomorrow": "Amanhã tem outra série",
+    "tomorrow": "Amanhã tem outro título",
     "freezeUsed": "❄️ O congelamento cobriu ontem",
     "pictureOffline": "A imagem precisa de conexão na primeira vez. As dicas abaixo funcionam.",
-    "noPuzzle": "Nada para adivinhar ainda — assista a um episódio ou dois primeiro.",
+    "noPuzzle": "Nada para adivinhar ainda — assista a um episódio ou a um filme primeiro.",
     "notifyTitle": "Sua sequência de desafios termina hoje à noite",
     "notifyBody": {
       "one": "{{count}} dia seguido. Um palpite mantém a sequência.",
@@ -3246,14 +3245,14 @@
     },
     "settings": {
       "title": "Desafio do dia",
-      "rowSub": "Adivinhe a série, sequência, lembrete",
+      "rowSub": "Adivinhe o título, sequência, lembrete",
       "game": "Desafio do dia",
-      "gameSub": "Uma série por dia para adivinhar a partir de uma imagem borrada. Desligado, some de todo lugar e seu histórico fica guardado.",
+      "gameSub": "Uma série ou um filme por dia para adivinhar a partir de uma imagem borrada. Desligado, some de todo lugar e seu histórico fica guardado.",
       "remind": "Lembrete da sequência",
       "remindSub": "Uma vez por dia, só se a sua sequência terminar hoje à noite. Nunca fora disso.",
       "remindAt": "Lembrar às",
       "public": "Sequência no seu perfil público",
-      "publicSub": "Só dias e cores — nunca qual série."
+      "publicSub": "Só dias e cores — nunca qual título."
     }
   },
   "a11y": {
@@ -3498,5 +3497,18 @@
     },
     "mine": "sua avaliação",
     "short": "Comunidade"
+  },
+  "puzzleTitles": {
+    "kindShow": "Série",
+    "kindFilm": "Filme",
+    "released": "Lançado em {{year}}",
+    "director": "Dirigido por {{name}}",
+    "runtime": {
+      "one": "{{count}} min",
+      "other": "{{count}} min"
+    },
+    "actor": "Com {{name}}",
+    "openFilm": "Abrir o filme",
+    "memoryFilm": "Você assistiu em {{year}}"
   }
 }

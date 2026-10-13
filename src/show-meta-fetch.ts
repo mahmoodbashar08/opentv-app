@@ -874,7 +874,8 @@ async function fetchTvdbStructure(tvdbId: number): Promise<ShowMeta | null> {
       totalSeasons: [...seasonCounts.keys()].filter((n) => n > 0).length,
       genres: (s.genres ?? []).map((g) => g.name).filter((n): n is string => !!n),
       network: s.originalNetwork?.name ?? null,
-      // On the same response as the network; the puzzle's fourth clue.
+      // On the same response as the network. The puzzle's clue until 14 Oct;
+      // kept, since it costs nothing and a clue may want it back.
       country: s.originalCountry ?? null,
       runtime: s.averageRuntime ?? null,
       overview: eng?.overview ?? s.overview ?? null,
