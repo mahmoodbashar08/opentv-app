@@ -5,7 +5,7 @@ import { Alert, I18nManager, Linking, Pressable, StyleSheet, Text, View } from '
 
 import { Image } from 'expo-image';
 
-import { a11yAction } from '@/a11y';
+import { a11yAction, a11yHidden } from '@/a11y';
 import { icloudAvailableAsync, icloudSupported } from '@/backup';
 import { useRemoteChange } from '@/device-sync';
 import { dismissCommunityBanner, useCommunityBannerDismissed } from '@/community-prompt';
@@ -906,6 +906,15 @@ export default function ProfileScreen() {
       {goalOffer && !emptyLibrary && (
         <Pressable
           style={[styles.wrappedBanner, themedNotice]}
+          // A button like the notices above it, with its ✕ as a custom
+          // action: the nested Close was swallowed by the card and could not
+          // be reached at all, and the 🎯 was read as "direct hit".
+          accessibilityRole="button"
+          accessibilityLabel={`${t('yearlyGoal.bannerTitle', { year: String(new Date().getFullYear()) })}, ${t('yearlyGoal.bannerBody')}`}
+          {...a11yAction('dismiss', t('ui.dismiss'), () => {
+            setMeta(GOAL_BANNER_CLOSED, '1');
+            setGoalOffer(false);
+          })}
           onPress={() => {
             tapLight();
             router.push('/yearly-goal');
@@ -1267,7 +1276,8 @@ export default function ProfileScreen() {
         ) : seedLib ? (
           <Image source={AVATAR} style={StyleSheet.absoluteFill} contentFit="cover" />
         ) : (
-          <Text style={{ color: colors.yellow, fontSize: 26, fontWeight: '800' }}>
+          // the initial is a picture of the name, which the heading beside it reads
+          <Text style={{ color: colors.yellow, fontSize: 26, fontWeight: '800' }} {...a11yHidden()}>
             {username[0]?.toUpperCase() ?? '?'}
           </Text>
         )

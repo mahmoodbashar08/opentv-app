@@ -19,7 +19,9 @@ import { APP_ICONS, currentIcon, setIcon, supported, type AppIconName } from '@/
 import { freeIcons, iconChosenByHand } from '@/season-icon';
 import { LayoutPicker } from '@/components/layout-picker';
 import { ContentColumn, MenuRow, NavHeader, Screen } from '@/components/ui';
+import { a11yHidden } from '@/a11y';
 import { t } from '@/i18n';
+import type { LocaleKey } from '@/locales/keys';
 import { ApiError } from '@/api';
 import { communityErrorText } from '@/community-error-text';
 import { pushProfileTheme } from '@/community-profiles';
@@ -49,6 +51,21 @@ const ICON_SOURCES: Record<AppIconName, number> = {
   teal: require('@/assets/icons/teal.png'),
   halloween: require('@/assets/icons/halloween.png'),
   christmas: require('@/assets/icons/christmas.png'),
+};
+
+/**
+ * What each icon is CALLED, in the reader's language. The buttons were
+ * labelled with the raw key — "halloween", "teal" — in English on every phone,
+ * because the key was all the button had. A `Record` over the icon names, so a
+ * new icon without a name is a compile error rather than a key read aloud.
+ */
+const ICON_NAMES: Record<AppIconName, LocaleKey> = {
+  default: 'plus.appearance.iconDefault',
+  orange: 'a11y.iconOrange',
+  purple: 'a11y.iconPurple',
+  teal: 'a11y.iconTeal',
+  halloween: 'a11y.iconHalloween',
+  christmas: 'a11y.iconChristmas',
 };
 
 export default function AppearanceScreen() {
@@ -141,8 +158,11 @@ export default function AppearanceScreen() {
       <NavHeader title={t('plus.appearance.title')} close />
       <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
         <ContentColumn>
-          {/* Preview — a show row and a CTA, in the colours being chosen. */}
-          <View style={[s.preview, { backgroundColor: panel }]}>
+          {/* Preview — a show row and a CTA, in the colours being chosen.
+              Colours only, so nothing in it is read: "Your next show",
+              "S2E7 · up next" and a "Mark watched" that sounded like a button
+              were read as if they were the screen's own content. */}
+          <View style={[s.preview, { backgroundColor: panel }]} {...a11yHidden()}>
             <View style={[s.row, { backgroundColor: card }]}>
               <View style={[s.poster, { backgroundColor: colors.pillGrey }]} />
               <View style={{ flex: 1 }}>
@@ -187,7 +207,7 @@ export default function AppearanceScreen() {
               once joined: without a profile there is nowhere for it to live. */}
           {joined && (
             <>
-              <Text style={s.label}>{t('plus.appearance.profileTheme')}</Text>
+              <Text style={s.label} accessibilityRole="header">{t('plus.appearance.profileTheme')}</Text>
               <MenuRow
                 trackId="plus.appearance.profileThemePick"
                 title={t('plus.appearance.profileThemePick')}
@@ -227,20 +247,20 @@ export default function AppearanceScreen() {
                 </Pressable>
               )}
 
-              <Text style={s.label}>{t('plus.appearance.profileLayout')}</Text>
+              <Text style={s.label} accessibilityRole="header">{t('plus.appearance.profileLayout')}</Text>
               <Text style={s.note}>{t('plus.appearance.profileLayoutSub')}</Text>
               <LayoutPicker accent={profileTheme} />
             </>
           )}
 
-          <Text style={s.label}>{t('plus.appearance.icon')}</Text>
+          <Text style={s.label} accessibilityRole="header">{t('plus.appearance.icon')}</Text>
           {!iconsWork && <Text style={s.note}>{t('plus.appearance.iconUnsupported')}</Text>}
           <View style={s.icons}>
             {APP_ICONS.map((name) => (
               <Pressable
                 key={name}
                 accessibilityRole="button"
-                accessibilityLabel={name === 'default' ? t('plus.appearance.iconDefault') : name}
+                accessibilityLabel={t(ICON_NAMES[name])}
                 accessibilityState={{ selected: icon === name, disabled: !iconsWork }}
                 disabled={!iconsWork}
                 onPress={() => pickIcon(name)}

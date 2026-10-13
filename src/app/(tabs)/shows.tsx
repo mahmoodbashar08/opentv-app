@@ -4,7 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { a11yAction } from '@/a11y';
+import { a11yAction, a11yHidden } from '@/a11y';
 import { Poster, posterSpeech } from '@/components/poster';
 import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
 import { archiveCounts, getHistory, getMeta, getMovieTotals, getShowProgress, getTotals, libraryOwner, setMeta, type ShowProgress } from '@/db';
@@ -457,7 +457,7 @@ export default function ShowsScreen() {
                         style={[styles.card, styles.histCard]}
                         accessible={false}
                         onPress={() => router.push(`/episode/${w.showId}-s${w.season}e${w.episode}`)}>
-                        <View style={styles.thumb} accessible={false} importantForAccessibility="no-hide-descendants">
+                        <View style={styles.thumb} {...a11yHidden()}>
                           {em?.still ? (
                             <Image source={{ uri: em.still }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                           ) : (
@@ -485,6 +485,8 @@ export default function ShowsScreen() {
                         <View style={{ paddingEnd: 12 }}>
                           <CheckCircle
                             watched
+                            opensMarkAs
+                            what={[w.name, t('a11y.seasonEpisode', { season: w.season, episode: w.episode })].join(', ')}
                             onPress={() => router.push(`/mark-as?show=${w.showId}&s=${w.season}&e=${w.episode}`)}
                           />
                         </View>
@@ -544,7 +546,7 @@ export default function ShowsScreen() {
                       : router.push(`/episode/${sp.tvdbId}-s${nextS}e${nextE}`)
                   }
                 >
-                  <View style={styles.thumb} accessible={false} importantForAccessibility="no-hide-descendants">
+                  <View style={styles.thumb} {...a11yHidden()}>
                     {thumbUri ? (
                       <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                     ) : (
@@ -618,7 +620,10 @@ export default function ShowsScreen() {
                     </Text>
                   </View>
                   <View style={{ paddingEnd: 12 }}>
-                    <CheckCircle onPress={() => markNext(sp)} />
+                    <CheckCircle
+                      onPress={() => markNext(sp)}
+                      what={[sp.name, t('a11y.seasonEpisode', { season: nextS, episode: nextE })].join(', ')}
+                    />
                   </View>
                 </Pressable>
               );

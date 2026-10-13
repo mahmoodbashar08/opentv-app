@@ -383,7 +383,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
                   return (
                     <Chip
                       key={o.value}
-                      label={o.value === 'unrated' ? t('filters.ratingUnrated') : t('filters.ratingMin', { stars: o.value })}
+                      label={o.value === 'unrated' ? t('filters.ratingUnrated') : t('filters.ratingMin', { count: value })}
                       count={o.count}
                       on={on}
                       onPress={() => {

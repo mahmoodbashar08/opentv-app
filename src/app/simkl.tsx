@@ -24,7 +24,7 @@ import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'r
 
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
 import { simklConfigured, simklDeviceCode, simklPollToken, type SimklDeviceCode, type SimklPoll } from '@/simkl';
 import { answerSimklMatch, disconnectSimkl, getSimklTokens, setSimklTokens, simklPending, simklSyncedAt, syncSimkl, type SimklPendingMatch } from '@/simkl-sync';
 import { colors, radius, space, ls } from '@/theme';
@@ -146,7 +146,7 @@ export default function SimklScreen() {
     ]);
   };
 
-  const syncedLabel = lastSync ? new Date(lastSync).toLocaleString() : t('plex.never');
+  const syncedLabel = lastSync ? new Date(lastSync).toLocaleString(currentLocale()) : t('plex.never');
 
   return (
     <Screen>

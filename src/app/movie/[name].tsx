@@ -57,6 +57,7 @@ import { SeasonEffect } from '@/components/season-effect';
 import { currentLook } from '@/season';
 import { isPlus } from '@/plus';
 import { currentLocale, t } from '@/i18n';
+import { a11yHidden } from '@/a11y';
 import { HalfStarControl, HalfStarHint } from '@/components/half-stars';
 import { CommunityRating } from '@/components/rating-breakdown';
 import { ratingForTap, starsValue, wholeStars } from '@/star-rating';
@@ -943,13 +944,23 @@ export default function MovieScreen() {
         {/* release date · watch state · check */}
         <View style={styles.metaRow}>
           <Ionicons name="calendar-outline" size={16} color={colors.dim} />
-          <Text style={styles.metaText}>{mm?.release ? shortDate(mm.release) : (displayYear ?? '—')}</Text>
+          {/* The calendar and the eye say which date is which, and icons are
+              not read — so each date says it in words. */}
+          <Text style={styles.metaText} accessibilityLabel={mm?.release ? t('a11y.released', { date: shortDate(mm.release) }) : undefined}>
+            {mm?.release ? shortDate(mm.release) : (displayYear ?? '—')}
+          </Text>
           <Ionicons name="eye-outline" size={17} color={colors.dim} style={{ marginStart: 10 }} />
-          <Text style={styles.metaText}>{watchedAt ? shortDate(watchedAt) : t('media.notWatched')}</Text>
-          {rewatches > 0 && <Text style={[styles.metaText, { color: colors.yellow }]}>{`↻ ×${rewatches}`}</Text>}
+          <Text style={styles.metaText} accessibilityLabel={watchedAt ? t('show.watchedOnDate', { date: shortDate(watchedAt) }) : undefined}>
+            {watchedAt ? shortDate(watchedAt) : t('media.notWatched')}
+          </Text>
+          {rewatches > 0 && (
+            <Text style={[styles.metaText, { color: colors.yellow }]} accessibilityLabel={t('a11y.rewatches', { count: rewatches })}>
+              {`↻ ×${rewatches}`}
+            </Text>
+          )}
 
           <View style={{ marginStart: 'auto' }}>
-            <CheckCircle watched={watched} onPress={toggleWatched} size={42} />
+            <CheckCircle watched={watched} onPress={toggleWatched} size={42} opensMarkAs what={title} />
           </View>
         </View>
 
@@ -1069,7 +1080,7 @@ export default function MovieScreen() {
                 )}
 
                 <View style={styles.rowBetween}>
-                  <Text style={styles.h2}>{t('media.whereToWatch')}</Text>
+                  <Text style={styles.h2} accessibilityRole="header">{t('media.whereToWatch')}</Text>
                   <Ionicons name="settings-outline" size={18} color={colors.dim} />
                 </View>
                 <Text style={[styles.body, { paddingHorizontal: space.lg, marginTop: 2 }]}>
@@ -1080,7 +1091,7 @@ export default function MovieScreen() {
                 {inDb && (
                   <>
                     <View style={styles.divider} />
-                    <Text style={styles.pollLabel}>{t('movie.interestsPollLabel')}</Text>
+                    <Text style={styles.pollLabel} accessibilityRole="header">{t('movie.interestsPollLabel')}</Text>
                     <View style={styles.interestRow}>
                     {INTERESTS.map((labelKey, i) => (
                       <Pressable
@@ -1099,8 +1110,18 @@ export default function MovieScreen() {
                 )}
 
                 <View style={styles.divider} />
-                <Text style={[styles.h2, { paddingHorizontal: space.lg }]}>{t('movie.movieInfoTitle')}</Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: space.lg, marginTop: 8 }}>
+                <Text style={[styles.h2, { paddingHorizontal: space.lg }]} accessibilityRole="header">{t('movie.movieInfoTitle')}</Text>
+                {/* One sentence, as on the show screen: "T", "black star" ×5
+                    and "3.5/5" were four stops for one rating. */}
+                <View
+                  style={{ flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: space.lg, marginTop: 8 }}
+                  accessible
+                  accessibilityLabel={[
+                    rating5 ? t('a11y.tvdbRating', { score: rating5.toFixed(1) }) : t('a11y.tvdbUnrated'),
+                    mm?.votes ? t('movie.ratingsCount', { count: countLabel(mm.votes) }) : null,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}>
                   <View style={styles.tBadge}>
                     <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 13 }}>T</Text>
                   </View>
@@ -1149,10 +1170,11 @@ export default function MovieScreen() {
                 {!!mm?.cast?.length && (
                   <>
                     <View style={styles.divider} />
-                    <Text style={[styles.h2, { paddingHorizontal: space.lg, marginBottom: 12 }]}>{t('media.castTitle')}</Text>
+                    <Text style={[styles.h2, { paddingHorizontal: space.lg, marginBottom: 12 }]} accessibilityRole="header">{t('media.castTitle')}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: space.lg }}>
                       {mm.cast.map((c, i) => (
-                        <View key={`${c.name}-${i}`} style={{ width: 96 }}>
+                        // one stop per actor, "Margot Robbie, Barbie", as on the show screen
+                        <View key={`${c.name}-${i}`} style={{ width: 96 }} accessible accessibilityLabel={[c.name, c.character].filter(Boolean).join(', ')}>
                           <View style={styles.charCard}>
                             {c.photo ? (
                               <Image source={{ uri: c.photo }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -1174,7 +1196,7 @@ export default function MovieScreen() {
               </>
             ) : (
               <>
-                <Text style={styles.pollLabel}>{t('media.whereDidYouWatchPoll')}</Text>
+                <Text style={styles.pollLabel} accessibilityRole="header">{t('media.whereDidYouWatchPoll')}</Text>
                 <View style={styles.provRow}>
                   {WATCH_TILES.map((tile, i) => (
                     <Pressable
@@ -1201,7 +1223,7 @@ export default function MovieScreen() {
                 </View>
 
                 <View style={styles.divider} />
-                <Text style={styles.pollLabel}>
+                <Text style={styles.pollLabel} accessibilityRole="header">
                   {t('movie.ratePollLabel')}
                   {/* the value, so a half star is read and not squinted at:
                       live under a sliding finger, then what was given */}
@@ -1231,7 +1253,12 @@ export default function MovieScreen() {
                   onSlide={setRating}
                   onPreview={setStarPreview}
                 />
-                <View style={styles.starLegend}>
+                {/* said once or not at all — see the episode screen */}
+                <View
+                  style={styles.starLegend}
+                  {...(starPct != null
+                    ? { accessible: true, accessibilityLabel: STARS.map((k, i) => `${t(k)}, ${starPct[i] ?? 0}%`).join('; ') }
+                    : a11yHidden())}>
                   {STARS.map((lblKey, i) => (
                     <View key={lblKey} style={styles.starCell}>
                       <Text style={[styles.starLabel, starPct != null && (i === myStar ? styles.starLabelMine : styles.starLabelOther)]}>
@@ -1255,7 +1282,7 @@ export default function MovieScreen() {
                 <HalfStarHint color={colors.dim} />
 
                 <View style={styles.divider} />
-                <Text style={styles.pollLabel}>{t('media.howDidYouFeelPoll')}</Text>
+                <Text style={styles.pollLabel} accessibilityRole="header">{t('media.howDidYouFeelPoll')}</Text>
                 <View style={styles.emoGrid}>
                   {EMOTIONS.map((e, i) => {
                     // `EMOTIONS` here is index-locked to COMMUNITY_EMOTIONS —
@@ -1284,7 +1311,7 @@ export default function MovieScreen() {
                 {!!pollCast.length && (
                   <>
                     <View style={styles.divider} />
-                    <Text style={styles.pollLabel}>{t('media.whoWasFavoritePoll')}</Text>
+                    <Text style={styles.pollLabel} accessibilityRole="header">{t('media.whoWasFavoritePoll')}</Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingHorizontal: space.lg }}>
                       {orderPollCast(pollCast, charPct).map((c, i) => {
                         const label = pollLabel(c);
@@ -1305,7 +1332,11 @@ export default function MovieScreen() {
                             key={`${c.name}-${i}`}
                             style={[{ width: 96, alignItems: 'center' }, dimmed && styles.charDim]}
                             accessibilityRole="radio"
-                            accessibilityLabel={charPct[label] != null ? `${label}, ${charPct[label]}%` : label}
+                            // The performer after the character: seven tiles read
+                            // "Barbie" and nothing else, and could not be told apart.
+                            accessibilityLabel={[label, c.character && c.name && c.name !== label ? c.name : null, charPct[label] != null ? `${charPct[label]}%` : null]
+                              .filter(Boolean)
+                              .join(', ')}
                             accessibilityState={{ selected: picked }}
                             onPress={() => label && pickCharacter(label)}>
                             <View style={[styles.charCard, picked && styles.charPicked]}>

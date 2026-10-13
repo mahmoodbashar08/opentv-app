@@ -23,7 +23,7 @@ import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-nati
 
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
 import { nuvioProfiles, nuvioSignIn } from '@/nuvio';
 import { disconnectNuvio, getNuvioSession, nuvioEmail, nuvioProfileChoices, nuvioSyncedAt, setNuvioProfile, setNuvioSession, syncNuvio } from '@/nuvio-sync';
 import { colors, radius, space, ls } from '@/theme';
@@ -129,7 +129,7 @@ export default function NuvioScreen() {
     ]);
   };
 
-  const syncedLabel = lastSync ? new Date(lastSync).toLocaleString() : t('plex.never');
+  const syncedLabel = lastSync ? new Date(lastSync).toLocaleString(currentLocale()) : t('plex.never');
 
   return (
     <Screen>

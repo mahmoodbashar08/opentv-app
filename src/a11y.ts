@@ -15,7 +15,9 @@
  * circle is a first-class element; see `(tabs)/shows.tsx`.
  */
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { AccessibilityActionEvent } from 'react-native';
+import { Platform, type AccessibilityActionEvent } from 'react-native';
+
+import { t } from '@/i18n';
 
 /**
  * Every icon in the app is decoration, said once.
@@ -48,4 +50,42 @@ export function a11yAction(name: string, label: string, run: () => void) {
       if (e.nativeEvent.actionName === name) run();
     },
   };
+}
+
+/**
+ * Out of the screen reader's way, on BOTH platforms.
+ *
+ * `importantForAccessibility="no-hide-descendants"` is Android-only: iOS
+ * ignores it, and `accessible={false}` on a View does not hide what is inside
+ * it either. So the initials on a still-less thumb, the "All aired" tag on a
+ * poster and a row's › were all read aloud by VoiceOver while TalkBack skipped
+ * them (VoiceOver audit, 14 Oct). `accessibilityElementsHidden` is the iOS
+ * half; this spreads the two together so neither can be forgotten again.
+ */
+export function a11yHidden(hidden = true) {
+  return hidden
+    ? ({ accessibilityElementsHidden: true, importantForAccessibility: 'no-hide-descendants' } as const)
+    : ({ accessibilityElementsHidden: false, importantForAccessibility: 'auto' } as const);
+}
+
+/**
+ * One tab of a row of tabs — TopTabs, the Explore pills.
+ *
+ * `accessibilityRole="tab"` IS NOTHING ON iOS. React Native 0.86 maps it to no
+ * trait at all (`accessibilityPropsConversions.h` knows `tabbar`, not `tab`),
+ * so VoiceOver read "ABOUT" as plain text: no button, no tab, no position. The
+ * bottom tab bar has the same problem and react-navigation's answer is in its
+ * own source — role `button` on iOS ("FIXME: role: 'tab' doesn't seem to work
+ * as expected on iOS") and "tab, 2 of 4" spelled into the label. The same
+ * here, in the reader's language. Android keeps the real role, which TalkBack
+ * does announce.
+ */
+export function tabA11y(label: string, index: number, count: number, selected: boolean) {
+  return Platform.OS === 'ios'
+    ? ({
+        accessibilityRole: 'button',
+        accessibilityLabel: t('a11y.tabOf', { label, n: index + 1, total: count }),
+        accessibilityState: { selected },
+      } as const)
+    : ({ accessibilityRole: 'tab', accessibilityLabel: label, accessibilityState: { selected } } as const);
 }

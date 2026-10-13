@@ -4,6 +4,7 @@ import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 
 import { Dimensions, I18nManager, Pressable, StyleSheet, Switch, Text, View, useWindowDimensions, type StyleProp, type SwitchProps, type ViewStyle } from 'react-native';
 import { initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { tabA11y } from '@/a11y';
 import { track } from '@/analytics';
 import { tapLight, tapSelection } from '@/haptics';
 import { detailPaneLayout } from '@/pure';
@@ -214,12 +215,11 @@ export function TopTabs<T extends string>({
     <View style={s.topTabs}>
       {/* grey hairline across the whole bar; the white bar covers the active half */}
       <View style={s.tabHairline} />
-      {tabs.map((t) => (
+      {tabs.map((t, i) => (
         <Pressable
           key={t}
           style={s.topTab}
-          accessibilityRole="tab"
-          accessibilityState={{ selected: t === active }}
+          {...tabA11y(labels[t], i, tabs.length, t === active)}
           onPress={() => {
             tapSelection();
             // The tab KEY, not its label: keys are constants chosen in code, so
@@ -321,11 +321,25 @@ export function CheckCircle({
   onPress,
   size = 44,
   iconSize,
+  what,
+  opensMarkAs,
 }: {
   watched?: boolean;
   onPress?: () => void;
   size?: number;
   iconSize?: number;
+  /**
+   * WHICH episode, season or film, said after "Watched". Eighty circles on
+   * the Shows tab all read "Watched, checkbox" and nothing else — a list of
+   * identical stops a VoiceOver user cannot tell apart (audit, 14 Oct).
+   */
+  what?: string;
+  /**
+   * A ticked circle on an episode or a film opens Mark as… rather than
+   * unticking. A checkbox that does not uncheck has to say so before it is
+   * pressed, or the sheet arrives as a surprise.
+   */
+  opensMarkAs?: boolean;
 }) {
   return (
     <Pressable
@@ -346,7 +360,8 @@ export function CheckCircle({
       // "Watched, checked" is what it is, and flipping it is what a double-tap
       // does. (A button would have to rename itself on every press.)
       accessibilityRole="checkbox"
-      accessibilityLabel={t('a11y.watched')}
+      accessibilityLabel={what ? `${t('a11y.watched')}, ${what}` : t('a11y.watched')}
+      accessibilityHint={watched && opensMarkAs ? t('a11y.opensMarkAs') : undefined}
       accessibilityState={{ checked: !!watched, disabled: onPress == null }}
       style={{
         width: size,
@@ -390,6 +405,14 @@ export function MenuRow({
    * column steps out of the way so the title is not read twice.
    */
   const switchRow = onPress == null && isValidElement(right) && right.type === Switch;
+  /*
+   * A ROW THAT ONLY STATES A FACT — "Member since, October 2026" — is one
+   * stop, like a row that opens something. Left as a non-element it was read
+   * as two: the name, then the value on its own with nothing to say what it
+   * was the value of. Only with nothing on the right: a control there has to
+   * stay reachable.
+   */
+  const infoRow = onPress == null && right == null;
   const rightNode = switchRow
     ? cloneElement(right as ReactElement<SwitchProps>, { accessibilityLabel: [title, sub].filter(Boolean).join(', ') })
     : right;
@@ -398,8 +421,9 @@ export function MenuRow({
       style={s.menuRow}
       // A row that opens something is one button. A row that only HOLDS a
       // control must not be an element itself, or nothing inside it is.
-      accessible={onPress != null}
+      accessible={onPress != null || infoRow}
       accessibilityRole={onPress ? 'button' : undefined}
+      accessibilityLabel={infoRow ? [title, sub, value].filter(Boolean).join(', ') : undefined}
       onPress={
         onPress
           ? () => {

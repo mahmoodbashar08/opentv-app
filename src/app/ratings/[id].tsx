@@ -477,7 +477,7 @@ function shortDate(iso: string): string {
   const d = new Date(iso);
   return isNaN(d.getTime())
     ? ''
-    : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+    : d.toLocaleDateString(currentLocale(), { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 function EpisodeCard({

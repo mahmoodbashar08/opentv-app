@@ -15,7 +15,7 @@ import { Alert, ScrollView, StyleSheet, Text, TextInput, View } from 'react-nati
 
 import { MenuRow, NavHeader, PillButton, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
 import { stremioLogin } from '@/stremio';
 import { disconnectStremio, getStremioSession, setStremioSession, stremioEmail, stremioSyncedAt, syncStremio } from '@/stremio-sync';
 import { colors, radius, space, ls } from '@/theme';
@@ -87,7 +87,7 @@ export default function StremioScreen() {
     ]);
   };
 
-  const syncedLabel = lastSync ? new Date(lastSync).toLocaleString() : t('plex.never');
+  const syncedLabel = lastSync ? new Date(lastSync).toLocaleString(currentLocale()) : t('plex.never');
 
   return (
     <Screen>

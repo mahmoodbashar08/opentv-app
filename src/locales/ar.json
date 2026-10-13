@@ -316,7 +316,14 @@
     "runtimeStandard": "عادية",
     "runtimeLong": "طويلة",
     "ratingUnrated": "بلا تقييم",
-    "ratingMin": "{{stars}} نجوم فأكثر",
+    "ratingMin": {
+      "zero": "{{count}} نجمة فأكثر",
+      "one": "نجمة واحدة فأكثر",
+      "two": "نجمتان فأكثر",
+      "few": "{{count}} نجوم فأكثر",
+      "many": "{{count}} نجمة فأكثر",
+      "other": "{{count}} نجمة فأكثر"
+    },
     "resultShows": {
       "zero": "{{n}} من {{count}} مسلسل",
       "one": "{{n}} من مسلسل واحد",
@@ -3829,7 +3836,41 @@
       "few": "و{{count}} أشخاص آخرين",
       "many": "و{{count}} شخصًا آخر",
       "other": "و{{count}} شخص آخر"
-    }
+    },
+    "tabOf": "{{label}}، علامة تبويب، {{n}} من {{total}}",
+    "opensMarkAs": "يفتح خيارات «وضع علامة كـ…»",
+    "tvdbScore": "تقييم TheTVDB، {{percent}}%",
+    "tvdbRating": "تقييم TheTVDB، {{score}} من 5",
+    "tvdbUnrated": "لا يوجد تقييم على TheTVDB بعد",
+    "airDay": "يوم العرض، {{day}}",
+    "runtime": {
+      "zero": "المدة {{count}} دقيقة",
+      "one": "المدة دقيقة واحدة",
+      "two": "المدة دقيقتان",
+      "few": "المدة {{count}} دقائق",
+      "many": "المدة {{count}} دقيقة",
+      "other": "المدة {{count}} دقيقة"
+    },
+    "ofWatched": "شوهدت {{n}} من {{total}}",
+    "aired": "عُرضت في {{date}}",
+    "released": "صدر في {{date}}",
+    "watchedBy": {
+      "zero": "لم يشاهده أحد بعد",
+      "one": "شاهده شخص واحد",
+      "two": "شاهده شخصان",
+      "few": "شاهده {{n}} أشخاص",
+      "many": "شاهده {{n}} شخصًا",
+      "other": "شاهده {{n}} شخص"
+    },
+    "iconOrange": "برتقالية",
+    "iconPurple": "بنفسجية",
+    "iconTeal": "فيروزية",
+    "iconHalloween": "الهالوين",
+    "iconChristmas": "عيد الميلاد",
+    "puzzleRight": "صحيحة",
+    "puzzleWrong": "خاطئة",
+    "puzzleSkipped": "متروكة",
+    "puzzleTries": "{{n}} من {{total}} محاولات"
   },
   "simkl": {
     "title": "Simkl",

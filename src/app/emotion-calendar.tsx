@@ -28,7 +28,7 @@ import { Heatmap, monthOf, todayISO } from '@/components/heatmap';
 import { NavHeader, Screen } from '@/components/ui';
 import { emotionDayCounts, watchesOnDay } from '@/db';
 import { watchDayCounts } from '@/stats-calc';
-import { t } from '@/i18n';
+import { currentLocale, t } from '@/i18n';
 import { dominantEmotion, emotionColor, EMOTION_NAMES, shiftMonth } from '@/pure';
 import { colors, radius, space } from '@/theme';
 
@@ -119,7 +119,7 @@ export default function EmotionCalendarScreen() {
         {day != null && (
           <View style={s.daySheet}>
             <Text style={s.dayTitle}>
-              {new Date(`${day}T12:00:00`).toLocaleDateString(undefined, {
+              {new Date(`${day}T12:00:00`).toLocaleDateString(currentLocale(), {
                 weekday: 'long',
                 day: 'numeric',
                 month: 'long',

@@ -22,7 +22,7 @@ import { useContext } from 'react';
 import { CONTENT_MAX_WIDTH, GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { Poster, posterSpeech } from '@/components/poster';
 import { t } from '@/i18n';
-import { mixHex } from '@/pure';
+import { mixHex, withoutEmoji } from '@/pure';
 import { colors, radius, space, ls } from '@/theme';
 
 /**
@@ -392,6 +392,7 @@ export function StatsGrid({
         <View
           key={c.key}
           accessible
+          accessibilityLabel={statSpeech(c)}
           style={[
             s.gridCard,
             compact && s.gridCardCompact,
@@ -464,6 +465,21 @@ export function StatsGrid({
       ))}
     </View>
   );
+}
+
+/**
+ * What a stat card says to a screen reader: "TV time, 3 MONTHS, 5 DAYS".
+ * Its title without the 📺 that is drawn in front of it, then the same parts
+ * the card shows.
+ */
+function statSpeech(c: StatCard): string {
+  const value =
+    c.kind === 'clock'
+      ? shownClockParts(c.months, c.days, c.hours)
+          .map((part) => `${part.v} ${part.u}`)
+          .join(', ')
+      : c.value;
+  return `${withoutEmoji(c.title)}, ${value}`;
 }
 
 /** One card in the Stats rail — a title over either a clock or a big number. */
@@ -545,6 +561,7 @@ export function StatsRail({
         <View
           key={c.key}
           accessible
+          accessibilityLabel={statSpeech(c)}
           style={[
             s.statsCard,
             { width: col, height: row },
