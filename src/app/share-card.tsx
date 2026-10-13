@@ -13,6 +13,7 @@ import { colors, radius } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { runtimeLabel } from '@/duration';
 import { withLink } from '@/share-link';
+import { StarRow } from '@/components/half-stars';
 
 // A share card is captured as an IMAGE, so a fixed size is correct — it should
 // not reflow with orientation. Clamped so a tablet (or a landscape launch)
@@ -150,7 +151,9 @@ export default function ShareCardScreen() {
     ? (movie?.poster ?? (posterHint ? decodeURIComponent(posterHint) : null))
     : (brief?.poster ?? meta?.poster ?? null);
 
-  const stars = isMovie ? (movie?.stars ?? 0) : isEpisode ? (getEpisodeVote(tvdbId, s, e).stars ?? 0) : 0;
+  // A film's is out of ten since 2.0.0 (half stars); an episode's is five
+  // whole stars. Both drawn from ten here, so one row draws either.
+  const stars = isMovie ? (movie?.stars ?? 0) : isEpisode ? (getEpisodeVote(tvdbId, s, e).stars ?? 0) * 2 : 0;
   const canRate = isMovie || isEpisode;
 
   /**
@@ -404,21 +407,22 @@ export default function ShareCardScreen() {
                 */
                 <View style={styles.storyRate}>
                   <Text style={styles.storyRated}>{t('shareCard.iRated')}</Text>
-                  <Text style={styles.storyStars}>
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      /* THE EMPTY STARS ARE THE DENOMINATOR. Four filled
-                         glyphs alone read as "four"; four filled beside one
-                         empty reads as "four out of five", and nothing has to
-                         say so. At 0.25 on a bright poster showing through a
-                         0.78 scrim the fifth one could disappear, taking the
-                         scale with it -- so it sits at 0.4, dim enough to be
-                         plainly unfilled and solid enough to survive whatever
-                         is behind it. */
-                      <Text key={i} style={{ color: i <= stars ? colors.brand : 'rgba(255,255,255,0.4)' }}>
-                        ★
-                      </Text>
-                    ))}
-                  </Text>
+                  {/* THE EMPTY STARS ARE THE DENOMINATOR. Four filled
+                      glyphs alone read as "four"; four filled beside one
+                      empty reads as "four out of five", and nothing has to
+                      say so. At 0.25 on a bright poster showing through a
+                      0.78 scrim the fifth one could disappear, taking the
+                      scale with it -- so it sits at 0.4, dim enough to be
+                      plainly unfilled and solid enough to survive whatever
+                      is behind it. Drawn as views rather than one line of
+                      text so a film's half star can be cut in half. */}
+                  <StarRow
+                    ten={stars}
+                    size={styles.storyStars.fontSize}
+                    lineHeight={styles.storyStars.lineHeight}
+                    on={colors.brand}
+                    off="rgba(255,255,255,0.4)"
+                  />
                 </View>
               )}
               {/* TWO LINES, because one did not survive its own words. The
@@ -509,13 +513,13 @@ export default function ShareCardScreen() {
                 // and stacking them spent two lines saying one thing.
                 <View style={styles.rateRow}>
                   <Text style={styles.voted}>{t('shareCard.iRated')}</Text>
-                  <Text style={styles.stars}>
-                    {[1, 2, 3, 4, 5].map((i) => (
-                      <Text key={i} style={{ color: i <= stars ? '#141414' : 'rgba(20,20,20,0.22)' }}>
-                        ★
-                      </Text>
-                    ))}
-                  </Text>
+                  <StarRow
+                    ten={stars}
+                    size={styles.stars.fontSize}
+                    lineHeight={styles.stars.lineHeight}
+                    on="#141414"
+                    off="rgba(20,20,20,0.22)"
+                  />
                 </View>
               ) : isEpisode && em?.title ? (
                 <Text style={styles.epTitle} numberOfLines={2}>

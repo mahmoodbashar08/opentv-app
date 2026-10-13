@@ -5,6 +5,7 @@
 import db, { getCharacterVoteStats, getComments, getMovies, getMovieTotals, getShowNames, getTotals } from '@/db';
 import metadata, { showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
+import { starsValue, wholeStars } from '@/film-rating';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import {
@@ -481,14 +482,25 @@ function watchPass(range: DayRange) {
     })
     .slice(0, 8);
 
-  // 1–5 star histogram over episodes AND films, the two things a person rates
+  // 1–5 star histogram over episodes AND films, the two things a person rates.
+  // A film is out of ten since 2.0.0: its BAR is the whole star its half
+  // rounds up to (five bars, not ten), but `starSum` keeps the half, so the
+  // average Wrapped prints is the one actually given.
   const epRatings = datedEpisodeRatings().filter((r) => inRange(r.at, range));
   const movieRatings = getMovies().filter((m) => m.stars != null && inRange(m.watchedAt, range));
   const starCounts = [0, 0, 0, 0, 0];
-  for (const r of epRatings) if (r.stars >= 1 && r.stars <= 5) starCounts[r.stars - 1]++;
+  let starSum = 0;
+  for (const r of epRatings) {
+    if (r.stars >= 1 && r.stars <= 5) {
+      starCounts[r.stars - 1]++;
+      starSum += r.stars;
+    }
+  }
   for (const m of movieRatings) {
-    const stars = m.stars ?? 0;
-    if (stars >= 1 && stars <= 5) starCounts[stars - 1]++;
+    const whole = wholeStars(m.stars);
+    if (whole == null || m.stars == null) continue;
+    starCounts[whole - 1]++;
+    starSum += starsValue(m.stars);
   }
 
   return {
@@ -498,6 +510,7 @@ function watchPass(range: DayRange) {
     networkSec,
     topShows,
     starCounts,
+    starSum,
     episodes: watches.length,
     minutes: Math.round(watches.reduce((n, w) => n + (w.runtime ?? 0), 0) / 60),
   };
@@ -592,7 +605,7 @@ export function computeWrapped(start: string, end: string) {
   }
   const topFilms = [...films].sort((a, b) => filmMinutes(b) - filmMinutes(a));
 
-  const stars = p.starCounts.reduce((a, n, i) => a + n * (i + 1), 0);
+  const stars = p.starSum;
   const rated = p.starCounts.reduce((a, b) => a + b, 0);
 
   return {
@@ -653,6 +666,7 @@ function monthDetail(
       title: m.title,
       poster: m.poster,
       year: m.year,
+      /** OUT OF TEN — the film column's scale since 2.0.0. */
       stars: m.stars,
       at: m.watchedAt ?? '',
       minutes: filmMinutes(m),
@@ -724,7 +738,8 @@ export type CrowdRow = { name: string; yours: number; crowd: number; delta: numb
  * No fetch: a title nobody has opened has no crowd score here, and that is
  * correct — the alternative is a stats screen that goes to the network.
  *
- * Both sides land on 0–10, stars doubled.
+ * Both sides land on 0–10: an episode's stars doubled, a film's as stored
+ * (out of ten since 2.0.0, so a half star counts).
  */
 export function computeCrowdCompare(year: number | null): { rows: CrowdRow[]; score: number | null } {
   const rows: CrowdRow[] = [];
@@ -758,7 +773,7 @@ export function computeCrowdCompare(year: number | null): { rows: CrowdRow[]; sc
     if (mv.stars == null || !inRange(mv.watchedAt, range)) continue;
     const crowd = movieMeta(mv.tmdbId)?.rating;
     if (!crowd) continue;
-    const yours = mv.stars * 2;
+    const yours = mv.stars; // already out of ten
     rows.push({ name: mv.name, yours, crowd, delta: yours - crowd });
   }
 

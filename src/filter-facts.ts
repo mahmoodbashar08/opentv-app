@@ -16,6 +16,7 @@ import { getShowFilterFacts, type MovieRow, type ShowProgress } from '@/db';
 import { showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
 import { runtimeBand, seasonAirState, type TitleFacts } from '@/pure';
+import { starsValue } from '@/film-rating';
 import { airedTotalOf } from '@/show-status';
 
 /** '1994' -> '1990s'. Anything that isn't a plausible year is no decade. */
@@ -79,7 +80,8 @@ export function movieFacts(rows: readonly MovieRow[]): TitleFacts[] {
       decade: decadeOf(mv.year ?? mv.releaseDate ?? m?.release),
       runtime: runtimeBand(minutes, 'movie'),
       watchedYears: watched && /^\d{4}$/.test(watched) ? [watched] : [],
-      stars: mv.stars,
+      // out of ten in the column, stars here: 7 is 3.5
+      stars: mv.stars == null ? null : starsValue(mv.stars),
     };
   });
 }

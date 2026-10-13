@@ -17,6 +17,7 @@ import { PixelRatio, StyleSheet, Text, View, type LayoutChangeEvent, type ViewSt
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { WRAPPED_SUMMARY, filmOfTheMonth, watchingType, wrappedSummaryLayout, wrappedSummaryRoomGuess } from '@/pure';
+import { starsValue, starText } from '@/film-rating';
 import type { Wrapped } from '@/stats-calc';
 
 import type { CardProps } from './cards';
@@ -218,7 +219,8 @@ export function MonthTicket({ d, label, width, handle }: CardProps) {
   const tw = width - 44;
   const posterW = tw * 0.34;
   const titleSize = fitSize(f.title, tw - posterW - 44, 34, 18, wordLines(f.title, 3));
-  const stars = f.stars ? '★'.repeat(f.stars) + '☆'.repeat(5 - f.stars) : null;
+  // out of ten: 7 prints as ★★★½☆
+  const stars = f.stars ? starText(f.stars) : null;
   const notch = 13;
   return (
     <Canvas width={width}>
@@ -743,7 +745,7 @@ export function MonthSummary({ d, label, width, handle }: CardProps) {
   const [month, year] = [label.split(' ')[0] ?? label, label.split(' ').slice(1).join(' ')];
   const filmsAll = [...d.filmList]
     .sort((a, b) => (b.stars ?? 0) - (a.stars ?? 0) || b.minutes - a.minutes)
-    .map((f) => ({ poster: f.poster, title: f.title, badge: f.stars ? `★ ${f.stars}` : null }));
+    .map((f) => ({ poster: f.poster, title: f.title, badge: f.stars ? `★ ${starsValue(f.stars).toLocaleString(currentLocale())}` : null }));
   const showsAll = d.topShows.map((s) => ({ poster: s.poster, title: s.name, badge: `${n(s.episodes)} EP` }));
   // The poster room's height. The frame before `onLayout` has measured it
   // uses a guess from the width — so it draws posters rather than an empty
