@@ -4,14 +4,16 @@
  * ONE TITLE A DAY, SIX TRIES, A CLUE PER MISS. A show or, since 14 Oct, a
  * film — whichever the day picks out of what the player has watched. Wordle's lesson is not the word
  * game, it is the shape: one puzzle for everybody today, a grid of squares that
- * says how it went without saying what it was, and a streak that makes
- * tomorrow matter. The edge nobody else has is WHERE THE SHOW COMES FROM — a
+ * says how it went without saying what it was, and three numbers — played,
+ * win %, average tries — that make tomorrow matter. NO STREAK (14 Oct): the
+ * profile already shows a WATCHING streak, and two streaks on one page read as
+ * one confused number. The edge nobody else has is WHERE THE SHOW COMES FROM — a
  * still from a show the player has actually watched, which `puzzle-data.ts`
  * picks from the library. Framed and Moviedle cannot do that; they do not have
  * your history.
  *
  * PURE, like `games.ts` and `notification-plan.ts`: every judgement here —
- * which show today, what a miss reveals, whether the streak survived the night,
+ * which show today, what a miss reveals, what the stats come to,
  * what the share text says — is a function of plain values, so it is tested
  * under Node and the screen only draws. `puzzle-data.ts` is the half that
  * reads SQLite.
@@ -188,6 +190,118 @@ export function pickIndex(day: string, count: number, lane = 1): number {
   return hashDay(`${day}#${lane}`) % count;
 }
 
+// ── never running out ───────────────────────────────────────────────────────
+
+/** No title is the answer twice inside this many days, for one person. */
+export const REPEAT_DAYS = 60;
+
+/**
+ * One day's answer as it was pinned, and the picture it was asked with.
+ *
+ * KEPT, NOT DERIVED (14 Oct). A pick derived from the day and the library
+ * alone cannot promise "not in sixty days": the library changes — a show is
+ * added at lunchtime, a film is deleted — and every derived pick after that
+ * moves, so yesterday's answer can come back tomorrow without anything
+ * remembering it was yesterday's. So every day that was ever opened, today's
+ * or an archive day, is written down with its answer, and the pick avoids
+ * what is written down. `pic` is what lets a returning title come back with a
+ * DIFFERENT picture.
+ */
+export type Pinned = { d: string; id: PuzzleId; pic: string | null };
+
+export function parsePinned(v: unknown): Pinned[] {
+  if (!Array.isArray(v)) return [];
+  const out: Pinned[] = [];
+  for (const r of v) {
+    if (typeof r !== 'object' || r === null) continue;
+    const o = r as Partial<Record<keyof Pinned, unknown>>;
+    const id = parseId(o.id);
+    if (typeof o.d !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(o.d) || id == null) continue;
+    out.push({ d: o.d, id, pic: typeof o.pic === 'string' && o.pic ? o.pic : null });
+  }
+  return out;
+}
+
+/** One row per day, in order, capped like the history. */
+export function withPinned(list: readonly Pinned[], p: Pinned): Pinned[] {
+  return [...list.filter((x) => x.d !== p.d), p].sort((a, b) => a.d.localeCompare(b.d)).slice(-HISTORY_MAX);
+}
+
+/** Answers of the days within `REPEAT_DAYS` of `day`, EITHER SIDE — an
+ *  archive day sits between days already played and must not repeat the
+ *  later ones either. The day itself is not its own neighbour. */
+export function nearIds(pinned: readonly Pinned[], day: string): Set<PuzzleId> {
+  return new Set(pinned.filter((p) => p.d !== day && Math.abs(daysBetween(p.d, day)) < REPEAT_DAYS).map((p) => p.id));
+}
+
+/**
+ * The answer for `day`, out of the watched library and the bundled classics.
+ *
+ * In order, the first pool with anything in it:
+ *   1. the usual pool (`candidatePool`: the library, plus the classics below
+ *      `MIN_LIBRARY_POOL`), minus everything near this day;
+ *   2. the classics minus everything near — a library of fifteen cannot fill
+ *      sixty days on its own, so once it is used up the classics stand in
+ *      until its first title is sixty days old;
+ *   3. the usual pool as it is. Only reachable with no classics at all (the
+ *      bundled metadata missing); a repeat beats no puzzle.
+ *
+ * Deterministic: the same day, library and record give the same answer. The
+ * caller pins it, so it stays that day's answer whatever happens to the
+ * library afterwards.
+ */
+export function pickAnswer(
+  day: string,
+  library: readonly PuzzleId[],
+  classics: readonly PuzzleId[],
+  pinned: readonly Pinned[],
+): PuzzleId | null {
+  const near = nearIds(pinned, day);
+  const pool = candidatePool(library, classics);
+  const fresh = pool.filter((id) => !near.has(id));
+  if (fresh.length) return pickForDay(day, fresh);
+  const freshClassics = classics.filter((id) => !near.has(id));
+  if (freshClassics.length) return pickForDay(day, freshClassics);
+  return pickForDay(day, pool);
+}
+
+/**
+ * The picture for a day, out of `groups` (best source first), avoiding
+ * `used` — the pictures this title was already asked with on other days.
+ *
+ * The first group with an UNUSED picture wins, and the day picks inside it.
+ * When every picture has been used, the best group is reused: the same frame
+ * twice is better than none.
+ */
+export function pickPicture(day: string, groups: readonly (readonly string[])[], used: ReadonlySet<string>): string | null {
+  const real = groups.map((g) => [...new Set(g.filter(Boolean))]).filter((g) => g.length);
+  for (const g of real) {
+    const fresh = g.filter((u) => !used.has(u));
+    if (fresh.length) return fresh[pickIndex(day, fresh.length)];
+  }
+  return real.length ? real[0][pickIndex(day, real[0].length)] : null;
+}
+
+/** The pictures `id` was asked with on days other than `day`. */
+export function usedPictures(pinned: readonly Pinned[], id: PuzzleId, day: string): Set<string> {
+  return new Set(pinned.filter((p) => p.id === id && p.d !== day && p.pic).map((p) => p.pic as string));
+}
+
+// ── the archive ─────────────────────────────────────────────────────────────
+
+/**
+ * The days the archive lists, newest first: from the epoch or the first day
+ * this person played, whichever is later, up to yesterday. Nothing before
+ * the first play — an archive of a year nobody here was playing is a wall,
+ * not a collection — and nothing at all for somebody who has not played yet.
+ */
+export function archiveDays(today: string, firstPlayed: string | null): string[] {
+  if (!firstPlayed) return [];
+  const start = firstPlayed > PUZZLE_EPOCH ? firstPlayed : PUZZLE_EPOCH;
+  const n = daysBetween(start, today);
+  return Array.from({ length: Math.max(0, n) }, (_, i) => shiftDay(today, -(i + 1)));
+}
+
 // ── one game ────────────────────────────────────────────────────────────────
 
 /** A skipped try. Shown as ⬛: it cost a try, it was not a wrong show. */
@@ -237,92 +351,33 @@ export function squares(g: Game): string {
 }
 
 /**
- * "🎬 OpenTV #12 🟥🟥🟩 3/6 🔥 7" — the one line that is the same in every
- * language, because every character in it is a number or a square. A loss is
- * X/6, as Wordle writes it; the streak is left off when there is none, since
- * "🔥 0" is a sentence about losing.
+ * Wordle's text, as people already post it:
+ *
+ *     OpenTV #12 · 4/6
+ *     🟥🟥🟥🟩
+ *
+ * The same in every language, because every character in it is a number or a
+ * square. A loss is X/6, as Wordle writes it. The link goes on at the call
+ * site with `withLink`, the way every other share text in the app gets it.
  */
-export function shareText(number: number, g: Game, streak: number): string {
+export function shareText(number: number, g: Game): string {
   const score = g.won ? `${g.guesses.length}/${MAX_TRIES}` : `X/${MAX_TRIES}`;
-  return `🎬 OpenTV #${number} ${squares(g)} ${score}${streak > 0 ? ` 🔥 ${streak}` : ''}`;
-}
-
-// ── the streak ──────────────────────────────────────────────────────────────
-
-/**
- * Days in a row with a finished puzzle, and the one freeze that saves it.
- *
- * `last` is the last day a puzzle was FINISHED — started does not count, or a
- * streak could be kept alive by opening the screen. `frozenOn` is the day the
- * freeze last stood in for a missed one; it is what makes the freeze weekly
- * rather than infinite.
- */
-export type Streak = { n: number; last: string | null; frozenOn: string | null };
-
-export const NO_STREAK: Streak = { n: 0, last: null, frozenOn: null };
-
-/** One freeze a week: a rolling week, counted from the day it was last spent. */
-export const FREEZE_DAYS = 7;
-
-export function freezeAvailable(s: Streak, today: string): boolean {
-  return s.frozenOn == null || daysBetween(s.frozenOn, today) >= FREEZE_DAYS;
-}
-
-/**
- * The streak after today's puzzle is finished.
- *
- * Yesterday → one more. The day before yesterday → one more, and the freeze
- * is spent on the day in between, IF it was available. Anything further back,
- * or a second missed day inside the freeze's week, starts over at one. The
- * freeze's cooldown is kept across a restart so a lost streak cannot be
- * restarted with a fresh freeze the same week.
- */
-export function streakAfterPlay(s: Streak, today: string): Streak {
-  if (s.last === today) return s;
-  const gap = s.last ? daysBetween(s.last, today) : Infinity;
-  if (gap === 1) return { ...s, n: s.n + 1, last: today };
-  if (gap === 2 && freezeAvailable(s, today)) return { n: s.n + 1, last: today, frozenOn: shiftDay(today, -1) };
-  return { n: 1, last: today, frozenOn: s.frozenOn };
-}
-
-/**
- * The streak as it stands today, before today's puzzle.
- *
- * TODAY OR YESTERDAY KEEPS IT, like `watchStreak` in db.ts: showing a broken
- * streak every morning to somebody who plays in the evening is a lie about
- * them. Two days ago keeps it too while the freeze can still cover yesterday —
- * playing today will spend it. Anything else is zero.
- */
-export function liveStreak(s: Streak, today: string): number {
-  if (!s.last || s.n === 0) return 0;
-  const gap = daysBetween(s.last, today);
-  if (gap <= 1) return s.n;
-  if (gap === 2 && freezeAvailable(s, today)) return s.n;
-  return 0;
-}
-
-/**
- * Would not playing today end the streak? This is the only question the
- * reminder asks — "about to break", never "you have not played yet".
- *
- * Not at risk when: already played today; no streak to lose; or yesterday was
- * played and a freeze is there to cover today. At risk when yesterday was
- * played with no freeze left, or when the freeze is already standing in for
- * yesterday and today is the last chance to claim it.
- */
-export function streakAtRisk(s: Streak, today: string): boolean {
-  if (!s.last || s.last === today || liveStreak(s, today) === 0) return false;
-  const gap = daysBetween(s.last, today);
-  return gap === 2 || !freezeAvailable(s, today);
+  return `OpenTV #${number} · ${score}\n${squares(g)}`;
 }
 
 // ── history: the month of squares ───────────────────────────────────────────
 
 export type Result = { d: string; id: PuzzleId; tries: number; won: boolean };
 
-/** Over a year of days. The profile block reads a month; the picker avoids
- *  the last sixty answers; nothing needs more. */
-export const HISTORY_MAX = 400;
+/**
+ * Ten years of days, about 50 bytes each.
+ *
+ * It was 400 while all it fed was a month of squares and the picker's last
+ * sixty. "Played" is now counted from it, and a cap of 400 would have frozen
+ * that number at 400 after thirteen months — a stat that stops counting is a
+ * lie that looks like a plateau.
+ */
+export const HISTORY_MAX = 3650;
 
 export function resultOf(g: Game): Result {
   return { d: g.day, id: g.id, tries: g.guesses.length, won: g.won };
@@ -334,11 +389,6 @@ export function withResult(history: readonly Result[], r: Result): Result[] {
   return [...history.filter((h) => h.d !== r.d), r].sort((a, b) => a.d.localeCompare(b.d)).slice(-HISTORY_MAX);
 }
 
-/** The last `n` answers, for `pickForDay`'s `avoid`. */
-export function recentIds(history: readonly Result[], n = 60): PuzzleId[] {
-  return history.slice(-n).map((h) => h.id);
-}
-
 /**
  * How strongly a day's square is coloured: 6 for a first-try win down to 1 for
  * a sixth-try one, 0 for a loss. The block mixes the green by this, so "dark
@@ -348,28 +398,52 @@ export function winLevel(r: Result): number {
   return r.won ? Math.max(1, MAX_TRIES + 1 - r.tries) : 0;
 }
 
+// ── the stats ───────────────────────────────────────────────────────────────
+
+/**
+ * Wordle's three numbers, in place of the streak.
+ *
+ * `avg` is the average tries of the WINS, as Wordle's "average guesses" is: a
+ * loss has no try count worth averaging — it is six misses, and folding it in
+ * would make a player who never gives up look worse than one who never plays.
+ * Null with no win yet, which the block draws as a dash rather than "0".
+ */
+export type Stats = { played: number; win: number; avg: number | null };
+
+export function puzzleStats(history: readonly Result[]): Stats {
+  const wins = history.filter((r) => r.won);
+  const played = history.length;
+  return {
+    played,
+    win: played ? Math.round((100 * wins.length) / played) : 0,
+    avg: wins.length ? Math.round((10 * wins.reduce((n, r) => n + r.tries, 0)) / wins.length) / 10 : null,
+  };
+}
+
 /**
  * What the profile block is drawn from, on either phone.
  *
- * COUNTS AND COLOURS ONLY. The streak, and one level per day played this
- * month. No id and no title: the server never learns which shows anybody
- * guessed, and a visitor's phone could not use them anyway.
+ * COUNTS AND COLOURS ONLY: the three stats, and one level per day played this
+ * month. No id and no title — the server never learns which shows anybody
+ * guessed — and since 14 Oct no streak either (`n`, which builds before then
+ * published, is simply not sent).
  */
-export type PublicPuzzle = { n: number; days: [string, number][] };
+export type PublicPuzzle = { days: [string, number][]; stats: Stats | null };
 
-export function publicPuzzle(history: readonly Result[], streak: number, month: string): PublicPuzzle {
+export function publicPuzzle(history: readonly Result[], month: string): PublicPuzzle {
   return {
-    n: streak,
     days: history.filter((r) => r.d.startsWith(month)).map((r) => [r.d, winLevel(r)]),
+    stats: puzzleStats(history),
   };
 }
 
 /** A published value from somebody else's phone — tolerant, like
- *  `parsePublished`: a shape this build does not recognise draws nothing. */
+ *  `parsePublished`: a shape this build does not recognise draws nothing.
+ *  A value from a build before 14 Oct carries a streak and no stats; the
+ *  streak is ignored and the stats row is left off. */
 export function parsePublicPuzzle(v: unknown): PublicPuzzle | null {
   if (typeof v !== 'object' || v === null) return null;
-  const o = v as { n?: unknown; days?: unknown };
-  const n = typeof o.n === 'number' && Number.isFinite(o.n) ? Math.max(0, Math.floor(o.n)) : 0;
+  const o = v as { days?: unknown; stats?: unknown };
   const days: [string, number][] = [];
   if (Array.isArray(o.days)) {
     for (const item of o.days) {
@@ -378,7 +452,18 @@ export function parsePublicPuzzle(v: unknown): PublicPuzzle | null {
       days.push([item[0], Math.min(MAX_TRIES, Math.max(0, Math.floor(item[1])))]);
     }
   }
-  return { n, days };
+  const st = o.stats as Partial<Record<keyof Stats, unknown>> | null | undefined;
+  const num = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : null);
+  const played = num(st?.played);
+  const stats =
+    played == null
+      ? null
+      : {
+          played: Math.max(0, Math.floor(played)),
+          win: Math.min(100, Math.max(0, Math.round(num(st?.win) ?? 0))),
+          avg: num(st?.avg) == null ? null : Math.min(MAX_TRIES, Math.max(1, num(st?.avg)!)),
+        };
+  return { days, stats };
 }
 
 // ── saves from either era ───────────────────────────────────────────────────
