@@ -119,16 +119,16 @@ screen that needs explaining gets redone.
 what Bingers, Suite TV, Episodely, Serializd, Trakt, Sofa Time, Belfry,
 FlickPicker, BetaSeries and Kadr do). Not copies of anyone:**
 
-1. **A friends feed that never spoils — FREE.** Fills the empty Explore
+1. **BUILT (14 Oct): a friends feed that never spoils — FREE.** Fills the empty Explore
    "Activity" tab. You see reactions from people you follow only on episodes
    you have already watched; later ones stay locked ("Sara commented on S2E5 —
    watch it to see"). The check runs on the phone against your own progress, so
    the server never learns how far you are. Bingers' new stories feed does not
    check progress at all.
-2. **Watching together — PLUS.** Two people share one show and see each other's
+2. **BUILT (14 Oct): watching together — PLUS.** Two people share one show and see each other's
    position ("Ali is on S2E4, you're on S2E3") while each keeps their own
    history. Builds on shared lists (1.5.0). No app does this yet.
-3. **Tonight's room — PLUS.** On an episode's air night, a live room: who is
+3. **BUILT (14 Oct): the live room — PLUS.** (Named "Live room" in the app, D13.) On an episode's air night, a live room: who is
    watching now and reactions as they come; only people who have marked it
    watched can enter, so no spoilers. The thing TV Time users say they miss most.
    BUILD IT ON A DURABLE OBJECT WITH WEBSOCKETS, one object per episode-night,
@@ -427,7 +427,7 @@ possible"):
   scheduled, and a later sync's cancel-all drops it without re-adding, so a
   second app open before 21:00 loses that day's memory notification.
 
-- **14. PLANNED (12 Oct): half stars for films — tap stays whole, slide gives halves.**
+- **14. BUILT (14 Oct): half stars for films — tap stays whole, slide gives halves.**
   Researched 12 Oct: TV Time rates an episode with five labelled stars plus
   feelings, built for one quick tap; Letterboxd rates films 0.5–5 (ten steps
   shown as five stars); Trakt and IMDb use 1–10; Goodreads' longest-running
@@ -442,7 +442,7 @@ possible"):
     Letterboxd, Trakt and IMDb keep their precision; stats, Wrapped and the
     community averages read the ten-point value.
 
-- **15. PLANNED (13 Oct): Simkl sync — and through it, Nuvio.** Asked for twice
+- **15. BUILT (14 Oct): Simkl sync — and through it, Nuvio.** Asked for twice
   on 13 Oct: José (En Beta Permanente) said his community wants Trakt sync,
   and a TV Time Refugees member asked for Nuvio. One integration answers both.
   - **Not Trakt.** Researched 13 Oct: since ~30 Jul 2026 creating a Trakt API
@@ -470,7 +470,7 @@ possible"):
   - When it ships: tell José (thread in replies-log) and reply to Itsmericky
     in the Refugees #opentv thread.
 
-- **16. PLANNED (13 Oct): the TV Time importer as a library, and one open
+- **16. BUILT (14 Oct): the TV Time importer as a library, and one open
   export format.** niceme (TV Time Refugees admin) asked the 90+ developers
   whether they'd build something shared. We offered what we already have: the
   importer is MPL-2.0, anyone may use it, and we're open to one shared
@@ -498,7 +498,7 @@ possible"):
   treats an id-as-name as nameless, and the publish fingerprint counts posters
   so the repaired titles reach the profile.
 
-- **19. PLANNED (13 Oct): make shared lists look shared.** They shipped in
+- **19. BUILT (14 Oct): make shared lists look shared.** They shipped in
   1.5.0, but the screens copy the personal list so closely that the part that
   makes them worth having barely shows. Noddy won't post about them (planned
   for r/LetterboxdLists and similar) until this is done. UI only, no server change.
@@ -515,6 +515,17 @@ possible"):
   - "Sort by: added" is blue but does nothing.
   - `src/app/shared/[id].tsx` still carries the dead styles of the old row
     layout (`item`, `tick`, `inviteBox`, `member…`).
+
+### Built 14 Oct — what each branch did (merged into 2.0.0; nothing on a device yet)
+
+- **Friends feed** (`2.0.0-feed`, backend migration 0055). Explore → Activity shows what the people you follow rated, felt, said and picked as a favourite character over the last seven days, newest first, with no archive rows. Anything you haven't watched is locked ON THE PHONE (`hasWatchedTarget`): the card keeps the verb, hides the content and opens the show. The request says nothing about your progress. Refreshes ask only for what's newer than a 100-card cache, at most once a minute, and someone who never joined sends nothing. A free switch, "Show my reactions to followers", keeps you out of other people's feeds. The three indexes are forced with `INDEXED BY` because SQLite picked the older activity indexes and read a week of everyone's activity. D1: about 470 rows cold, 110 per refresh, 900 per reader per day. Stars in the feed are still whole.
+- **Watching together** (`2.0.0-together` + `-together-phone`, migration 0056). A together is a shared list of one show. The only thing it sends is a cursor, the furthest episode of that show you've marked watched, published 1.2 s after a mark and only when it moved. Starting one needs Plus. Joining, reading, moving, leaving and deleting are free, even after a lapse. At most five people. The show page gets a strip ("Ali is 2 episodes ahead").
+- **Live room** (`2.0.0-room` + `-room-phone`, Durable Object migration v1, no D1 table). There is one Durable Object per episode-night, open 48 h from midnight UTC on the air date, after which an alarm `deleteAll()`s. The door does two D1 statements, and the count teaser costs none. The phone sends `join` only once the episode is marked watched on it. Reactions are the twelve feelings, one a second, and the last 50 are kept for late joiners. Blocks apply in both directions. Migration 0059 indexes `blocks.blocked_id` for the door. **At release:** add the live-room sentence to `docs/privacy.html` (the text is in `.worktrees/room/REPORT.md`). Also add the together sentence: "If you watch a show together with someone, the furthest episode you have watched of that show is shared with the people you invite — nothing else."
+- **Half stars** (`2.0.0-half-stars`). Covered in item 14. Film ratings are now stored out of ten, and existing ones were doubled once in the same transaction as the `movieStarsScale` flag. Tonight's "your rating out of 10" was reading 1–5 for films; it's right now.
+- **Simkl and Nuvio** (`2.0.0-simkl`). Covered in item 15. Read-only, through `externalWatchesToApply`, with Simkl's dates kept. **Needs** the Simkl client id (simkl.com/settings/developer/new, AUTH V2) in the gitignored `src/simkl-key.ts`. Ask Simkl whether read-only use satisfies their API rule 2. Nuvio now has public docs (v1.3), and the code still fails quietly.
+- **Importer library** (`2.0.0-importer-lib`). `packages/tvtime-export` (MPL-2.0) produces byte-identical results on three real exports. `docs/OPEN-EXPORT-FORMAT.md` is a 0.1 draft.
+- **Shared lists look shared** (item 19, in `-together-phone`). Invite first; members are named with "n of m"; every poster says who added it and who has seen it; there's a "Shared with friends" section on Lists; the dead "Sort by" line is gone.
+- **VoiceOver and TalkBack** (`2.0.0-a11y`). Every control has a role and a label, and titles are headers. Sheets whose backdrop wrapped them were one silent element on iPhone; they're now modal to the reader, and two-finger Z closes them. Second controls in a row are offered as custom actions. Only a real VoiceOver pass can settle the focus order, how grouped cards read, and the focus trap in a `transparentModal`.
 
 ## 1.6.7 — submitted 7 Oct 2026 (Android 84, iOS 68)
 

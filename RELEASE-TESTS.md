@@ -12,6 +12,86 @@ failure written next to it, not in a commit message.
 
 ---
 
+## 2.0.0 — merged 14 Oct 2026, not yet on a device
+
+Deploy the server first, in this order: D1 migrations 0055, 0056 and 0059, then the Worker. The deploy also applies Durable Object migration v1. 0055 MUST land before the Worker, or `/v1/me/feed` answers 500. Two test accounts: amanda (A) and opentvtestamanda (B), who follow each other.
+
+### Friends feed (Explore → Activity), free
+- [ ] B rates S1E1 (watched on A) and comments on S1E2 (unwatched on A). On A: the S1E1 card shows stars and the feeling, and the S1E2 card is locked ("Watch it to see").
+- [ ] Tapping a locked card opens the SHOW. Marking S1E2 watched unlocks it without a pull-to-refresh; unmarking locks it again.
+- [ ] A new rating doesn't appear within 60 s until you pull to refresh.
+- [ ] Long-press a card: Report (comments only), Unfollow and Block all work.
+- [ ] B turns off Edit profile → "Show my reactions to followers" (no Plus asked): B's cards leave A's feed. Turning it back on brings them back.
+- [ ] Signed out: the join card shows and no `/v1/me/feed` request is sent. Someone who follows nobody sees "Follow people…" → Find people.
+- [ ] Arabic mirrors. iPad shows one centred column. VoiceOver reads each card as one sentence.
+
+### Half stars (films)
+- [ ] After updating from 1.7, a 4-star and a 2-star film still show 4 and 2.
+- [ ] Tapping a star gives a whole star; tapping it again clears it. Sliding gives halves with a tick each, and the number updates live. 3.5 survives a reopen.
+- [ ] Scrolling the film page with a finger on the stars scrolls rather than rates. Swipe-down dismiss still works.
+- [ ] An unwatched film asks to mark it watched first.
+- [ ] Arabic: the half star fills from the right and sliding right-to-left increases the rating. French shows "3,5".
+- [ ] VoiceOver: adjustable, half a star per swipe.
+- [ ] Share card: the half star is cut cleanly. An episode share card looks unchanged.
+- [ ] Letterboxd 3.5 imports as 3.5; IMDb 7 and 8 import as 3.5 and 4. Backup, wipe and restore keeps the halves; an old backup keeps 4 as 4.
+- [ ] Sync with a 1.7 phone: 3.5 shows as 4 there, and a 3 set there shows as 3 here.
+- [ ] Wrapped shows ★★★½☆ and ★ 3.5. Filter: "4★ and up" leaves out a 3.5 film.
+
+### Simkl and Nuvio (needs the Simkl client id in `src/simkl-key.ts`)
+- [ ] With no client id, Simkl says it isn't available, with no crash.
+- [ ] Connect shows a code; approve it at simkl.com/pin; the screen switches to Connected and the first sync shows "Added N episodes".
+- [ ] Those episodes carry Simkl's dates, and no untracked show was added. Check now again gives "Nothing new"; one new episode on simkl.com arrives exactly once.
+- [ ] Title-only matches appear under "Check these matches". "Not this one" is remembered.
+- [ ] Disconnect and reconnect runs a full sync again.
+- [ ] Nuvio: a wrong password gives the alert. A one-profile account syncs straight away; with several profiles a picker appears.
+- [ ] Watching in Nuvio arrives with Nuvio's date. In airplane mode, a failed sync offers the Simkl button.
+- [ ] Arabic layout, and VoiceOver reads the pairing code.
+
+### The importer as a library (behaviour must be unchanged)
+- [ ] A fresh full TV Time GDPR import matches 1.7.0 on the same file: shows, episodes, films, ratings, emotions, lists, favourites, comments with pictures, profile picture and cover.
+- [ ] Re-importing adds nothing twice. A double-zipped export imports normally. The browser-extension export still imports.
+- [ ] IMDb import, then a self-repair: the preserved TV Time ZIP is still there.
+- [ ] A dev build loads at all. This proves Metro resolves `../packages/tvtime-export/src`.
+
+### Watching together (Plus to start)
+- [ ] Free A: Show → ⋯ → "Watch together · Plus" opens the paywall.
+- [ ] A with Plus starts one: the share sheet has the code, the together opens with "Invite someone first", and A's SxEy appears within about 2 s.
+- [ ] B joins by code, free. B shows "Add to my shows" and "Not started". After B marks S1E1, A sees B on S1E1 with the right summary line.
+- [ ] Unmarking lowers the position on the other phone. Removing the show makes that member "Not started".
+- [ ] Marking a whole season sends one PUT (Worker logs).
+- [ ] The show page strip appears only on that show and opens the together.
+- [ ] Owner delete makes it disappear for B. Sign out and back in leaves no stale strip.
+- [ ] A 6th member gets "This list is full".
+- [ ] Taking Plus away from A: positions still update, and starting a second together opens the paywall.
+
+### Shared lists look shared (item 19)
+- [ ] An empty shared list shows the invite card first.
+- [ ] Members are named with "n of m". Posters say "Added by X" and show who has seen them. There is no "Sort by" line.
+- [ ] Lists screen: the "Shared with friends" section, with Start and Join buttons. Badges say "Shared · N people" or "Watching together".
+- [ ] VoiceOver reads a member chip as "Ali, S2E4", and the posters include "added by" and "seen by".
+
+### Live room (Plus to enter)
+- [ ] With two Plus accounts, on an episode aired today or yesterday (UTC) and marked watched: the pill says "Be the first". Unmarking hides it.
+- [ ] A free account sees the count, and tapping it opens the paywall.
+- [ ] Entering shows your face. A second phone joining updates the count and faces.
+- [ ] A reaction shows on both phones. Two taps within a second send only one.
+- [ ] Background then foreground reconnects with no duplicate stream. Airplane mode off reconnects within about 30 s.
+- [ ] Long-press a face: Report, and Block hides them both ways.
+- [ ] An old room key shows "The room closed" with a link to comments. A self-hosted server shows no pill.
+- [ ] The join screen shows the room and together privacy sentences, in all six languages.
+
+### VoiceOver and TalkBack (the whole app)
+- [ ] Mark as: each option and each calendar day is read separately, and two-finger Z closes the sheet.
+- [ ] Filters: chips say selected; Apply and Reset can be reached; Z closes the sheet.
+- [ ] Profile ••• and list ••• menus: every row can be reached.
+- [ ] Links: the service names are read, and Remove is in the rotor.
+- [ ] Wrapped: "Previous slide" and "Next slide" are read, and Share can still be reached.
+- [ ] Comments: like, attach and send are labelled, and the spoiler toggle is a checkbox.
+- [ ] Add/remove list rows say checked or unchecked. Onboarding season pills read "Season 2, selected".
+- [ ] TalkBack: repeat the sheet checks. With TalkBack off, tapping outside a sheet still closes it.
+
+---
+
 ## 1.7.0 — preparing 12 Oct 2026 (the finished half of 2.0.0)
 
 The blocks below came from the 2.0.0 branches; the daily puzzle's block moved
