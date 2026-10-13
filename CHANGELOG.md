@@ -498,6 +498,24 @@ possible"):
   treats an id-as-name as nameless, and the publish fingerprint counts posters
   so the repaired titles reach the profile.
 
+- **19. PLANNED (13 Oct): make shared lists look shared.** They shipped in
+  1.5.0, but the screens copy the personal list so closely that the part that
+  makes them worth having barely shows. Noddy won't post about them (planned
+  for r/LetterboxdLists and similar) until this is done. UI only, no server change.
+  - **Invite first.** An empty shared list offers only "Add shows & movies".
+    The invite is buried in the ⋯ menu, but inviting is the first thing to do.
+  - **Members with names and progress.** The row under the title is 24px
+    avatars and "3 members". The server already sends each member's `watched`
+    count, and the screen never shows it.
+  - **Who added it, by name.** The adder is an 18px dot on the poster, and
+    only your own tick is drawn. Show who else has watched it too.
+  - **Findable.** Starting one is a toggle inside "Create a new list". Joining
+    is a small "Join with a code" link, shown only when signed in. On the Lists
+    screen a shared list differs from a personal one by a small mark.
+  - "Sort by: added" is blue but does nothing.
+  - `src/app/shared/[id].tsx` still carries the dead styles of the old row
+    layout (`item`, `tick`, `inviteBox`, `member…`).
+
 ## 1.6.7 — submitted 7 Oct 2026 (Android 84, iOS 68)
 
 Creator codes, and nothing else, so a podcast's listeners could get Plus at
