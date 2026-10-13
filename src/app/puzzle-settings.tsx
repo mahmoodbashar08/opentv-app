@@ -4,11 +4,11 @@
  * THREE SWITCHES AND A TIME, on their own screen rather than in a list of
  * everything else, because they are one subject. The first is the master:
  * off, and the game is gone from the Explore tab, the profile and the
- * reminders — but NOT from `meta`. The history, the streak and the squares
+ * reminders — but NOT from `meta`. The history, the stats and the squares
  * stay, so switching it back on is not a fresh start.
  *
- * THE REMINDER IS OFF BY DEFAULT and fires only when the streak would end
- * tonight (`streakAtRisk`). Turning it on asks for notification permission
+ * THE REMINDER IS OFF BY DEFAULT and fires at the chosen hour only while
+ * today's puzzle is unplayed (`puzzleReminderAt`). Turning it on asks for notification permission
  * through the same door as every other reminder: `notifications.ts` plans
  * nothing while its master switch is off, so the switch has to open that too.
  *
@@ -90,8 +90,8 @@ export default function PuzzleSettingsScreen() {
           <>
             <MenuRow
               trackId="puzzle.settings.remind"
-              title={t('puzzle.settings.remind')}
-              sub={t('puzzle.settings.remindSub')}
+              title={t('puzzlePolish.remind')}
+              sub={t('puzzlePolish.remindSub')}
               right={<Switch value={remind} onValueChange={toggleRemind} trackColor={{ true: colors.green }} />}
             />
             {remind && (
@@ -111,8 +111,8 @@ export default function PuzzleSettingsScreen() {
             )}
             <MenuRow
               trackId="puzzle.settings.public"
-              title={t('puzzle.settings.public')}
-              sub={t('puzzle.settings.publicSub')}
+              title={t('puzzlePolish.public')}
+              sub={t('puzzlePolish.publicSub')}
               right={
                 <Switch
                   value={pub}

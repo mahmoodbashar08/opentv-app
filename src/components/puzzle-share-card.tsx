@@ -5,23 +5,30 @@
  * the show would hand the answer to everybody who sees it, and the whole point
  * of a daily puzzle is that the person reading the post can go and play the
  * same one. So this is Wordle's grid as a picture: the number, six squares,
- * the score, the streak, and the brand bar. Everything on it is a number or a
- * colour, which is also why it needs no translating.
+ * the score, the three stats, and the brand bar. Not even a blurred frame —
+ * blur is the first clue, and the card would be giving it away.
+ *
+ * REDRAWN 14 Oct, in the shape the other share cards have: a dark ground with
+ * a wash of the brand yellow from the top, one big figure, small caps over
+ * small numbers, and the same brand bar `share-card.tsx` ends on. The streak
+ * went with the streak.
  *
  * FIXED COLOURS, NO THEME, for the reason `ratings-share-card.tsx` gives: a
  * share card is a picture and a picture does not have a theme. Two people
  * sharing the same result must produce the same card.
  */
 import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { t } from '@/i18n';
-import { MAX_TRIES, SKIP, type Game } from '@/puzzle';
+import { MAX_TRIES, SKIP, type Game, type Stats } from '@/puzzle';
 import { SITE } from '@/share-link';
 import { ls } from '@/theme';
 
 const INK = '#0B0B0D';
 const TEXT = '#FFFFFF';
+const DIM = '#A7A7AE';
 const FAINT = '#6B6B72';
 const BRAND = '#FFD400';
 /** The grid's own three colours — the same ones the emoji squares stand for. */
@@ -62,33 +69,52 @@ export function Squares({ game, size = 40, gap = 8 }: { game: Game; size?: numbe
 export function PuzzleShareCard({
   number,
   game,
-  streak,
+  stats,
   cardRef,
 }: {
   number: number;
   game: Game;
-  streak: number;
+  /** Today's player's stats; null on an archive game, which does not count. */
+  stats: Stats | null;
   /** Where `captureRef` points. The card is what it photographs. */
   cardRef?: React.RefObject<View | null>;
 }) {
   const score = game.won ? `${game.guesses.length}/${MAX_TRIES}` : `X/${MAX_TRIES}`;
+  const verdict = game.won ? t('puzzle.wonTitle', { count: game.guesses.length }) : t('puzzle.lostTitle');
   return (
     <View ref={cardRef} collapsable={false} style={s.card}>
+      <LinearGradient colors={['rgba(255,212,0,0.20)', 'rgba(255,212,0,0)']} style={StyleSheet.absoluteFill} end={{ x: 0.5, y: 0.7 }} />
       <View style={s.head}>
-        <Text style={s.heading}>{t('puzzle.title').toUpperCase()}</Text>
+        <Text style={s.heading} numberOfLines={1}>
+          {t('puzzle.title').toUpperCase()}
+        </Text>
         <Text style={s.number}>#{number}</Text>
       </View>
       <View style={s.plot}>
-        <Squares game={game} />
-      </View>
-      <View style={s.figures}>
+        <Squares game={game} size={40} gap={9} />
         <Text style={s.score}>{score}</Text>
-        {streak > 0 && (
-          <Text style={s.streak} accessibilityLabel={t('puzzle.streakDays', { count: streak })}>
-            🔥 {t('puzzle.streakDays', { count: streak })}
-          </Text>
-        )}
+        <Text style={s.verdict} numberOfLines={1}>
+          {verdict}
+        </Text>
       </View>
+      {stats && (
+        <View style={s.stats}>
+          {(
+            [
+              [String(stats.played), t('puzzlePolish.played')],
+              [`${stats.win}%`, t('puzzlePolish.win')],
+              [stats.avg == null ? '–' : stats.avg.toFixed(1), t('puzzlePolish.avg')],
+            ] as const
+          ).map(([v, label], i) => (
+            <View key={label} style={[s.stat, i > 0 && s.statLine]}>
+              <Text style={s.statValue}>{v}</Text>
+              <Text style={s.statLabel} numberOfLines={1}>
+                {label}
+              </Text>
+            </View>
+          ))}
+        </View>
+      )}
       <View style={s.brandBar}>
         <View style={s.brandLeft}>
           <Image source={ICON} style={s.badge} contentFit="cover" />
@@ -105,13 +131,24 @@ const s = StyleSheet.create({
      so a radius here would be four black wedges on a light timeline. The
      screen that shows it rounds its frame instead — see `share-card.tsx`. */
   card: { backgroundColor: INK, alignSelf: 'stretch' },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', padding: 16, paddingBottom: 6 },
-  heading: { color: BRAND, fontSize: 11, fontWeight: '900', letterSpacing: ls(1.2) },
-  number: { color: TEXT, fontSize: 18, fontWeight: '900' },
-  plot: { alignItems: 'center', paddingVertical: 14 },
-  figures: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 14 },
-  score: { color: TEXT, fontSize: 22, fontWeight: '900' },
-  streak: { color: TEXT, fontSize: 13, fontWeight: '700' },
+  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingTop: 18 },
+  heading: { color: BRAND, fontSize: 11.5, fontWeight: '900', letterSpacing: ls(1.4), flexShrink: 1 },
+  number: { color: TEXT, fontSize: 20, fontWeight: '900' },
+  plot: { alignItems: 'center', paddingTop: 26, paddingBottom: 20, gap: 4 },
+  score: { color: TEXT, fontSize: 44, fontWeight: '900', letterSpacing: ls(-1), marginTop: 14 },
+  verdict: { color: DIM, fontSize: 14, fontWeight: '700' },
+  stats: {
+    flexDirection: 'row',
+    marginHorizontal: 18,
+    marginBottom: 18,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+  },
+  stat: { flex: 1, alignItems: 'center', gap: 3 },
+  statLine: { borderStartWidth: StyleSheet.hairlineWidth, borderStartColor: 'rgba(255,255,255,0.14)' },
+  statValue: { color: TEXT, fontSize: 19, fontWeight: '900' },
+  statLabel: { color: FAINT, fontSize: 9.5, fontWeight: '800', letterSpacing: ls(0.8), textTransform: 'uppercase' },
   brandBar: {
     flexDirection: 'row',
     alignItems: 'center',

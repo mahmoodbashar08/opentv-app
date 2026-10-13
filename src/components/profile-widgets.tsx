@@ -276,7 +276,7 @@ export function renderWidget(
     if (!v) return null;
     return (
       <WidgetBox label={t('puzzle.blockName')} span={span}>
-        <PuzzleBlock value={v} />
+        <PuzzleBlock value={v} span={span} />
       </WidgetBox>
     );
   }
@@ -716,7 +716,7 @@ export function widgetValue(id: string, span: WidgetSpan, data?: string): unknow
       return r ? { n: r.n, avg: r.avg } : null;
     }
     case 'puzzle': {
-      // Null while the owner's "streak on your public profile" switch is off,
+      // Null while the owner's "puzzle on your public profile" switch is off,
       // so the block is dropped from the arrangement that leaves the phone.
       return publishedPuzzleValue();
     }

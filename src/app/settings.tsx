@@ -591,7 +591,7 @@ export default function SettingsScreen() {
             />
             <MenuRow trackId="puzzle.settings.title"
               title={t('puzzle.settings.title')}
-              sub={t('puzzle.settings.rowSub')}
+              sub={t('puzzlePolish.rowSub')}
               onPress={() => router.push('/puzzle-settings')}
             />
             <MenuRow trackId="language.title" title={t('language.title')} value={NAMES[currentLocale()]} onPress={() => router.push('/language')} />
