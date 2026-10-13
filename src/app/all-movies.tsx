@@ -9,7 +9,7 @@ import { getMovies, type MovieRow, getRecentMovies } from '@/db';
 import { movieFacts } from '@/filter-facts';
 import { useFilters } from '@/filters-store';
 import { activeFilterCount, compareTitles, gridGeometry, lastWatchedKey, matchesFilters } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 11.5,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: ls(0.8),
     borderRadius: radius.pill,
     paddingVertical: 5,
     paddingHorizontal: 14,
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
     paddingHorizontal: 22,
   },
-  filtersText: { color: colors.onYellow, fontSize: 12.5, fontWeight: '800', letterSpacing: 1 },
+  filtersText: { color: colors.onYellow, fontSize: 12.5, fontWeight: '800', letterSpacing: ls(1) },
   filtersBadge: {
     color: colors.yellow,
     backgroundColor: colors.onYellow,

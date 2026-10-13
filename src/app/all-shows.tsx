@@ -13,7 +13,7 @@ import { showFacts } from '@/filter-facts';
 import { useFilters } from '@/filters-store';
 import { progressColorOf, progressOf } from '@/show-status';
 import { activeFilterCount, compareTitles, gridGeometry, matchesFilters } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 export default function AllShowsScreen() {
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 24,
   },
-  filtersText: { color: colors.onYellow, fontSize: 13, fontWeight: '800', letterSpacing: 1, textTransform: 'uppercase' },
+  filtersText: { color: colors.onYellow, fontSize: 13, fontWeight: '800', letterSpacing: ls(1), textTransform: 'uppercase' },
   filtersBadge: {
     color: colors.yellow,
     backgroundColor: colors.onYellow,

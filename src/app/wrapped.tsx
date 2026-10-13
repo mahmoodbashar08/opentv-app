@@ -76,7 +76,7 @@ import {
   type WrappedSlideId,
 } from '@/pure';
 import { computeWrapped, type Wrapped } from '@/stats-calc';
-import { ACCENTS, colors, DEFAULT_ACCENT, onAccent, radius, space } from '@/theme';
+import { ACCENTS, colors, DEFAULT_ACCENT, onAccent, radius, space, ls } from '@/theme';
 
 /** How far the sheet must be dragged down before it leaves. */
 const DISMISS_Y = 130;
@@ -471,9 +471,9 @@ const s = StyleSheet.create({
   tapHalf: { flex: 1 },
   // BIG, because the number IS the slide. Wrapped's whole trick is that a
   // statistic set at headline size stops reading as a statistic.
-  kicker: { color: colors.yellow, fontSize: 13, fontWeight: '900', letterSpacing: 1.6, textTransform: 'uppercase' },
-  huge: { color: colors.text, fontSize: 54, fontWeight: '900', textAlign: 'center', lineHeight: 58, letterSpacing: -1.5 },
-  big: { color: colors.text, fontSize: 42, fontWeight: '900', textAlign: 'center', lineHeight: 46, letterSpacing: -1 },
+  kicker: { color: colors.yellow, fontSize: 13, fontWeight: '900', letterSpacing: ls(1.6), textTransform: 'uppercase' },
+  huge: { color: colors.text, fontSize: 54, fontWeight: '900', textAlign: 'center', lineHeight: 58, letterSpacing: ls(-1.5) },
+  big: { color: colors.text, fontSize: 42, fontWeight: '900', textAlign: 'center', lineHeight: 46, letterSpacing: ls(-1) },
   sub: { color: colors.dim, fontSize: 16.5, textAlign: 'center', lineHeight: 23 },
   hero: { width: 150, height: 225, borderRadius: 10, backgroundColor: colors.raise, marginVertical: 8 },
   card: {
@@ -496,11 +496,11 @@ const s = StyleSheet.create({
     borderBottomColor: 'rgba(255,255,255,0.09)',
   },
   cardBody: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12 },
-  cardKicker: { color: colors.yellow, fontSize: 10, fontWeight: '900', letterSpacing: 2.4 },
+  cardKicker: { color: colors.yellow, fontSize: 10, fontWeight: '900', letterSpacing: ls(2.4) },
   // TIGHTER AND LARGER. The period is the card's title and was competing with
   // the figure below it at the same weight and nearly the same size; pulling
   // the tracking in and the size up makes it read as a masthead instead.
-  cardPeriod: { color: colors.text, fontSize: 27, fontWeight: '900', letterSpacing: -0.6 },
+  cardPeriod: { color: colors.text, fontSize: 27, fontWeight: '900', letterSpacing: ls(-0.6) },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center' },
   // Room above it: the summary sat against the poster wall with nothing
   // between them, so the collage and its caption read as one crowded block.
@@ -528,7 +528,7 @@ const s = StyleSheet.create({
   },
   cardBrandLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   cardBrandDot: { width: 7, height: 7, borderRadius: 2 },
-  cardBrandText: { color: colors.text, fontSize: 11.5, fontWeight: '800', letterSpacing: 1.2 },
+  cardBrandText: { color: colors.text, fontSize: 11.5, fontWeight: '800', letterSpacing: ls(1.2) },
   cardBrandSub: { color: '#C9C9CF', fontSize: 10 },
   /*
    * CENTRED IN WHAT IS LEFT, not pinned 40px under the header. Three short
@@ -596,5 +596,5 @@ const s = StyleSheet.create({
   renderBarFill: { height: 4, borderRadius: 2 },
   shareBtn: { position: 'absolute', bottom: 34, alignSelf: 'center', zIndex: 2 },
   cta: { marginTop: 8, backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 26, paddingVertical: 12 },
-  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 14, letterSpacing: 0.8 },
+  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 14, letterSpacing: ls(0.8) },
 });

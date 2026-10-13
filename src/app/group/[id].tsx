@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { I18nManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { NavHeader, PillButton, Screen } from '@/components/ui';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 const TOPIC_KEYS = ['group.topic1', 'group.topic2'] as const;
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     color: colors.dim,
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: ls(1),
     paddingHorizontal: space.lg,
     paddingVertical: 14,
   },

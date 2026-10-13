@@ -19,7 +19,7 @@ import { communityErrorText } from '@/community-error-text';
 import { useJoined } from '@/community-session';
 import { addSharedItem, fetchSharedLists, type SharedListRow } from '@/community-shared-lists';
 import { tapLight } from '@/haptics';
-import { colors, space } from '@/theme';
+import { colors, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 export default function AddToListScreen() {
@@ -220,5 +220,5 @@ const styles = StyleSheet.create({
 
 /** The shared-list section's own label, kept apart so the addition is obvious. */
 const sharedSection = StyleSheet.create({
-  label: { color: colors.dim, fontSize: 11.5, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: '700' },
+  label: { color: colors.dim, fontSize: 11.5, letterSpacing: ls(0.8), textTransform: 'uppercase', fontWeight: '700' },
 });

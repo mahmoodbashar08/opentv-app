@@ -46,7 +46,7 @@ import {
   type Clues,
 } from '@/puzzle-data';
 import { withLink } from '@/share-link';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** More than this and the list is a wall; fewer and a common word hides the show. */
 const SUGGESTIONS = 8;
@@ -356,7 +356,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
   },
-  pillText: { color: colors.onArt, fontSize: 11, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase' },
+  pillText: { color: colors.onArt, fontSize: 11, fontWeight: '800', letterSpacing: ls(0.6), textTransform: 'uppercase' },
   squares: { alignItems: 'center', paddingVertical: 14 },
   clues: { marginHorizontal: space.lg, gap: 8, marginBottom: 10 },
   clueRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
@@ -400,7 +400,7 @@ const s = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 26,
   },
-  primaryText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 0.6 },
+  primaryText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(0.6) },
   added: { color: colors.green, fontSize: 13, fontWeight: '700' },
   cardFrame: { marginHorizontal: space.lg, marginTop: 18, borderRadius: 12, overflow: 'hidden' },
   shareBtn: {
@@ -412,6 +412,6 @@ const s = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 40,
   },
-  shareText: { color: colors.onBrand, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
+  shareText: { color: colors.onBrand, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(1) },
   tomorrow: { color: colors.faint, fontSize: 13 },
 });

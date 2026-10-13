@@ -48,7 +48,7 @@ import {
   type SnakeState,
 } from '@/games';
 import { tapLight } from '@/haptics';
-import { colors, radius } from '@/theme';
+import { colors, radius, ls } from '@/theme';
 import { t } from '@/i18n';
 
 /**
@@ -432,5 +432,5 @@ const styles = StyleSheet.create({
   overTitle: { color: colors.text, fontWeight: '900', fontSize: 18 },
   overScore: { color: colors.yellow, fontWeight: '800', fontSize: 15 },
   again: { backgroundColor: colors.yellow, borderRadius: 999, paddingHorizontal: 22, paddingVertical: 10, marginTop: 6 },
-  againText: { color: '#1B1400', fontWeight: '900', fontSize: 13, letterSpacing: 0.5 },
+  againText: { color: '#1B1400', fontWeight: '900', fontSize: 13, letterSpacing: ls(0.5) },
 });

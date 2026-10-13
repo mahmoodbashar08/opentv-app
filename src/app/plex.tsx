@@ -32,7 +32,7 @@ import { t } from '@/i18n';
 import { pinAuthUrl, pollForPin, requestPin, type PinResult, type PlexPin } from '@/plex';
 import { disconnectPlex, getPlexToken, plexClientId, plexSyncedAt, setPlexToken, syncPlex } from '@/plex-sync';
 import { mixHex } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** Plex publishes no interval, so this is chosen: often enough that approving
  *  in a browser feels immediate, rarely enough not to hammer plex.tv. */
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
     color: colors.faint,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.2,
+    letterSpacing: ls(1.2),
     textTransform: 'uppercase',
     paddingHorizontal: space.lg,
     paddingTop: 22,
@@ -295,7 +295,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 34,
     fontWeight: '800',
-    letterSpacing: 6,
+    letterSpacing: ls(6),
     fontVariant: ['tabular-nums'],
   },
   waiting: { color: colors.faint, fontSize: 12.5 },

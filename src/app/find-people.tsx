@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useJoined } from '@/community-session';
 import { MenuRow, NavHeader, Screen } from '@/components/ui';
 import { mixHex } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 export default function FindPeopleScreen() {
@@ -73,6 +73,6 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 6,
   },
-  soonBadge: { color: colors.yellow, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
+  soonBadge: { color: colors.yellow, fontSize: 11, fontWeight: '800', letterSpacing: ls(1.2) },
   soonText: { color: colors.text, fontSize: 13.5, lineHeight: 19 },
 });

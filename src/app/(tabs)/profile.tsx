@@ -59,7 +59,7 @@ import { onProfileThemeChanged, useLiveCoverShape } from '@/cover-frame-live';
 import { WRAPPED_MIN_ITEMS, DISCORD_SEEN_KEY, HIDDEN_SECTIONS_KEY, PRIVATE_PROFILE_KEY, RECONNECT_SEEN_KEY, asHiddenSections, halfEnd, mergedFollowTotal, parseCoverFrame, parseHiddenSections, reconnectBannerCount, type RepairableList, sectionHidden, sortLists, topBanner, unresolvedUuids, WRAPPED_SEEN_KEY, wrappedToOffer, mixHex } from '@/pure';
 import { lastFriendMatches } from '@/community-seed';
 import { appLinks } from '@/links';
-import { colors, onAccent, radius, space } from '@/theme';
+import { colors, onAccent, radius, space, ls } from '@/theme';
 import { currentLocale, monthYear, t } from '@/i18n';
 import { formatCount, formatPeriod } from '@/locale-resolve';
 
@@ -1540,7 +1540,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 12,
   },
-  editText: { color: colors.onArt, fontSize: 12.5, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  editText: { color: colors.onArt, fontSize: 12.5, fontWeight: '700', letterSpacing: ls(1), textTransform: 'uppercase' },
   cloudBanner: {
     flexDirection: 'row',
     alignItems: 'center',

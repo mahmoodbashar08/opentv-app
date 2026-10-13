@@ -18,7 +18,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ratingBand, ratingGrid } from '@/pure';
-import { colors } from '@/theme';
+import { colors, ls } from '@/theme';
 import { t } from '@/i18n';
 
 /**
@@ -290,7 +290,7 @@ const s = StyleSheet.create({
   emptyText: { color: colors.dim, fontSize: 13, paddingTop: 10 },
   headCell: { alignItems: 'flex-start', justifyContent: 'center' },
   rowLabel: { color: colors.faint, fontSize: 11, fontWeight: '700' },
-  avgLabel: { color: colors.dim, fontSize: 10, fontWeight: '900', letterSpacing: 0.5 },
+  avgLabel: { color: colors.dim, fontSize: 10, fontWeight: '900', letterSpacing: ls(0.5) },
   colLabel: { color: colors.dim, fontSize: 11, fontWeight: '800', textAlign: 'center', paddingBottom: 6 },
   cell: {
     width: CELL,

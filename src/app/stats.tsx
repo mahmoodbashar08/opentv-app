@@ -13,7 +13,7 @@ import { isSeedLibrary } from '@/library';
 import { formatCount } from '@/locale-resolve';
 import { requirePlus, usePlus, usePlusUi } from '@/plus';
 import { computeMovieStats, computeShowStats } from '@/stats-calc';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 const TABS = ['Shows', 'Movies'] as const;
 
@@ -540,14 +540,14 @@ export default function StatsScreen() {
 const styles = StyleSheet.create({
   clockRow: { flexDirection: 'row', justifyContent: 'space-around', paddingVertical: 8 },
   clockNum: { color: colors.text, fontSize: 30, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  clockUnit: { color: colors.dim, fontSize: 11, fontWeight: '700', letterSpacing: 1, marginTop: 2 },
+  clockUnit: { color: colors.dim, fontSize: 11, fontWeight: '700', letterSpacing: ls(1), marginTop: 2 },
   sub: { color: colors.dim, fontSize: 13, marginTop: 8 },
   // hidden until accounts/community exist — "compare with people you follow"
   // implies other users, which OpenTV doesn't have yet (Owdver's review). Flip
   // display back on and wire compareSoon to the real feature when it ships.
-  compare: { display: 'none', color: colors.blue, fontSize: 12.5, fontWeight: '700', letterSpacing: 0.5, marginTop: 14, textAlign: 'center' },
+  compare: { display: 'none', color: colors.blue, fontSize: 12.5, fontWeight: '700', letterSpacing: ls(0.5), marginTop: 14, textAlign: 'center' },
   bigNum: { color: colors.text, fontSize: 30, fontWeight: '800', fontVariant: ['tabular-nums'] },
-  allTime: { color: colors.faint, fontSize: 10.5, fontWeight: '700', letterSpacing: 1, textAlign: 'center', marginTop: 14 },
+  allTime: { color: colors.faint, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(1), textAlign: 'center', marginTop: 14 },
   dots: { flexDirection: 'row', gap: 6, alignSelf: 'center', marginTop: 12 },
   dot: { width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#4A4A4E' },
   badgeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4, justifyContent: 'space-between' },
@@ -573,7 +573,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.yellow,
     fontSize: 9.5,
     fontWeight: '900',
-    letterSpacing: 0.8,
+    letterSpacing: ls(0.8),
     borderRadius: radius.pill,
     paddingHorizontal: 7,
     paddingVertical: 2,

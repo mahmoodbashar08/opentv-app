@@ -27,7 +27,7 @@ import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { simklConfigured, simklDeviceCode, simklPollToken, type SimklDeviceCode, type SimklPoll } from '@/simkl';
 import { answerSimklMatch, disconnectSimkl, getSimklTokens, setSimklTokens, simklPending, simklSyncedAt, syncSimkl, type SimklPendingMatch } from '@/simkl-sync';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /**
  * Poll at Simkl's interval until the code is approved or runs out. Outside the
@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     color: colors.faint,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.2,
+    letterSpacing: ls(1.2),
     textTransform: 'uppercase',
     paddingHorizontal: space.lg,
     paddingTop: 22,
@@ -258,7 +258,7 @@ const styles = StyleSheet.create({
   step: { color: colors.dim, fontSize: 13.5, textAlign: 'center' },
   codeRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   copyHint: { color: colors.faint, fontSize: 12, marginTop: -6 },
-  code: { color: colors.text, fontSize: 30, fontWeight: '800', letterSpacing: 4, fontVariant: ['tabular-nums'] },
+  code: { color: colors.text, fontSize: 30, fontWeight: '800', letterSpacing: ls(4), fontVariant: ['tabular-nums'] },
   waiting: { color: colors.faint, fontSize: 12.5 },
   match: { marginHorizontal: space.lg, marginBottom: 10, padding: 14, borderRadius: radius.card, backgroundColor: colors.card, gap: 4 },
   matchFrom: { color: colors.text, fontSize: 15, fontWeight: '700' },

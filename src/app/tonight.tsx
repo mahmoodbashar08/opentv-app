@@ -25,7 +25,7 @@ import { NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { usePlus } from '@/plus';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { behind, candidates, today } from '@/tonight-data';
 import { pickTonight, type Ask, type Candidate, type Mood, type Time, type Want } from '@/tonight';
 
@@ -157,7 +157,7 @@ function PlanCard({ p }: { p: Plan }) {
 
 const s = StyleSheet.create({
   group: { paddingTop: 14 },
-  label: { color: colors.faint, fontSize: 12, fontWeight: '800', letterSpacing: 0.8, paddingHorizontal: space.lg },
+  label: { color: colors.faint, fontSize: 12, fontWeight: '800', letterSpacing: ls(0.8), paddingHorizontal: space.lg },
   chips: { gap: 8, paddingHorizontal: space.lg, paddingTop: 8, paddingBottom: 2 },
   chip: {
     borderRadius: radius.pill,
@@ -182,7 +182,7 @@ const s = StyleSheet.create({
   },
   poster: { width: 56, height: 84, borderRadius: 7, backgroundColor: colors.panel },
   posterEmpty: { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' },
-  why: { color: colors.yellow, fontSize: 10.5, fontWeight: '900', letterSpacing: 1 },
+  why: { color: colors.yellow, fontSize: 10.5, fontWeight: '900', letterSpacing: ls(1) },
   pickTitle: { color: colors.text, fontSize: 16.5, fontWeight: '800', marginTop: 3 },
   pickSub: { color: colors.dim, fontSize: 12.5, marginTop: 3 },
   section: { color: colors.text, fontSize: 17, fontWeight: '900', paddingHorizontal: space.lg, paddingTop: 26 },

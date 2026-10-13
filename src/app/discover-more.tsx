@@ -14,7 +14,7 @@ import { addMovieToWatchlist, addShow, inLibrary } from '@/db';
 import { trendingByKind, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { movieRoute } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 // `tr` because the trending rows below are mapped as `t`, which shadows the
 // translator exactly where a screen-reader label needs it.
 import { t, t as tr } from '@/i18n';
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     color: colors.yellow,
     fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: ls(0.8),
     textTransform: 'uppercase',
     marginHorizontal: space.lg,
     marginBottom: 10,

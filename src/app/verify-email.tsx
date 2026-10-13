@@ -28,7 +28,7 @@ import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { communityErrorKey } from '@/pure';
-import { colors, space } from '@/theme';
+import { colors, space, ls } from '@/theme';
 
 export default function VerifyEmailScreen() {
   const { token, email, next, join } = useLocalSearchParams<{ token?: string; email?: string; next?: string; join?: string }>();
@@ -358,12 +358,12 @@ const styles = StyleSheet.create({
   secondaryText: { color: colors.text, fontSize: 15, fontWeight: '700' },
   link: { color: colors.blue, fontSize: 14, paddingVertical: 8 },
   codeBox: { width: '100%', alignItems: 'center', gap: 10, marginTop: 6 },
-  codeLabel: { color: colors.faint, fontSize: 12, fontWeight: '800', letterSpacing: 1 },
+  codeLabel: { color: colors.faint, fontSize: 12, fontWeight: '800', letterSpacing: ls(1) },
   codeInput: {
     color: colors.text,
     fontSize: 30,
     fontWeight: '800',
-    letterSpacing: 10,
+    letterSpacing: ls(10),
     textAlign: 'center',
     // The trailing letter-spacing pushes the text left of centre; the padding
     // puts it back so six digits sit under the label rather than beside it.

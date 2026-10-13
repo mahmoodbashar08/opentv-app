@@ -6,7 +6,7 @@ import { Poster, posterSpeech } from '@/components/poster';
 import { EmptyState, Screen, TopTabs } from '@/components/ui';
 import { getMovies, type MovieRow } from '@/db';
 import { airCountdown, gridGeometry, type AirIn } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 const TABS = ['Watch List', 'Upcoming'] as const;
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 11.5,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: ls(0.8),
     borderRadius: radius.pill,
     paddingVertical: 5,
     paddingHorizontal: 14,

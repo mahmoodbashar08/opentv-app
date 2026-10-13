@@ -40,7 +40,7 @@ import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { communityErrorKey, seedSummary, type SeedKind } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 type Phase = 'offer' | 'running' | 'finished';
 
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
   },
-  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15, letterSpacing: 0.5 },
+  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15, letterSpacing: ls(0.5) },
   later: { paddingVertical: 12, alignItems: 'center' },
   laterText: { color: colors.dim, fontSize: 15, fontWeight: '600' },
 });

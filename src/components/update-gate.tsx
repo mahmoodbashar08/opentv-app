@@ -32,7 +32,7 @@ import { Linking, Platform, Pressable, StyleSheet, Text, View } from 'react-nati
 import { getMeta, setMeta } from '@/db';
 import { olderThan } from '@/pure';
 import { GITHUB_RELEASES_URL, SIDELOADED } from '@/sideload';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 // point this at a raw JSON file you control (GitHub repo/gist raw URL);
@@ -185,5 +185,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     marginTop: 8,
   },
-  ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
+  ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(1) },
 });

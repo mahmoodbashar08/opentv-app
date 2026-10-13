@@ -15,7 +15,7 @@ import { useTogethersFor } from '@/community-together';
 import { MemberDot, memberName } from '@/components/shared-members';
 import { t } from '@/i18n';
 import { showMeta } from '@/metadata';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { comparePositions, positionLabel, togetherSummary, type Position } from '@/together-pure';
 
 /** Each member with their cursor, furthest first, from one together's detail. */
@@ -113,6 +113,6 @@ const styles = StyleSheet.create({
   face: { alignItems: 'center', gap: 3, minWidth: 34 },
   pos: { color: colors.dim, fontSize: 10.5, fontWeight: '700', fontVariant: ['tabular-nums'] },
   posMe: { color: colors.yellow },
-  kicker: { color: colors.faint, fontSize: 11, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  kicker: { color: colors.faint, fontSize: 11, fontWeight: '700', letterSpacing: ls(0.6), textTransform: 'uppercase' },
   summary: { color: colors.text, fontSize: 14, fontWeight: '600' },
 });

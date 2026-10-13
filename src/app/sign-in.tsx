@@ -30,7 +30,7 @@ import { rememberAccount, signIn, tvtimeAccount, useLastAccount } from '@/commun
 import { NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 type SessionResponse = { token: string; profile: { id: string; handle: string; email?: string | null } };
 
@@ -215,7 +215,7 @@ const s = StyleSheet.create({
     gap: 3,
     alignItems: 'center',
   },
-  tvtimeLabel: { color: colors.faint, fontSize: 12, letterSpacing: 0.3, textTransform: 'uppercase', fontWeight: '700' },
+  tvtimeLabel: { color: colors.faint, fontSize: 12, letterSpacing: ls(0.3), textTransform: 'uppercase', fontWeight: '700' },
   tvtimeValue: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
   tvtimeHint: { color: colors.dim, fontSize: 13, lineHeight: 18, textAlign: 'center' },
   lede: {

@@ -67,7 +67,7 @@ import { usePlusUi } from '@/plus';
 import { bannerGeometry, bannerHeight, mixHex, smootherstep, type CoverFrame } from '@/pure';
 import { LinearGradient } from 'expo-linear-gradient';
 import { setLiveCoverRatio, useLiveCoverFrame } from '@/cover-frame-live';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** The collage spans the full width, so a tablet gets more tiles, not wider ones. */
 const listTiles = (w: number) => (w > CONTENT_MAX_WIDTH ? 8 : 4);
@@ -1661,11 +1661,11 @@ const styles = StyleSheet.create({
     color: colors.faint,
     fontSize: 9.5,
     fontWeight: '800',
-    letterSpacing: 0.9,
+    letterSpacing: ls(0.9),
     textTransform: 'uppercase',
   },
   tileBody: { flex: 1, justifyContent: 'center' },
-  tileBig: { color: colors.text, fontSize: 34, fontWeight: '900', letterSpacing: -1, lineHeight: 36 },
+  tileBig: { color: colors.text, fontSize: 34, fontWeight: '900', letterSpacing: ls(-1), lineHeight: 36 },
   tileName: { color: colors.text, fontSize: 17, fontWeight: '800', lineHeight: 21 },
   tileSub: { color: colors.dim, fontSize: 11.5, marginTop: 6 },
 
@@ -1675,7 +1675,7 @@ const styles = StyleSheet.create({
     color: colors.brand,
     fontSize: 10,
     fontWeight: '800',
-    letterSpacing: 1,
+    letterSpacing: ls(1),
     textTransform: 'uppercase',
     paddingHorizontal: 8,
     paddingTop: 4,
@@ -1744,7 +1744,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  privateChipText: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.4 },
+  privateChipText: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(0.4) },
   plusChip: {
     borderWidth: 1,
     borderColor: colors.yellow,
@@ -1752,7 +1752,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
     paddingVertical: 1,
   },
-  plusChipText: { color: colors.yellow, fontSize: 10, fontWeight: '800', letterSpacing: 0.5 },
+  plusChipText: { color: colors.yellow, fontSize: 10, fontWeight: '800', letterSpacing: ls(0.5) },
   /** No bottom rule either — same reason: the band is already a different
    *  surface from the page under it, and a line saying so is a line. */
   statBand: { flexDirection: 'row' },

@@ -20,7 +20,7 @@ import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { authenticate, normaliseServerUrl } from '@/jellyfin';
 import { disconnectJellyfin, getJellyfinSession, jellyfinDeviceId, jellyfinServer, jellyfinSyncedAt, setJellyfinSession, syncJellyfin } from '@/jellyfin-sync';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 export default function JellyfinScreen() {
   const [connected, setConnected] = useState(false);
@@ -164,7 +164,7 @@ const styles = StyleSheet.create({
     color: colors.faint,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.2,
+    letterSpacing: ls(1.2),
     textTransform: 'uppercase',
     paddingHorizontal: space.lg,
     paddingTop: 22,

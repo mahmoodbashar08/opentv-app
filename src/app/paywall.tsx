@@ -45,7 +45,7 @@ import {
   type PlusStatus,
 } from '@/purchases';
 import { SIDELOADED } from '@/sideload';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /**
  * What the tier actually is, in the order it is worth reading.
@@ -577,7 +577,7 @@ const styles = StyleSheet.create({
     color: colors.faint,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: ls(0.8),
     textTransform: 'uppercase',
     marginTop: 10,
   },
@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
   planPrice: { color: colors.text, fontSize: 16, fontWeight: '800' },
   planPeriod: { color: colors.dim, fontSize: 13, fontWeight: '600' },
   saveBadge: { backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 8, paddingVertical: 3 },
-  saveText: { color: colors.onYellow, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+  saveText: { color: colors.onYellow, fontSize: 11, fontWeight: '800', letterSpacing: ls(0.3) },
 
   codeLink: { color: colors.blue, fontSize: 14, fontWeight: '700', textAlign: 'center', paddingTop: 4 },
   codeApplied: { color: colors.green, fontSize: 14, fontWeight: '700', textAlign: 'center', paddingTop: 4 },
@@ -614,7 +614,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 16,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: ls(1),
   },
   codeApply: { backgroundColor: colors.yellow, borderRadius: 12, paddingHorizontal: 18, justifyContent: 'center' },
   codeApplyText: { color: colors.onYellow, fontWeight: '800', fontSize: 15 },
@@ -634,7 +634,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.line,
   },
   cellLabel: { flex: 1, color: colors.text, fontSize: 14, lineHeight: 19 },
-  headLabel: { color: colors.faint, fontSize: 12.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.8 },
+  headLabel: { color: colors.faint, fontSize: 12.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: ls(0.8) },
   headCell: { width: 56, textAlign: 'center', color: colors.faint, fontSize: 12.5, fontWeight: '800' },
   headPlus: { color: colors.yellow },
   cellBox: { width: 56, alignItems: 'center' },
@@ -653,7 +653,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingVertical: 16,
   },
-  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15.5, letterSpacing: 0.5 },
+  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15.5, letterSpacing: ls(0.5) },
   dim: { opacity: 0.5 },
   restore: { paddingVertical: 12, alignItems: 'center' },
   restoreText: { color: colors.dim, fontSize: 14.5, fontWeight: '600' },

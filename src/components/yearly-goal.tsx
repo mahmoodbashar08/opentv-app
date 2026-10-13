@@ -19,7 +19,7 @@ import { WidgetBox, type Published, type SlotEdit } from '@/components/profile-w
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import type { WidgetSpan } from '@/profile-layout';
-import { colors } from '@/theme';
+import { colors, ls } from '@/theme';
 import {
   goalFor,
   goalOn,
@@ -226,7 +226,7 @@ const s = StyleSheet.create({
   row: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   cell: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10, minWidth: 0 },
   cellText: { flex: 1, minWidth: 0, gap: 1 },
-  inRing: { color: colors.text, fontWeight: '900', letterSpacing: -0.5 },
+  inRing: { color: colors.text, fontWeight: '900', letterSpacing: ls(-0.5) },
   kind: { color: colors.text, fontSize: 13, fontWeight: '800' },
   target: { color: colors.dim, fontSize: 12 },
   pace: { color: colors.dim, fontSize: 12, fontWeight: '700' },

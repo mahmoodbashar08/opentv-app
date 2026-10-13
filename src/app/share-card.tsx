@@ -9,7 +9,7 @@ import { NavHeader, Screen } from '@/components/ui';
 import { getEpisodeVote, getMovie, getShowBrief } from '@/db';
 import { episodeMeta, showMeta } from '@/metadata';
 import { movieMeta } from '@/movie-metadata';
-import { colors, radius } from '@/theme';
+import { colors, radius, ls } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { runtimeLabel } from '@/duration';
 import { withLink } from '@/share-link';
@@ -609,14 +609,14 @@ const styles = StyleSheet.create({
   // rather than pushing it down.
   right: { flex: 1, backgroundColor: colors.brand, paddingHorizontal: 18, paddingTop: 15, paddingBottom: BRAND_H + 11 },
   trackedRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  tracked: { color: '#141414', fontSize: fs(12), fontWeight: '900', letterSpacing: 0.6 },
+  tracked: { color: '#141414', fontSize: fs(12), fontWeight: '900', letterSpacing: ls(0.6) },
   trackedOn: { color: '#3A3A1E', fontSize: fs(11.5), fontWeight: '700', marginTop: fs(2), opacity: 0.85 },
   name: { color: '#141414', fontSize: fs(20), fontWeight: '900', marginTop: fs(8), lineHeight: fs(23) },
   sub: { color: '#3A3A1E', fontSize: fs(12.5), fontWeight: '600', marginTop: fs(3) },
   foot: { marginTop: 'auto', paddingTop: fs(10) },
   dash: { width: fs(30), height: fs(4), backgroundColor: '#141414', marginBottom: fs(9) },
   rateRow: { flexDirection: 'row', alignItems: 'center', gap: fs(7) },
-  voted: { color: '#141414', fontSize: fs(12), fontWeight: '900', letterSpacing: 0.5 },
+  voted: { color: '#141414', fontSize: fs(12), fontWeight: '900', letterSpacing: ls(0.5) },
   // an explicit lineHeight: a bare fontSize leaves the glyph's descent to the
   // platform, and the row it produced was taller on iOS than the stars drawn
   // in it -- which is the other half of why they sat under the brand bar.
@@ -635,7 +635,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   otBadge: { width: 22, height: 22 },
-  brandText: { color: '#FFF', fontSize: fs(11.5), fontWeight: '800', letterSpacing: 0.8 },
+  brandText: { color: '#FFF', fontSize: fs(11.5), fontWeight: '800', letterSpacing: ls(0.8) },
   brandCta: { color: '#C9C9CF', fontSize: fs(9.5) },
   shareBtn: {
     flexDirection: 'row',
@@ -646,7 +646,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 44,
   },
-  shareText: { color: colors.onBrand, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
+  shareText: { color: colors.onBrand, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(1) },
 
   // ── the shape toggle ──────────────────────────────────────────────────
   shapes: {
@@ -697,7 +697,7 @@ const styles = StyleSheet.create({
     color: colors.brand,
     fontSize: ss(11),
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: ls(0.6),
     textTransform: 'uppercase',
   },
   storyRate: { flexDirection: 'row', alignItems: 'center', gap: ss(7), marginTop: ss(8) },
@@ -705,17 +705,17 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.72)',
     fontSize: ss(11),
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: ls(0.6),
     textTransform: 'uppercase',
   },
   // Explicit lineHeight for the same reason the Card needed one: a bare
   // fontSize leaves the glyph's descent to the platform and the row comes out
   // taller than what is drawn in it.
   storyStars: { fontSize: ss(19), lineHeight: ss(22) },
-  storyName: { color: '#FFFFFF', fontSize: ss(26), fontWeight: '900', lineHeight: ss(30), letterSpacing: -0.4 },
+  storyName: { color: '#FFFFFF', fontSize: ss(26), fontWeight: '900', lineHeight: ss(30), letterSpacing: ls(-0.4) },
   storySub: { color: 'rgba(255,255,255,0.72)', fontSize: ss(13), fontWeight: '600', marginTop: ss(3) },
   storyBrand: { flexDirection: 'row', alignItems: 'center', gap: ss(6), marginTop: ss(16) },
   storyBadge: { width: ss(18), height: ss(18) },
-  storyBrandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: 0.8 },
+  storyBrandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: ls(0.8) },
   storyBrandCta: { color: 'rgba(255,255,255,0.5)', fontSize: ss(10), fontWeight: '600', marginTop: ss(3) },
 });

@@ -27,7 +27,7 @@ import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { communityErrorText } from '@/community-error-text';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** `POST /v1/auth/session`. Mirrors `ownProfile()` in the Worker. */
 type SessionResponse = {
@@ -520,7 +520,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingVertical: 15,
   },
-  appleText: { color: colors.onYellow, fontWeight: '800', fontSize: 14.5, letterSpacing: 0.5 },
+  appleText: { color: colors.onYellow, fontWeight: '800', fontSize: 14.5, letterSpacing: ls(0.5) },
   googleBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -531,7 +531,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingVertical: 14,
   },
-  googleText: { color: colors.text, fontWeight: '800', fontSize: 14.5, letterSpacing: 0.5 },
+  googleText: { color: colors.text, fontWeight: '800', fontSize: 14.5, letterSpacing: ls(0.5) },
   later: { paddingVertical: 14, alignItems: 'center' },
   laterText: { color: colors.dim, fontSize: 15, fontWeight: '600' },
   // Legible, not fine print: this is a disclosure, and a 10pt grey line that
@@ -554,7 +554,7 @@ const styles = StyleSheet.create({
     gap: 3,
     alignItems: 'center',
   },
-  lastLabel: { color: colors.faint, fontSize: 12, letterSpacing: 0.3, textTransform: 'uppercase', fontWeight: '700' },
+  lastLabel: { color: colors.faint, fontSize: 12, letterSpacing: ls(0.3), textTransform: 'uppercase', fontWeight: '700' },
   lastValue: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
   lastHint: { color: colors.dim, fontSize: 13, lineHeight: 18, textAlign: 'center' },
   lastForget: { color: colors.blue, fontSize: 13, paddingTop: 6 },

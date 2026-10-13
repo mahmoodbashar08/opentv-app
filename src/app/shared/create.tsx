@@ -19,7 +19,7 @@ import { createSharedList } from '@/community-shared-lists';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { PLUS_AVAILABLE } from '@/plus';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 export default function CreateSharedListScreen() {
   const [name, setName] = useState('');
@@ -102,6 +102,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  ctaText: { color: colors.onYellow, fontSize: 14, fontWeight: '800', letterSpacing: 0.6 },
+  ctaText: { color: colors.onYellow, fontSize: 14, fontWeight: '800', letterSpacing: ls(0.6) },
   footnote: { color: colors.faint, fontSize: 12.5, lineHeight: 18 },
 });

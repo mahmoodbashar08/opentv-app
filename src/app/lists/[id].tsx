@@ -12,7 +12,7 @@ import { gridGeometry } from '@/pure';
 import seed from '@/seed';
 import { isSeedLibrary } from '@/library';
 import { takePendingListMode, type ListMode } from '@/list-edit-mode';
-import { colors, space } from '@/theme';
+import { colors, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 export default function ListDetailScreen() {
@@ -172,6 +172,6 @@ export default function ListDetailScreen() {
 
 const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 24, fontWeight: '800' },
-  sort: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  sort: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: ls(1) },
   note: { color: colors.faint, fontSize: 12.5, textAlign: 'center', marginTop: 14 },
 });

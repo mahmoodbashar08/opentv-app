@@ -29,7 +29,7 @@ import { tapLight, tapSelection } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { TVDB_LANG, artworkUrl, gridGeometry } from '@/pure';
 import { leaveOnboarding } from '@/session-store';
-import { colors, space } from '@/theme';
+import { colors, space, ls } from '@/theme';
 import { pool } from '@/tmdb';
 import { tvdbEpisodes, tvdbMovieTranslation, tvdbSeries, tvdbSearch, tvdbSearchMovies, tvdbTranslation, tvdbTrending, type TvdbEpisode } from '@/tvdb';
 
@@ -479,7 +479,7 @@ const s = StyleSheet.create({
   card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#000', borderRadius: 16, overflow: 'hidden', height: 96 },
   still: { width: '40%', height: '100%', backgroundColor: colors.card },
   cardText: { flex: 1, paddingHorizontal: 14, gap: 2 },
-  cardKicker: { color: colors.dim, fontSize: 11.5, fontWeight: '700', letterSpacing: 0.6, textTransform: 'uppercase' },
+  cardKicker: { color: colors.dim, fontSize: 11.5, fontWeight: '700', letterSpacing: ls(0.6), textTransform: 'uppercase' },
   cardEp: { color: colors.text, fontSize: 21, fontWeight: '800', fontVariant: ['tabular-nums'] },
   cardName: { color: colors.dim, fontSize: 14 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },

@@ -35,7 +35,7 @@ import { titleChoices } from '@/db';
 import { GIPHY_API_KEY } from '@/giphy-key';
 import { t } from '@/i18n';
 import { cardGrid } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** The grid's gap — one number for the list's `gap` styles and the cell
  *  arithmetic, or a cell sized against the wrong gap wraps a row early. */
@@ -394,7 +394,7 @@ const s = StyleSheet.create({
   // `flex: 1` so the notice wraps and the mark keeps its place: the sentence is
   // translated into six languages and is much longer in several of them.
   notice: { flex: 1, color: colors.faint, fontSize: 12 },
-  poweredBy: { color: colors.dim, fontSize: 11, fontWeight: '800', letterSpacing: 0.3 },
+  poweredBy: { color: colors.dim, fontSize: 11, fontWeight: '800', letterSpacing: ls(0.3) },
   search: {
     marginHorizontal: space.lg,
     // Room under the box rather than above whatever follows it: the chips are

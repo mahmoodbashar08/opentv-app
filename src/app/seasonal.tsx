@@ -35,7 +35,7 @@ import {
   type SeasonId,
   type SeasonLook,
 } from '@/season';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 const toPaywall = () => router.push('/paywall?from=seasonal');
 
@@ -334,8 +334,8 @@ const s = StyleSheet.create({
   avatar: { backgroundColor: colors.raise, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   top: { position: 'absolute', transform: [{ rotate: '14deg' }] },
   foot: { position: 'absolute' },
-  label: { color: colors.dim, fontSize: 13, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', marginHorizontal: space.lg },
-  labelSub: { color: colors.faint, fontSize: 12, fontWeight: '600', letterSpacing: 0, textTransform: 'none' },
+  label: { color: colors.dim, fontSize: 13, fontWeight: '800', letterSpacing: ls(0.6), textTransform: 'uppercase', marginHorizontal: space.lg },
+  labelSub: { color: colors.faint, fontSize: 12, fontWeight: '600', letterSpacing: ls(0), textTransform: 'none' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: space.lg, marginTop: space.md },
   hRow: { gap: 10, paddingHorizontal: space.lg, paddingTop: space.md },
   tab: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 999, backgroundColor: colors.card },

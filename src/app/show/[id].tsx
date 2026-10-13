@@ -35,7 +35,7 @@ import { readSeasonAggregates, useSeasonAggregates } from '@/community-ratings';
 import { useJoined } from '@/community-session';
 import { airedTotalOf } from '@/show-status';
 import { fetchShowMeta } from '@/show-meta-fetch';
-import { appliedLight, colors, radius, space } from '@/theme';
+import { appliedLight, colors, radius, space, ls } from '@/theme';
 import { SeasonEffect } from '@/components/season-effect';
 import { currentLook } from '@/season';
 import { isPlus } from '@/plus';
@@ -975,7 +975,7 @@ export default function ShowScreen() {
             {(meta?.providers ?? []).map((p, i) => (
               <View key={p.name ?? i} style={[styles.provider, i === 0 ? { backgroundColor: '#F47521' } : styles.providerDark]}>
                 <Ionicons name="play-circle-outline" size={20} color="#FFF" />
-                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13, letterSpacing: 0.5 }}>
+                <Text style={{ color: '#FFF', fontWeight: '700', fontSize: 13, letterSpacing: ls(0.5) }}>
                   {(p.name ?? '').toUpperCase()}
                 </Text>
               </View>
@@ -1033,7 +1033,7 @@ export default function ShowScreen() {
                 the row contradicted itself. The stars are drawn from the same
                 `rating` the figure is, and the unfilled ones stay to carry the
                 denominator, which is why the score does not need to repeat it. */}
-            <Text style={{ letterSpacing: 2 }}>
+            <Text style={{ letterSpacing: ls(2) }}>
               {[1, 2, 3, 4, 5].map((i) => (
                 <Text
                   key={i}
@@ -2335,7 +2335,7 @@ const styles = StyleSheet.create({
   chartPickCode: { color: colors.text, fontSize: 13, fontWeight: '800' },
   chartPickTitle: { color: colors.dim, fontSize: 12, marginTop: 2 },
   chartPickNone: { color: colors.faint, fontSize: 11.5, flexShrink: 1, textAlign: 'right' },
-  chartPickMine: { color: colors.yellow, fontSize: 12, letterSpacing: 1 },
+  chartPickMine: { color: colors.yellow, fontSize: 12, letterSpacing: ls(1) },
   chartPickTheirs: { color: colors.dim, fontSize: 13, fontWeight: '800' },
   extremeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: colors.card, borderRadius: radius.card, padding: 10 },
   extremeStill: { width: 72, height: 44, borderRadius: 6, backgroundColor: colors.panel },
@@ -2346,7 +2346,7 @@ const styles = StyleSheet.create({
   extremeCode: { color: colors.text, fontSize: 13, fontWeight: '800' },
   extremeTitle: { color: colors.dim, fontSize: 12, marginTop: 2 },
   extremeFoot: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 3 },
-  extremeStars: { color: colors.yellow, fontSize: 12, letterSpacing: 1 },
+  extremeStars: { color: colors.yellow, fontSize: 12, letterSpacing: ls(1) },
   extremeDate: { color: colors.faint, fontSize: 11 },
   fixMatch: {
     flexDirection: 'row',
@@ -2425,7 +2425,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 10.5,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: ls(0.5),
     textAlign: 'center',
     marginBottom: 10,
   },
@@ -2461,7 +2461,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   castName: { color: colors.text, fontSize: 14.5, marginTop: 7 },
-  castChar: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.5, marginTop: 2 },
+  castChar: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(0.5), marginTop: 2 },
   alsoCard: {
     width: 118,
     aspectRatio: 2 / 3,
@@ -2516,7 +2516,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingTop: 18,
   },
-  addBarText: { color: colors.onYellow, fontSize: 16, fontWeight: '900', letterSpacing: 1.5 },
+  addBarText: { color: colors.onYellow, fontSize: 16, fontWeight: '900', letterSpacing: ls(1.5) },
   caption2: { color: colors.dim, fontSize: 13.5 },
   body: { color: colors.text, fontSize: 14.5, lineHeight: 20 },
   tBadge: { backgroundColor: colors.yellow, borderRadius: 4, paddingHorizontal: 7, paddingVertical: 1 },

@@ -28,7 +28,7 @@ import { isSeedLibrary, profileImageUri, visibleCoverUri } from '@/library';
 import { requestArrange } from '@/profile-layout';
 import { requirePlus, usePlus } from '@/plus';
 import { availableSeasons, currentDecoration } from '@/season';
-import { colors, space } from '@/theme';
+import { colors, space, ls } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
 
@@ -462,7 +462,7 @@ const styles = StyleSheet.create({
   fieldValue: { color: colors.blue, fontSize: 15.5, marginTop: 4 },
   fieldAdd: { color: colors.faint, fontSize: 15.5, marginTop: 4 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '700', paddingHorizontal: space.lg, paddingTop: 20, paddingBottom: 4 },
-  subLabel: { color: colors.dim, fontSize: 13, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', paddingHorizontal: space.lg, paddingTop: 14 },
+  subLabel: { color: colors.dim, fontSize: 13, fontWeight: '800', letterSpacing: ls(0.6), textTransform: 'uppercase', paddingHorizontal: space.lg, paddingTop: 14 },
   sectionNote: { color: colors.dim, fontSize: 13, lineHeight: 18, paddingHorizontal: space.lg, paddingBottom: 8 },
   switchRow: {
     flexDirection: 'row',

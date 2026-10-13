@@ -44,7 +44,7 @@ import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { profileImageUri } from '@/library';
 import { withLink } from '@/share-link';
-import { colors, radius } from '@/theme';
+import { colors, radius, ls } from '@/theme';
 
 const W = Math.min(Dimensions.get('window').width, 420);
 
@@ -967,7 +967,7 @@ const s = StyleSheet.create({
     fontSize: ss(22),
     lineHeight: ss(26),
     fontWeight: '900',
-    letterSpacing: -0.3,
+    letterSpacing: ls(-0.3),
     marginBottom: ss(10),
     textAlign: 'center',
     paddingHorizontal: ss(16),
@@ -990,7 +990,7 @@ const s = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: ss(12),
     fontWeight: '800',
-    letterSpacing: -0.2,
+    letterSpacing: ls(-0.2),
     marginTop: ss(7),
   },
   rule: {
@@ -1015,7 +1015,7 @@ const s = StyleSheet.create({
     color: 'rgba(255,255,255,0.62)',
     fontSize: ss(9.5),
     fontWeight: '800',
-    letterSpacing: 1.1,
+    letterSpacing: ls(1.1),
     textTransform: 'uppercase',
   },
   sectionWhen: { flexShrink: 0, color: 'rgba(255,255,255,0.42)', fontSize: ss(9), fontWeight: '700' },
@@ -1041,7 +1041,7 @@ const s = StyleSheet.create({
   // touching.
   brand: { flexDirection: 'row', alignItems: 'center', gap: ss(6), marginTop: ss(14) },
   mark: { width: ss(18), height: ss(18) },
-  brandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: 0.8 },
+  brandText: { color: '#FFFFFF', fontSize: ss(12), fontWeight: '900', letterSpacing: ls(0.8) },
   handle: { color: 'rgba(255,255,255,0.78)', fontSize: ss(11), fontWeight: '700', marginTop: ss(5) },
   tagline: {
     color: 'rgba(255,255,255,0.5)',
@@ -1100,5 +1100,5 @@ const s = StyleSheet.create({
     paddingHorizontal: 30,
     borderRadius: radius.pill,
   },
-  shareText: { color: colors.onBrand, fontSize: 15, fontWeight: '800', letterSpacing: 0.4 },
+  shareText: { color: colors.onBrand, fontSize: 15, fontWeight: '800', letterSpacing: ls(0.4) },
 });

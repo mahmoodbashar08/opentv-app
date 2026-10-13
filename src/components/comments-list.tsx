@@ -18,7 +18,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { CommentCard, type CommentCardProps } from '@/components/comment-card';
 import { CONTENT_MAX_WIDTH, ContentColumn } from '@/components/ui';
 import { mixHex } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 /** A card's props plus the key the list tracks it by. */
@@ -109,7 +109,7 @@ export function CommentsList({
 const styles = StyleSheet.create({
   cappedList: { width: '100%', maxWidth: CONTENT_MAX_WIDTH, alignSelf: 'center' },
   sortRow: { paddingHorizontal: space.lg, paddingBottom: 10 },
-  sortLabel: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  sortLabel: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: ls(1) },
   soonCard: {
     marginHorizontal: space.md,
     marginBottom: 10,

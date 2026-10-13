@@ -26,7 +26,7 @@ import { memberName } from '@/components/shared-members';
 import { Poster } from '@/components/poster';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 export default function SharedListsScreen() {
   const joined = useJoined();
@@ -245,8 +245,8 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 22,
   },
-  ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 0.6 },
-  label: { color: colors.dim, fontSize: 12, letterSpacing: 0.6, textTransform: 'uppercase', fontWeight: '700' },
+  ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(0.6) },
+  label: { color: colors.dim, fontSize: 12, letterSpacing: ls(0.6), textTransform: 'uppercase', fontWeight: '700' },
   codeRow: { flexDirection: 'row', gap: 8 },
   codeInput: {
     flex: 1,
@@ -256,7 +256,7 @@ const styles = StyleSheet.create({
     borderColor: colors.line,
     color: colors.text,
     fontSize: 16,
-    letterSpacing: 2,
+    letterSpacing: ls(2),
     paddingHorizontal: 14,
     paddingVertical: 12,
   },

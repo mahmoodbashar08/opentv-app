@@ -15,7 +15,7 @@ import { hasOriginalZip } from '@/migrations';
 import { gridGeometry, importLostHistory, seasonAirState } from '@/pure';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { airedTotalOf, progressColorOf, progressOf } from '@/show-status';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 
 const TABS = ['Watch List', 'Upcoming'] as const;
@@ -747,7 +747,7 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: 11.5,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: ls(0.8),
     borderRadius: radius.pill,
     paddingVertical: 5,
     paddingHorizontal: 14,
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     paddingHorizontal: 11,
   },
-  showPillText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.7 },
+  showPillText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(0.7) },
   epCode: { color: colors.text, fontSize: 17, fontWeight: '800', marginTop: 7 },
   // Pinned to the foot of the artwork, full width of it, so a long word wraps
   // inside the poster instead of pushing anything around. Solid rather than
@@ -798,7 +798,7 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 4,
   },
-  airedTagText: { color: '#0A0A0A', fontSize: 10, fontWeight: '900', letterSpacing: 0.3, textAlign: 'center' },
+  airedTagText: { color: '#0A0A0A', fontSize: 10, fontWeight: '900', letterSpacing: ls(0.3), textAlign: 'center' },
   epPlus: { color: colors.dim, fontSize: 12, fontWeight: '600' },
   aired: { color: colors.green, fontSize: 12, fontWeight: '700' },
   epSub: { color: colors.dim, fontSize: 12.5, marginTop: 2 },
@@ -807,7 +807,7 @@ const styles = StyleSheet.create({
     color: colors.yellow,
     fontSize: 13,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: ls(0.8),
     textTransform: 'uppercase',
     marginHorizontal: space.md,
     marginTop: 14,

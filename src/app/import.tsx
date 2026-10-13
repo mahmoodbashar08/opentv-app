@@ -16,7 +16,7 @@ import { PopcornGame } from '@/components/popcorn-game';
 import type { ImportResult, Progress } from '@/importer';
 import { libraryRestored } from '@/community-publish';
 import { leaveOnboarding } from '@/session-store';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import type { LocaleKey } from '@/locales/keys';
@@ -768,7 +768,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     marginTop: 8,
   },
-  ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 0.8 },
+  ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(0.8) },
   link: { color: colors.blue, fontSize: 14.5, fontWeight: '600', textAlign: 'center', marginTop: 4 },
   fromTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
   fromRow: {
@@ -835,7 +835,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
   },
-  findText: { color: colors.onYellow, fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
+  findText: { color: colors.onYellow, fontSize: 12, fontWeight: '800', letterSpacing: ls(0.5) },
   fixedBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -846,7 +846,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
   },
-  fixedText: { color: colors.green, fontSize: 12, fontWeight: '800', letterSpacing: 0.5 },
+  fixedText: { color: colors.green, fontSize: 12, fontWeight: '800', letterSpacing: ls(0.5) },
   libraryLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: -4 },
   allSetBox: {
     flexDirection: 'row',

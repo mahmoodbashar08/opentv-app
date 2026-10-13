@@ -27,7 +27,7 @@ import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { communityErrorText } from '@/community-error-text';
 import { HANDLE_MAX, handleFailureKey, isHandleValid, normaliseHandle, suggestedHandle } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** Long enough that a fast typist makes one request, short enough to feel live. */
 const DEBOUNCE_MS = 400;
@@ -253,7 +253,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
   },
-  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15, letterSpacing: 0.5 },
+  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15, letterSpacing: ls(0.5) },
   dim: { opacity: 0.4 },
   note: { color: colors.faint, fontSize: 12.5, textAlign: 'center', lineHeight: 18, marginTop: 12 },
 });

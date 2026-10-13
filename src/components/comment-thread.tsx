@@ -85,7 +85,7 @@ import {
 } from '@/pure';
 import { addOwnComment, getComments, tombstoneArchivedComment } from '@/db';
 import { documentFileUri } from '@/library';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /**
  * One rendered line. Replies are flattened INTO the top-level list with a
@@ -1145,7 +1145,7 @@ const styles = StyleSheet.create({
   writeScreen: { flex: 1, backgroundColor: colors.bg },
   writeHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: space.lg, paddingBottom: space.md },
   post: { backgroundColor: colors.yellow, borderRadius: radius.pill, paddingHorizontal: 18, height: 36, minWidth: 74, alignItems: 'center', justifyContent: 'center' },
-  postText: { color: colors.onYellow, fontSize: 14, fontWeight: '900', letterSpacing: 1, textTransform: 'uppercase' },
+  postText: { color: colors.onYellow, fontSize: 14, fontWeight: '900', letterSpacing: ls(1), textTransform: 'uppercase' },
   writeReplying: { color: colors.dim, fontSize: 13, paddingHorizontal: space.lg, paddingBottom: space.sm },
   writeInput: { flex: 1, color: colors.text, fontSize: 18, lineHeight: 25, paddingHorizontal: space.lg, paddingTop: space.sm, textAlignVertical: 'top' },
   writeTools: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: space.lg, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
@@ -1158,7 +1158,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     marginTop: 10,
   },
-  sourcePillText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.7 },
+  sourcePillText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(0.7) },
   /* A frosted panel the size a picture would be, so the card does not jump
      when the real one arrives. */
   pictureWaiting: {

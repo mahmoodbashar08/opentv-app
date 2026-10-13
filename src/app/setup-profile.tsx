@@ -7,7 +7,7 @@ import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { hasLibrary, setMeta, wipeAllData } from '@/db';
 import { router } from 'expo-router';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 export default function SetupProfileScreen() {
@@ -170,5 +170,5 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     marginTop: 6,
   },
-  ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
+  ctaText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(1) },
 });

@@ -18,6 +18,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { t } from '@/i18n';
 import { MAX_TRIES, SKIP, squares, type Game } from '@/puzzle';
 import { SITE } from '@/share-link';
+import { ls } from '@/theme';
 
 const INK = '#0B0B0D';
 const TEXT = '#FFFFFF';
@@ -96,7 +97,7 @@ const s = StyleSheet.create({
      screen that shows it rounds its frame instead — see `share-card.tsx`. */
   card: { backgroundColor: INK, alignSelf: 'stretch' },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', padding: 16, paddingBottom: 6 },
-  heading: { color: BRAND, fontSize: 11, fontWeight: '900', letterSpacing: 1.2 },
+  heading: { color: BRAND, fontSize: 11, fontWeight: '900', letterSpacing: ls(1.2) },
   number: { color: TEXT, fontSize: 18, fontWeight: '900' },
   plot: { alignItems: 'center', paddingVertical: 14 },
   figures: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 14 },
@@ -114,6 +115,6 @@ const s = StyleSheet.create({
   },
   brandLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   badge: { width: 26, height: 26, borderRadius: 7 },
-  brandName: { color: TEXT, fontSize: 11.5, fontWeight: '800', letterSpacing: 0.8 },
+  brandName: { color: TEXT, fontSize: 11.5, fontWeight: '800', letterSpacing: ls(0.8) },
   brandUrl: { color: FAINT, fontSize: 10 },
 });

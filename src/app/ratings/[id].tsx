@@ -34,7 +34,7 @@ import { getHandle } from '@/community-session';
 import { episodeMeta, orderedEpisodes, showMeta } from '@/metadata';
 import { fetchSeasonAggregates, readSeasonAggregates } from '@/community-ratings';
 import { communityScore, communityScoreFromCounts, ratingGrid } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 const TABS = ['Overview', 'Episodes'] as const;
 
@@ -563,7 +563,7 @@ const s = StyleSheet.create({
     color: colors.faint,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.1,
+    letterSpacing: ls(1.1),
     textTransform: 'uppercase',
     marginTop: 10,
   },
@@ -581,7 +581,7 @@ const s = StyleSheet.create({
   code: { color: colors.dim, fontSize: 12, fontWeight: '700' },
   title: { color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 2 },
   foot: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 4 },
-  stars: { color: colors.yellow, fontSize: 13, letterSpacing: 1 },
+  stars: { color: colors.yellow, fontSize: 13, letterSpacing: ls(1) },
   dim: { color: colors.faint, fontSize: 12 },
   /** Off the left edge: mounted and laid out, never seen, always capturable. */
   /**
@@ -606,7 +606,7 @@ const s = StyleSheet.create({
     borderTopColor: 'rgba(255,255,255,0.12)',
   },
   brandShow: { color: colors.dim, fontSize: 12, flex: 1 },
-  brandMark: { color: colors.yellow, fontSize: 13, fontWeight: '900', letterSpacing: 0.4 },
+  brandMark: { color: colors.yellow, fontSize: 13, fontWeight: '900', letterSpacing: ls(0.4) },
   noteRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingBottom: 4 },
   noteText: { color: colors.dim, fontSize: 13, flex: 1 },
 });

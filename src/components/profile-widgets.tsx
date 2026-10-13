@@ -51,7 +51,7 @@ import { publishedPuzzleValue, puzzleBlockValue } from '@/puzzle-data';
 import { monthOf, todayISO } from '@/components/heatmap';
 import { dominantEmotion, emotionColor, isSafeLinkUrl, parseProfileLinks, shiftMonth, type LinkService } from '@/pure';
 import { router } from 'expo-router';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /**
  * One widget's box.
@@ -853,9 +853,9 @@ const s = StyleSheet.create({
     padding: 12,
     overflow: 'hidden',
   },
-  label: { color: colors.faint, fontSize: 9.5, fontWeight: '800', letterSpacing: 0.9, textTransform: 'uppercase' },
+  label: { color: colors.faint, fontSize: 9.5, fontWeight: '800', letterSpacing: ls(0.9), textTransform: 'uppercase' },
   body: { flex: 1, justifyContent: 'center', gap: 4 },
-  big: { color: colors.text, fontSize: 34, fontWeight: '900', letterSpacing: -1, lineHeight: 36 },
+  big: { color: colors.text, fontSize: 34, fontWeight: '900', letterSpacing: ls(-1), lineHeight: 36 },
   name: { color: colors.text, fontSize: 17, fontWeight: '800' },
   sub: { color: colors.dim, fontSize: 12 },
   barTrack: { height: 5, borderRadius: 3, backgroundColor: colors.line, overflow: 'hidden' },

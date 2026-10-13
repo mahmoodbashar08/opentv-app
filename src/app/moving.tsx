@@ -38,7 +38,7 @@ import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { movingPaths, type MovingPath, type Phone } from '@/moving';
 import { useOnboarded } from '@/session-store';
-import { colors, radius, space, type } from '@/theme';
+import { colors, radius, space, type, ls } from '@/theme';
 
 const HERE: Phone = Platform.OS === 'ios' ? 'iphone' : 'android';
 
@@ -249,7 +249,7 @@ const s = StyleSheet.create({
   card: { backgroundColor: colors.card, borderRadius: radius.card, padding: 16, marginBottom: 12, gap: 12 },
   cardHead: { flexDirection: 'row', alignItems: 'baseline', gap: 10 },
   cardTitle: { color: colors.text, fontSize: 17, fontWeight: '800', flexShrink: 1 },
-  tag: { ...type.plus, textTransform: 'uppercase', letterSpacing: 0.8 },
+  tag: { ...type.plus, textTransform: 'uppercase', letterSpacing: ls(0.8) },
   body: { color: colors.text, fontSize: 15, lineHeight: 21 },
   waiting: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   step: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },

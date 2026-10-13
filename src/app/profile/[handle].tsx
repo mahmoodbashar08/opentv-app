@@ -69,7 +69,7 @@ import {
   type ProfileSection,
   parseCoverFrame,
 } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** What the screen is showing right now. `missing` is the 404, in all its forms. */
 type State =
@@ -685,7 +685,7 @@ const styles = StyleSheet.create({
     color: colors.onYellow,
     fontSize: 12.5,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: ls(1),
     textTransform: 'uppercase',
   },
   followingText: { color: colors.text },

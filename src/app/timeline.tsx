@@ -30,7 +30,7 @@ import { currentLocale, t } from '@/i18n';
 import { getMeta } from '@/db';
 import { isPlus, usePlus } from '@/plus';
 import { watchTimeline, type TimelineRow } from '@/stats-calc';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 const PAGE = 60;
 
@@ -194,7 +194,7 @@ const s = StyleSheet.create({
     color: colors.dim,
     fontSize: 12.5,
     fontWeight: '800',
-    letterSpacing: 0.4,
+    letterSpacing: ls(0.4),
     textTransform: 'uppercase',
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingStart: space.lg, paddingEnd: space.lg, paddingVertical: 6 },

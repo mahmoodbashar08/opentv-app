@@ -52,7 +52,7 @@ import {
 } from '@/community-shared-lists';
 import { tapLight, tapSelection } from '@/haptics';
 import { t } from '@/i18n';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { withLink } from '@/share-link';
 
 export default function SharedListScreen() {
@@ -571,16 +571,16 @@ export default function SharedListScreen() {
 const styles = StyleSheet.create({
   action: { color: colors.blue, fontSize: 15.5, fontWeight: '600' },
   bigTitle: { color: colors.text, fontSize: 24, fontWeight: '800' },
-  kicker: { color: colors.yellow, fontSize: 11.5, fontWeight: '800', letterSpacing: 0.8, textTransform: 'uppercase' },
+  kicker: { color: colors.yellow, fontSize: 11.5, fontWeight: '800', letterSpacing: ls(0.8), textTransform: 'uppercase' },
   showHead: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   summary: { color: colors.text, fontSize: 15, fontWeight: '600' },
   dim: { color: colors.faint, fontSize: 12.5 },
-  hint: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  hint: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: ls(1) },
   note: { color: colors.faint, fontSize: 12.5, textAlign: 'center', marginTop: 14 },
   inviteCard: { backgroundColor: colors.card, borderRadius: radius.card, padding: 16, gap: 8, alignItems: 'center' },
   inviteTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
   inviteBody: { color: colors.dim, fontSize: 13.5, lineHeight: 19, textAlign: 'center' },
-  code: { color: colors.yellow, fontSize: 24, fontWeight: '800', letterSpacing: 4, marginVertical: 4 },
+  code: { color: colors.yellow, fontSize: 24, fontWeight: '800', letterSpacing: ls(4), marginVertical: 4 },
   addedBy: { color: colors.faint, fontSize: 11, marginTop: 4 },
   seers: { position: 'absolute', bottom: 5, start: 5, flexDirection: 'row', alignItems: 'center' },
   seer: { borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(0,0,0,0.55)' },

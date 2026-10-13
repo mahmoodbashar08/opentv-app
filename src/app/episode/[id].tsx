@@ -31,7 +31,7 @@ import { markWatchedWithPrompt } from '@/mark';
 import { absoluteEpisode, episodeMeta, seasonTotal, showMeta } from '@/metadata';
 import { fetchShowMeta, showMetaIsStale } from '@/show-meta-fetch';
 import { characterFace, characterPercents, emotionNames, emotionPercents, nextPage, orderPollCast, pollLabel, starPercents, swipeDirection, communityScore, communityScoreFromCounts } from '@/pure';
-import { appliedLight, colors, radius, space } from '@/theme';
+import { appliedLight, colors, radius, space, ls } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { useRemoteChange } from '@/device-sync';
 
@@ -939,7 +939,7 @@ function EpisodePage({
             <View style={styles.tBadge}>
               <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 12 }}>T</Text>
             </View>
-            <Text style={{ color: colors.yellow, letterSpacing: 2, fontSize: 15 }}>
+            <Text style={{ color: colors.yellow, letterSpacing: ls(2), fontSize: 15 }}>
               {'★'.repeat(filledStars)}
               {'☆'.repeat(5 - filledStars)}
             </Text>
@@ -1283,7 +1283,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,.45)',
     maxWidth: '72%',
   },
-  showPillText: { color: colors.onArt, fontSize: 11, fontWeight: '700', letterSpacing: 0.8 },
+  showPillText: { color: colors.onArt, fontSize: 11, fontWeight: '700', letterSpacing: ls(0.8) },
   code: { color: colors.onArt, fontSize: 20, fontWeight: '800' },
   notInCatalogue: { color: colors.dim, fontSize: 12, marginTop: 4, fontStyle: 'italic' },
   // On the episode still — see `colors.onArt`.
@@ -1294,7 +1294,7 @@ const styles = StyleSheet.create({
     color: colors.dim,
     fontSize: 12,
     fontWeight: '700',
-    letterSpacing: 1.4,
+    letterSpacing: ls(1.4),
     textAlign: 'center',
     marginBottom: 14,
   },
@@ -1306,12 +1306,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  provInitials: { color: colors.text, fontSize: 17, fontWeight: '800', letterSpacing: 0.5 },
+  provInitials: { color: colors.text, fontSize: 17, fontWeight: '800', letterSpacing: ls(0.5) },
   provLabel: {
     color: colors.dim,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: ls(0.5),
     textAlign: 'center',
     marginTop: 7,
   },
@@ -1335,7 +1335,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 6,
   },
-  starLabel: { color: colors.dim, fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5 },
+  starLabel: { color: colors.dim, fontSize: 9.5, fontWeight: '700', letterSpacing: ls(0.5) },
   /** Your own star is the one the eye should find first. */
   starLabelMine: { color: colors.text, fontWeight: '800' },
   starLabelOther: { color: colors.faint },
@@ -1351,7 +1351,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 4,
   },
-  emoLabel: { color: colors.dim, fontSize: 9, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+  emoLabel: { color: colors.dim, fontSize: 9, fontWeight: '700', letterSpacing: ls(0.4), textTransform: 'uppercase' },
   charCard: {
     width: 96,
     height: 110,
@@ -1373,7 +1373,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  charName: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.6, marginTop: 7 },
+  charName: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(0.6), marginTop: 7 },
   // The community's share of the vote, exactly the figure under a feelings
   // tile: same size, same weight, same colour. Rendered only when there IS a
   // number — never a 0% and never a placeholder.
@@ -1397,5 +1397,5 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 28,
   },
-  commentsText: { color: '#FFF', fontSize: 13.5, fontWeight: '700', letterSpacing: 1 },
+  commentsText: { color: '#FFF', fontSize: 13.5, fontWeight: '700', letterSpacing: ls(1) },
 });

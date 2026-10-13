@@ -30,6 +30,7 @@ import { monthlyActivity, pickArtwork, titlesInGenre, watchingType, type ArtSour
 import type { Wrapped } from '@/stats-calc';
 
 import { ActivityGrid, Brand, Canvas, Display, Gradient, Label, Media, MonthBars, Period, Rule, Sub, YellowLight, fitSize, numberSize, wordLines, wrappedColours as C } from './primitives';
+import { ls } from '@/theme';
 
 export type CardProps = {
   d: Wrapped;
@@ -172,8 +173,8 @@ export function WrappedScale({ d, label, width, handle }: CardProps) {
       {/* The number IS the graphic: enormous, yellow, hard against the left,
           with the unit set tight beneath it in white so the two read as one. */}
       <View style={abs({ left: 10, top: H * 0.19, right: 18 })}>
-        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} style={{ letterSpacing: -size * 0.03, lineHeight: size * 1.02 }}>{big}</Display>
-        <Display size={unitSize} lines={1} colour={C.INK} style={{ marginLeft: 8, marginTop: -4, textTransform: 'uppercase', letterSpacing: -1 }}>{t(unitKey as 'plus.wrapped.cards.scaleHours', { count: hours >= 1 ? hours : d.minutes })}</Display>
+        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} style={{ letterSpacing: ls(-size * 0.03), lineHeight: size * 1.02 }}>{big}</Display>
+        <Display size={unitSize} lines={1} colour={C.INK} style={{ marginLeft: 8, marginTop: -4, textTransform: 'uppercase', letterSpacing: ls(-1) }}>{t(unitKey as 'plus.wrapped.cards.scaleHours', { count: hours >= 1 ? hours : d.minutes })}</Display>
       </View>
       <View style={abs({ right: 18, bottom: 78, alignItems: 'flex-end' })}>
         {d.episodes > 0 ? <Display size={38} lines={1} colour={C.INK} align="right">{plural('plus.wrapped.cards.scaleEpisodes', d.episodes)}</Display> : null}
@@ -205,7 +206,7 @@ export function WrappedObsession({ d, label, unit, width, handle }: CardProps) {
       <Masthead label={label} />
       <View style={abs({ left: 18, right: 18, bottom: 56 })}>
         <Label style={{ marginBottom: 8 }}>{t('plus.wrapped.cards.obsessionKicker')}</Label>
-        <Display size={size} lines={lines} minScale={0.3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: -size * 0.035, lineHeight: size * 1.02 }}>{title}</Display>
+        <Display size={size} lines={lines} minScale={0.3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: ls(-size * 0.035), lineHeight: size * 1.02 }}>{title}</Display>
         <Display size={30} lines={1} colour={C.YELLOW} style={{ marginTop: 10, textTransform: 'uppercase' }}>{plural('plus.wrapped.cards.obsessionEpisodes', top?.episodes ?? 0)}</Display>
         <Sub style={{ marginTop: 4 }}>{t('plus.wrapped.cards.obsessionSub', { unit: unitWord(unit) })}</Sub>
       </View>
@@ -240,7 +241,7 @@ export function WrappedTaste({ d, label, width, handle }: CardProps) {
       {/* with one picture the type takes the middle instead of a seam */}
       <View style={abs({ left: 18, right: 18, top: tasteB ? H * 0.41 : H * 0.52 })}>
         <Label style={{ marginBottom: 6 }}>{t('plus.wrapped.cards.tasteKicker', { period: periodWord(label) })}</Label>
-        <Display size={size} lines={lines} minScale={0.3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: -size * 0.045, lineHeight: size * 1.02 }}>{primary}</Display>
+        <Display size={size} lines={lines} minScale={0.3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: ls(-size * 0.045), lineHeight: size * 1.02 }}>{primary}</Display>
         <Sub size={18} colour={C.INK} style={{ marginTop: 8, fontWeight: '600' }}>{secondary ? t('plus.wrapped.cards.tasteSecond', { genre: secondary }) : t('plus.wrapped.cards.tasteAlone')}</Sub>
       </View>
       <Foot handle={handle} right={t('plus.wrapped.cards.tasteFoot')} />
@@ -304,9 +305,9 @@ function PersonalityMonth({ d, label, width, handle }: CardProps) {
       <Masthead label={label} />
       <View style={abs({ left: 18, right: 18, top: H * 0.34 })}>
         <Label style={{ marginBottom: 10 }}>{t('plus.wrapped.cards.typeKicker')}</Label>
-        <Display size={size} lines={lines} minScale={0.3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: -size * 0.04, lineHeight: size * 1.02 }}>{name}</Display>
+        <Display size={size} lines={lines} minScale={0.3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: ls(-size * 0.04), lineHeight: size * 1.02 }}>{name}</Display>
         <View style={{ height: 4, width: 56, backgroundColor: C.YELLOW, marginTop: 14 }} />
-        <Display size={28} lines={2} colour={C.YELLOW} style={{ marginTop: 14, letterSpacing: -0.8 }}>{proof}</Display>
+        <Display size={28} lines={2} colour={C.YELLOW} style={{ marginTop: 14, letterSpacing: ls(-0.8) }}>{proof}</Display>
         <Sub size={15} colour={C.INK} style={{ marginTop: 8, fontWeight: '600' }}>{desc}</Sub>
       </View>
       <View style={abs({ left: 18, right: 18, bottom: 68, flexDirection: 'row', alignItems: 'center' })}>
@@ -347,7 +348,7 @@ function PersonalityYear({ d, label, width, handle }: CardProps) {
       {/* The stamp: squared, inset outline, the year in the corner. */}
       <View style={abs({ left: 18, right: 18, top: plateTop, height: plateH, backgroundColor: C.YELLOW, padding: 8 })}>
         <View style={{ flex: 1, borderWidth: 2, borderColor: '#0A0A0A', justifyContent: 'center', paddingHorizontal: 12 }}>
-          <Display size={size} lines={wordLines(flat, 3)} minScale={0.3} colour="#0A0A0A" style={{ textTransform: 'uppercase', letterSpacing: -3, lineHeight: size * 1.02 }}>{name}</Display>
+          <Display size={size} lines={wordLines(flat, 3)} minScale={0.3} colour="#0A0A0A" style={{ textTransform: 'uppercase', letterSpacing: ls(-3), lineHeight: size * 1.02 }}>{name}</Display>
           <Label colour="#0A0A0A" size={12} style={{ position: 'absolute', right: 12, bottom: 10 }}>{label}</Label>
         </View>
       </View>
@@ -409,10 +410,10 @@ function BiggestDayMonth({ d, label, width, handle }: CardProps) {
           ))}
         </View>
         <View style={{ height: H * 0.035 }} />
-        <Display size={30} lines={2} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: -1 }}>{t('plus.wrapped.cards.dayKicker', { date: dayText })}</Display>
+        <Display size={30} lines={2} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: ls(-1) }}>{t('plus.wrapped.cards.dayKicker', { date: dayText })}</Display>
         <View style={{ flexDirection: 'row', alignItems: 'flex-end', marginTop: 6 }}>
           <View style={{ maxWidth: numRoom, flexShrink: 1 }}>
-            <Display size={numSize} lines={1} minScale={0.3} colour={C.YELLOW} style={{ letterSpacing: -5, lineHeight: numSize * 1.02 }}>{count}</Display>
+            <Display size={numSize} lines={1} minScale={0.3} colour={C.YELLOW} style={{ letterSpacing: ls(-5), lineHeight: numSize * 1.02 }}>{count}</Display>
           </View>
           <View style={{ marginLeft: 12, marginBottom: numSize * 0.12, flex: 1 }}>
             <Display size={30} lines={1} colour={C.INK} style={{ textTransform: 'uppercase' }}>{t('plus.wrapped.cards.dayUnit', { count: d.biggestDay.count })}</Display>
@@ -448,7 +449,7 @@ function BiggestDayYear({ d, label, width, handle }: CardProps) {
         <Period size={22}>{label}</Period>
         <View style={{ height: H * 0.06 }} />
         <Label style={{ marginBottom: 8 }}>{t('plus.wrapped.cards.dayKickerYear')}</Label>
-        <Display size={dateSize} lines={dateLines} minScale={0.3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: -dateSize * 0.04, lineHeight: dateSize * 1.02 }}>{dateText}</Display>
+        <Display size={dateSize} lines={dateLines} minScale={0.3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: ls(-dateSize * 0.04), lineHeight: dateSize * 1.02 }}>{dateText}</Display>
         {/* the year as twelve months, the one it happened in lit */}
         <View style={{ flexDirection: 'row', gap, marginTop: 18 }}>
           {Array.from({ length: 12 }, (_, i) => (
@@ -458,7 +459,7 @@ function BiggestDayYear({ d, label, width, handle }: CardProps) {
         <View style={{ flex: 1 }} />
         <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
           <View style={{ maxWidth: width * 0.55, flexShrink: 1 }}>
-            <Display size={numSize} lines={1} minScale={0.3} colour={C.YELLOW} style={{ letterSpacing: -numSize * 0.04, lineHeight: numSize * 1.02 }}>{count}</Display>
+            <Display size={numSize} lines={1} minScale={0.3} colour={C.YELLOW} style={{ letterSpacing: ls(-numSize * 0.04), lineHeight: numSize * 1.02 }}>{count}</Display>
           </View>
           <View style={{ marginLeft: 12, marginBottom: numSize * 0.14, flex: 1 }}>
             <Display size={30} lines={1} minScale={0.5} colour={C.INK} style={{ textTransform: 'uppercase' }}>{t('plus.wrapped.cards.dayUnit', { count: d.biggestDay.count })}</Display>
@@ -498,13 +499,13 @@ function ActivityMonth({ d, label, width, handle }: CardProps) {
         <Label>{t('plus.wrapped.cards.hookKicker')}</Label>
         <Period size={22}>{label}</Period>
         <View style={{ height: H * 0.035 }} />
-        <Display size={34} lines={3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: -1.2 }}>{t(aLot ? 'plus.wrapped.cards.activityTitle' : 'plus.wrapped.cards.activityTitleSome')}</Display>
+        <Display size={34} lines={3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: ls(-1.2) }}>{t(aLot ? 'plus.wrapped.cards.activityTitle' : 'plus.wrapped.cards.activityTitleSome')}</Display>
         <View style={{ marginTop: 16 }}>
           <ActivityGrid days={d.days} width={width - 36} gap={gap} cell={cell} />
         </View>
         <View style={{ flex: 1 }} />
         <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-          <Display size={72} lines={1} colour={C.YELLOW} style={{ flexShrink: 1, letterSpacing: -3 }}>{n(d.activeDays)}</Display>
+          <Display size={72} lines={1} colour={C.YELLOW} style={{ flexShrink: 1, letterSpacing: ls(-3) }}>{n(d.activeDays)}</Display>
           <Display size={24} lines={1} colour={C.GREY} style={{ marginLeft: 10, flexShrink: 1, textTransform: 'uppercase' }}>{t('plus.wrapped.cards.activityDays', { active: '', total: n(d.totalDays) }).replace(/^\s*\/\s*/, '/ ')}</Display>
         </View>
         {realStreak ? (
@@ -535,7 +536,7 @@ function ActivityYear({ d, label, width, handle }: CardProps) {
         <Label>{t('plus.wrapped.cards.hookKicker')}</Label>
         <Period size={22}>{label}</Period>
         <View style={{ height: H * 0.04 }} />
-        <Display size={34} lines={3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: -1.2 }}>{t(aLot ? 'plus.wrapped.cards.activityTitle' : 'plus.wrapped.cards.activityTitleSome')}</Display>
+        <Display size={34} lines={3} colour={C.INK} style={{ textTransform: 'uppercase', letterSpacing: ls(-1.2) }}>{t(aLot ? 'plus.wrapped.cards.activityTitle' : 'plus.wrapped.cards.activityTitleSome')}</Display>
         <Sub size={15} style={{ marginTop: 8 }}>{t('plus.wrapped.cards.activityYearSub', { active: count, total: n(d.totalDays) })}</Sub>
         <View style={{ marginTop: 22 }}>
           <MonthBars months={months} width={width - 36} height={H * 0.2} locale={currentLocale()} />
@@ -543,7 +544,7 @@ function ActivityYear({ d, label, width, handle }: CardProps) {
         <View style={{ flex: 1 }} />
         <View style={{ flexDirection: 'row', alignItems: 'flex-end' }}>
           <View style={{ maxWidth: width * 0.6, flexShrink: 1 }}>
-            <Display size={numSize} lines={1} minScale={0.3} colour={C.YELLOW} style={{ letterSpacing: -numSize * 0.04, lineHeight: numSize * 1.02 }}>{count}</Display>
+            <Display size={numSize} lines={1} minScale={0.3} colour={C.YELLOW} style={{ letterSpacing: ls(-numSize * 0.04), lineHeight: numSize * 1.02 }}>{count}</Display>
           </View>
           <Display size={30} lines={1} colour={C.INK} style={{ marginLeft: 12, marginBottom: numSize * 0.12, flex: 1, textTransform: 'uppercase' }}>{t('plus.wrapped.cards.activityYearDays', { count: d.activeDays })}</Display>
         </View>
@@ -582,7 +583,7 @@ function heroFacts(d: Wrapped) {
 function TypeChip({ children }: { children: string }) {
   return (
     <View style={{ alignSelf: 'flex-start', backgroundColor: C.YELLOW, paddingHorizontal: 12, paddingVertical: 6, transform: [{ skewX: '-10deg' }] }}>
-      <Text style={{ color: '#0A0A0A', fontSize: 15, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase', transform: [{ skewX: '10deg' }] }}>{children}</Text>
+      <Text style={{ color: '#0A0A0A', fontSize: 15, fontWeight: '900', letterSpacing: ls(1.4), textTransform: 'uppercase', transform: [{ skewX: '10deg' }] }}>{children}</Text>
     </View>
   );
 }
@@ -621,7 +622,7 @@ function HeroMonth({ d, label, unit, width, handle, name }: CardProps) {
           set of three numbers can never push them onto the brand strip. */}
       <View style={abs({ left: 18, right: 18, top: H * 0.46, bottom: 64 })}>
         {who ? <Label colour={C.GREY} size={12}>{t('plus.wrapped.cards.heroName', { name: who })}</Label> : null}
-        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} style={{ textTransform: 'uppercase', letterSpacing: -size * 0.045, lineHeight: size * 1.02 }}>{month}</Display>
+        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} style={{ textTransform: 'uppercase', letterSpacing: ls(-size * 0.045), lineHeight: size * 1.02 }}>{month}</Display>
         <View style={{ marginTop: 10 }}>
           <TypeChip>{typeName}</TypeChip>
         </View>
@@ -659,7 +660,7 @@ function HeroYear({ d, label, width, handle, name }: CardProps) {
       <YellowLight size={width * 1.4} x={width * 0.3} y={H * 0.42} strength={0.9} />
       <Masthead label={label} />
       <View style={abs({ left: 12, right: 12, top: H * 0.3 })}>
-        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} align="left" style={{ letterSpacing: -size * 0.05, lineHeight: size * 1.02 }}>{label}</Display>
+        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} align="left" style={{ letterSpacing: ls(-size * 0.05), lineHeight: size * 1.02 }}>{label}</Display>
       </View>
       <View style={abs({ left: 18, right: 18, bottom: 62 })}>
         {who ? <Label colour={C.GREY} size={12} style={{ marginBottom: 8 }}>{t('plus.wrapped.cards.heroName', { name: who })}</Label> : null}

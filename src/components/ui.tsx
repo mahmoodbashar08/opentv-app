@@ -7,7 +7,7 @@ import { initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-
 import { track } from '@/analytics';
 import { tapLight, tapSelection } from '@/haptics';
 import { detailPaneLayout } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 /**
@@ -567,9 +567,9 @@ const s = StyleSheet.create({
   bar: { width: '58%', borderRadius: 3 },
   barValue: { color: colors.dim, fontSize: 8.5, marginBottom: 3, fontVariant: ['tabular-nums'] },
   barLabel: { color: colors.faint, fontSize: 8.5, marginTop: 4, fontVariant: ['tabular-nums'] },
-  axis: { color: colors.faint, fontSize: 10, fontWeight: '700', letterSpacing: 1, textAlign: 'center', marginTop: 8 },
+  axis: { color: colors.faint, fontSize: 10, fontWeight: '700', letterSpacing: ls(1), textAlign: 'center', marginTop: 8 },
   tableRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  tableHead: { color: colors.faint, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.6 },
+  tableHead: { color: colors.faint, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(0.6) },
   tableName: { color: colors.text, fontSize: 15, flex: 1 },
   tableRight: { color: colors.dim, fontSize: 14, fontVariant: ['tabular-nums'] },
   tableColA: { minWidth: 76, textAlign: 'right' },
@@ -605,7 +605,7 @@ const s = StyleSheet.create({
   topTabText: {
     fontSize: 13.5,
     fontWeight: '700',
-    letterSpacing: 1.1,
+    letterSpacing: ls(1.1),
     textTransform: 'uppercase',
     color: colors.faint,
   },
@@ -618,7 +618,7 @@ const s = StyleSheet.create({
     color: colors.text,
     fontSize: 11.5,
     fontWeight: '700',
-    letterSpacing: 0.8,
+    letterSpacing: ls(0.8),
     textTransform: 'uppercase',
     borderRadius: radius.pill,
     paddingVertical: 5,
@@ -633,7 +633,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  pillText: { fontSize: 14, fontWeight: '700', letterSpacing: 0.8, textTransform: 'uppercase' },
+  pillText: { fontSize: 14, fontWeight: '700', letterSpacing: ls(0.8), textTransform: 'uppercase' },
 
   menuRow: {
     flexDirection: 'row',
@@ -677,7 +677,7 @@ const s = StyleSheet.create({
     padding: 14,
   },
   errorActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 26, marginTop: 8 },
-  errorAction: { fontWeight: '700', fontSize: 13.5, letterSpacing: 0.5, color: '#201014' },
+  errorAction: { fontWeight: '700', fontSize: 13.5, letterSpacing: ls(0.5), color: '#201014' },
 
   statCard: {
     backgroundColor: colors.card,

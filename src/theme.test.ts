@@ -10,6 +10,8 @@
 // without `plusEntitled` the saved '1' must NOT apply (see the last test).
 const meta: Record<string, string | null> = { themeAccent: 'purple', themeOled: '1', plusEntitled: '1' };
 
+// `ls()` reads the launch's layout direction; the Node runner has no React Native.
+jest.mock('react-native', () => ({ I18nManager: { isRTL: false } }));
 jest.mock('@/db', () => ({
   getMeta: (key: string) => meta[key] ?? null,
   setMeta: (key: string, value: string) => {

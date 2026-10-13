@@ -37,7 +37,7 @@ import { getMeta, setMeta } from '@/db';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { mixHex, RECONNECT_SEEN_KEY, unmatchedArchiveFriends } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { withLink } from '@/share-link';
 
 /** A friend as the importer stored them: an id, and whatever name the export had. */
@@ -246,7 +246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 6,
   },
-  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15, letterSpacing: 0.5 },
+  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15, letterSpacing: ls(0.5) },
   note: { color: colors.dim, fontSize: 13.5, lineHeight: 19, paddingHorizontal: space.lg, marginTop: 12 },
   row: {
     flexDirection: 'row',
@@ -273,5 +273,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
-  inviteText: { color: colors.onYellow, fontSize: 12.5, fontWeight: '800', letterSpacing: 0.5 },
+  inviteText: { color: colors.onYellow, fontSize: 12.5, fontWeight: '800', letterSpacing: ls(0.5) },
 });

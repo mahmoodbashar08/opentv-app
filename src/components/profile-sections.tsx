@@ -23,7 +23,7 @@ import { CONTENT_MAX_WIDTH, GRID_GUTTER, gridMetrics } from '@/components/ui';
 import { Poster, posterSpeech } from '@/components/poster';
 import { t } from '@/i18n';
 import { mixHex } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /**
  * How wide a poster is: THREE AND A HALF ACROSS.
@@ -215,7 +215,7 @@ const s = StyleSheet.create({
     color: colors.faint,
     fontSize: 10.5,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: ls(1),
     textTransform: 'uppercase',
     marginTop: 3,
   },
@@ -284,11 +284,11 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
   gridCardCompact: { flexBasis: '22%', minHeight: 76, paddingHorizontal: 8, paddingTop: 9, paddingBottom: 10 },
-  gridLabelCompact: { fontSize: 9, letterSpacing: 0.3, lineHeight: 11 },
+  gridLabelCompact: { fontSize: 9, letterSpacing: ls(0.3), lineHeight: 11 },
   gridBigCompact: { fontSize: 17, marginTop: 4 },
   // 0.4, not 0.7. Sixteen uppercase characters pay for that spacing sixteen
   // times, which is most of a word. The label still reads as a label.
-  gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: 0.4 },
+  gridLabel: { fontSize: 11, fontWeight: '800', letterSpacing: ls(0.4) },
   gridClock: {
     flexDirection: 'row',
     alignItems: 'flex-end',
@@ -312,7 +312,7 @@ const s = StyleSheet.create({
     fontWeight: '800',
     fontVariant: ['tabular-nums'],
     marginTop: 8,
-    letterSpacing: -0.5,
+    letterSpacing: ls(-0.5),
   },
   gridUnit: { color: colors.dim, fontSize: 12, fontWeight: '700' },
 });

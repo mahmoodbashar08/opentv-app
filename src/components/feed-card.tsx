@@ -22,7 +22,7 @@ import { feedStars, feedVerbKey } from '@/feed-pure';
 import { t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
 import { relativeTime, spoilerHidden } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** The episode screen's faces, by the contract names the server stores. */
 const FACE: Record<string, string> = {
@@ -190,7 +190,7 @@ const styles = StyleSheet.create({
   age: { color: colors.faint, fontSize: 12 },
   verb: { color: colors.text, fontSize: 14, lineHeight: 19 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
-  stars: { color: colors.yellow, fontSize: 14, letterSpacing: 1 },
+  stars: { color: colors.yellow, fontSize: 14, letterSpacing: ls(1) },
   chip: {
     color: colors.text,
     fontSize: 12,

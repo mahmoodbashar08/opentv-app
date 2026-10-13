@@ -8,7 +8,7 @@ import { Screen } from '@/components/ui';
 import { setMovieBackdropOverride, setMoviePosterOverride, setShowBackdrop, setShowPoster } from '@/db';
 import { tmdb } from '@/tmdb';
 import { gridGeometry } from '@/pure';
-import { colors, space } from '@/theme';
+import { colors, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 const GAP = 10;
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   headTitle: { color: colors.text, fontSize: 17, fontWeight: '600', flex: 1, textAlign: 'center' },
-  section: { color: colors.dim, fontSize: 12.5, fontWeight: '800', letterSpacing: 0.5, marginBottom: 12 },
+  section: { color: colors.dim, fontSize: 12.5, fontWeight: '800', letterSpacing: ls(0.5), marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP },
   poster: { aspectRatio: 2 / 3, borderRadius: 6, backgroundColor: colors.raise },
   backdrop: { aspectRatio: 16 / 9, borderRadius: 6, backgroundColor: colors.raise },

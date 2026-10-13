@@ -5,7 +5,7 @@ import { Alert, Pressable, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import badgesJson from '@/data/badges.json';
-import { colors, radius } from '@/theme';
+import { colors, radius, ls } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
 import { withLink } from '@/share-link';
@@ -122,12 +122,12 @@ const styles = StyleSheet.create({
   art: { width: 190, height: 190, marginBottom: 40 },
   title: { color: colors.text, fontSize: 27, fontWeight: '800' },
   desc: { color: colors.text, fontSize: 17.5, textAlign: 'center', lineHeight: 25, marginTop: 10 },
-  date: { color: colors.dim, fontSize: 12.5, fontWeight: '700', letterSpacing: 1, marginTop: 8 },
+  date: { color: colors.dim, fontSize: 12.5, fontWeight: '700', letterSpacing: ls(1), marginTop: 8 },
   shareBtn: {
     backgroundColor: colors.yellow,
     borderRadius: radius.pill,
     paddingVertical: 15,
     paddingHorizontal: 52,
   },
-  shareText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 1.2 },
+  shareText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(1.2) },
 });

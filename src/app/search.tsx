@@ -15,7 +15,7 @@ import { tapLight } from '@/haptics';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { avatarUri } from '@/community-comments';
 import { movieRoute, movieYear, type SearchHistoryEntry } from '@/pure';
-import { colors, space } from '@/theme';
+import { colors, space, ls } from '@/theme';
 import { a11yAction } from '@/a11y';
 import { t } from '@/i18n';
 
@@ -603,7 +603,7 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     paddingBottom: 6,
   },
-  recentTitle: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  recentTitle: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: ls(1) },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

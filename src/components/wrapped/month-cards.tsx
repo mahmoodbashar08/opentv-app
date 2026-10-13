@@ -22,6 +22,7 @@ import type { Wrapped } from '@/stats-calc';
 
 import type { CardProps } from './cards';
 import { APP_ICON, Brand, Canvas, Display, Label, Media, Sub, YellowLight, fitSize, wordLines, wrappedColours as C } from './primitives';
+import { ls } from '@/theme';
 
 const n = (v: number) => formatCount(v, currentLocale());
 const abs = (s: ViewStyle): ViewStyle => ({ position: 'absolute', ...s });
@@ -41,7 +42,7 @@ function Head({ label, kicker }: { label: string; kicker?: string }) {
   return (
     <View style={abs({ left: 18, top: 18, right: 18 })}>
       <Label size={10}>{kicker ?? tt('plus.wrapped.cards.hookKicker')}</Label>
-      <Text style={{ color: C.INK, fontSize: 17, fontWeight: '900', letterSpacing: -0.4, marginTop: 2 }}>{label}</Text>
+      <Text style={{ color: C.INK, fontSize: 17, fontWeight: '900', letterSpacing: ls(-0.4), marginTop: 2 }}>{label}</Text>
     </View>
   );
 }
@@ -101,11 +102,11 @@ export function MonthMarquee({ d, label, width, handle }: CardProps) {
             {Array.from({ length: 7 }, (_, i) => (
               <View key={i} style={abs({ left: 0, right: 0, top: 14 + i * 26, height: 1, backgroundColor: 'rgba(0,0,0,0.06)' })} />
             ))}
-            <Text style={{ color: INK, fontSize: 13, fontWeight: '900', letterSpacing: 4, textTransform: 'uppercase' }}>{m('nowShowing')}</Text>
-            <Display size={monthSize} lines={1} colour={INK} align="center" style={{ textTransform: 'uppercase', marginTop: 6, letterSpacing: 1 }}>{month}</Display>
+            <Text style={{ color: INK, fontSize: 13, fontWeight: '900', letterSpacing: ls(4), textTransform: 'uppercase' }}>{m('nowShowing')}</Text>
+            <Display size={monthSize} lines={1} colour={INK} align="center" style={{ textTransform: 'uppercase', marginTop: 6, letterSpacing: ls(1) }}>{month}</Display>
             <View style={{ height: 3, width: 60, backgroundColor: INK, marginVertical: 10 }} />
             <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-              <Display size={numSize} lines={1} colour={INK} style={{ letterSpacing: -numSize * 0.04 }}>{big}</Display>
+              <Display size={numSize} lines={1} colour={INK} style={{ letterSpacing: ls(-numSize * 0.04) }}>{big}</Display>
               <Display size={numSize * 0.36} lines={1} colour={INK} style={{ marginLeft: 8, textTransform: 'uppercase' }}>{unit}</Display>
             </View>
           </View>
@@ -181,7 +182,7 @@ export function MonthContactSheet({ d, label, width, handle }: CardProps) {
                       <Text numberOfLines={4} style={{ color: C.INK, fontSize: Math.max(9, fw * 0.11), fontWeight: '800' }}>{c.title}</Text>
                     </View>
                   )}
-                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ color: '#E8A33C', fontSize: 8.5, fontWeight: '800', letterSpacing: fw < 70 ? 0.4 : 1, marginTop: 3, fontVariant: ['tabular-nums'] }}>
+                  <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={{ color: '#E8A33C', fontSize: 8.5, fontWeight: '800', letterSpacing: ls(fw < 70 ? 0.4 : 1), marginTop: 3, fontVariant: ['tabular-nums'] }}>
                     {c === 'more' ? '' : fw < 70 ? c.note : `${r * perRow + i + 1}A  ${c.note}`}
                   </Text>
                 </View>
@@ -230,17 +231,17 @@ export function MonthTicket({ d, label, width, handle }: CardProps) {
       <View style={abs({ left: 22, right: 22, top: H * 0.16 })}>
         <View style={{ backgroundColor: PAPER, borderRadius: 14, overflow: 'hidden' }}>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.YELLOW, paddingHorizontal: 14, paddingVertical: 8 }}>
-            <Text style={{ color: INK, fontSize: 11, fontWeight: '900', letterSpacing: 2 }}>OPENTV</Text>
-            <Text style={{ color: INK, fontSize: 11, fontWeight: '900', letterSpacing: 2, textTransform: 'uppercase' }}>{m('admitOne')}</Text>
+            <Text style={{ color: INK, fontSize: 11, fontWeight: '900', letterSpacing: ls(2) }}>OPENTV</Text>
+            <Text style={{ color: INK, fontSize: 11, fontWeight: '900', letterSpacing: ls(2), textTransform: 'uppercase' }}>{m('admitOne')}</Text>
           </View>
           <View style={{ flexDirection: 'row', padding: 14, gap: 14 }}>
             {f.poster ? <Image source={{ uri: f.poster }} style={{ width: posterW, height: posterW * 1.5, borderRadius: 6 }} contentFit="cover" cachePolicy="disk" /> : null}
             <View style={{ flex: 1, justifyContent: 'space-between' }}>
               <View>
-                <Display size={titleSize} lines={wordLines(f.title, 3)} minScale={0.4} colour={INK} style={{ textTransform: 'uppercase', letterSpacing: -titleSize * 0.03 }}>{f.title}</Display>
+                <Display size={titleSize} lines={wordLines(f.title, 3)} minScale={0.4} colour={INK} style={{ textTransform: 'uppercase', letterSpacing: ls(-titleSize * 0.03) }}>{f.title}</Display>
                 {f.year ? <Text style={{ color: '#55524A', fontSize: 13, fontWeight: '700', marginTop: 4 }}>{f.year}</Text> : null}
               </View>
-              {f.rewatch ? <Text style={{ color: '#55524A', fontSize: 10, fontWeight: '900', letterSpacing: 1.5, textTransform: 'uppercase' }}>{m('ticketRewatch')}</Text> : null}
+              {f.rewatch ? <Text style={{ color: '#55524A', fontSize: 10, fontWeight: '900', letterSpacing: ls(1.5), textTransform: 'uppercase' }}>{m('ticketRewatch')}</Text> : null}
             </View>
           </View>
           <View style={{ flexDirection: 'row', paddingHorizontal: 14, paddingBottom: 16, gap: 10 }}>
@@ -256,7 +257,7 @@ export function MonthTicket({ d, label, width, handle }: CardProps) {
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 4, paddingBottom: 16 }}>
             <View style={{ flex: 1, marginRight: 14 }}>
-              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ color: INK, fontSize: 11, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase' }}>{m('ticketKicker')}</Text>
+              <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ color: INK, fontSize: 11, fontWeight: '900', letterSpacing: ls(1.4), textTransform: 'uppercase' }}>{m('ticketKicker')}</Text>
               <Text style={{ color: '#55524A', fontSize: 12, fontWeight: '700', marginTop: 2 }}>{label}</Text>
             </View>
             <Barcode seed={f.title} />
@@ -271,7 +272,7 @@ export function MonthTicket({ d, label, width, handle }: CardProps) {
 function Field({ k, v, gold }: { k: string; v: string; gold?: boolean }) {
   return (
     <View style={{ flex: 1 }}>
-      <Text numberOfLines={1} style={{ color: '#7A7569', fontSize: 9, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase' }}>{k}</Text>
+      <Text numberOfLines={1} style={{ color: '#7A7569', fontSize: 9, fontWeight: '900', letterSpacing: ls(1.2), textTransform: 'uppercase' }}>{k}</Text>
       <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={{ color: gold ? '#C99A00' : INK, fontSize: 15, fontWeight: '900', marginTop: 3 }}>{v}</Text>
     </View>
   );
@@ -323,7 +324,7 @@ export function MonthGuide({ d, label, width, handle }: CardProps) {
         <View style={abs({ left: 18, right: 18, bottom: 62 })}>
           <Display size={40} lines={1} colour={C.YELLOW} style={{ textTransform: 'uppercase' }}>{weekday}</Display>
           <Display size={24} lines={1} colour={C.INK} style={{ textTransform: 'uppercase', marginBottom: 16 }}>{date}</Display>
-          <Display size={120} lines={1} colour={C.YELLOW} style={{ letterSpacing: -5 }}>{n(d.biggestDay.count)}</Display>
+          <Display size={120} lines={1} colour={C.YELLOW} style={{ letterSpacing: ls(-5) }}>{n(d.biggestDay.count)}</Display>
           <Display size={ts} lines={wordLines(t1, 3)} minScale={0.3} colour={C.INK} style={{ textTransform: 'uppercase', marginTop: 4 }}>{t1}</Display>
           <Sub size={16} colour={C.INK} style={{ marginTop: 8, fontWeight: '700' }}>{tt('plus.wrapped.cards.proof.binger', { count: d.biggestDay.count }).replace(String(d.biggestDay.count), n(d.biggestDay.count))}</Sub>
         </View>
@@ -371,13 +372,13 @@ export function MonthRewatch({ d, label, width, handle }: CardProps) {
       <YellowLight size={width * 1.3} x={width * 0.75} y={H * 0.55} strength={0.9} />
       <Head label={label} kicker={m('rewatchKicker')} />
       <View style={abs({ left: 18, right: 18, top: H * 0.14 })}>
-        <Display size={92} lines={1} colour={C.INK} style={{ letterSpacing: -4 }}>{n(d.firstTimes)}</Display>
+        <Display size={92} lines={1} colour={C.INK} style={{ letterSpacing: ls(-4) }}>{n(d.firstTimes)}</Display>
         <Display size={26} lines={1} colour={C.INK} style={{ textTransform: 'uppercase', marginTop: -6 }}>{m('rewatchFirst')}</Display>
         <View style={{ flexDirection: 'row', height: 18, marginVertical: 22, borderRadius: 9, overflow: 'hidden', width: barW }}>
           <View style={{ width: (barW * d.firstTimes) / total, backgroundColor: '#E9E9EE' }} />
           <View style={{ flex: 1, backgroundColor: C.YELLOW }} />
         </View>
-        <Display size={92} lines={1} colour={C.YELLOW} style={{ letterSpacing: -4 }}>{n(d.rewatches)}</Display>
+        <Display size={92} lines={1} colour={C.YELLOW} style={{ letterSpacing: ls(-4) }}>{n(d.rewatches)}</Display>
         <Display size={26} lines={1} colour={C.YELLOW} style={{ textTransform: 'uppercase', marginTop: -6 }}>{m('rewatchAgain')}</Display>
         {again.length ? (
           <View style={{ flexDirection: 'row', gap: 8, marginTop: 18 }}>
@@ -426,11 +427,11 @@ export function MonthType({ d, label, width, handle }: CardProps) {
   return (
     <Canvas width={width} style={{ backgroundColor: C.YELLOW }}>
       <View style={abs({ left: 18, top: 18, right: 18 })}>
-        <Text style={{ color: INK, fontSize: 10, fontWeight: '900', letterSpacing: 1.8, textTransform: 'uppercase' }}>{tt('plus.wrapped.cards.typeKicker')}</Text>
+        <Text style={{ color: INK, fontSize: 10, fontWeight: '900', letterSpacing: ls(1.8), textTransform: 'uppercase' }}>{tt('plus.wrapped.cards.typeKicker')}</Text>
         <Text style={{ color: INK, fontSize: 17, fontWeight: '900', marginTop: 2 }}>{label}</Text>
       </View>
       <View style={abs({ left: 18, right: 18, top: H * 0.17, borderWidth: 3, borderColor: INK, padding: 18, transform: [{ rotate: '-2deg' }] })}>
-        <Display size={size} lines={lines} minScale={0.3} colour={INK} style={{ textTransform: 'uppercase', letterSpacing: -size * 0.04 }}>{name}</Display>
+        <Display size={size} lines={lines} minScale={0.3} colour={INK} style={{ textTransform: 'uppercase', letterSpacing: ls(-size * 0.04) }}>{name}</Display>
         <View style={{ height: 3, backgroundColor: INK, marginVertical: 14, width: 64 }} />
         <Display size={26} lines={2} colour={INK}>{proof}</Display>
       </View>
@@ -446,7 +447,7 @@ export function MonthType({ d, label, width, handle }: CardProps) {
       </View>
       <View style={abs({ left: 0, right: 0, bottom: 0, flexDirection: 'row', alignItems: 'center', gap: 7, paddingHorizontal: 18, paddingBottom: 16 })}>
         <Image source={APP_ICON} style={{ width: 18, height: 18, borderRadius: 4 }} />
-        <Text style={{ color: INK, fontSize: 11.5, fontWeight: '900', letterSpacing: 1.6 }}>OPENTV</Text>
+        <Text style={{ color: INK, fontSize: 11.5, fontWeight: '900', letterSpacing: ls(1.6) }}>OPENTV</Text>
         {handle ? <Text style={{ color: '#3A3300', fontSize: 10.5, marginLeft: 4 }}>@{handle}</Text> : null}
       </View>
     </Canvas>
@@ -481,9 +482,9 @@ export function MonthClosing({ d, label, width, handle, name }: CardProps) {
       </View>
       <View style={abs({ left: 18, right: 18, top: H * 0.48, bottom: 60 })}>
         {who ? <Label colour={C.GREY} size={11}>{tt('plus.wrapped.cards.heroName', { name: who })}</Label> : null}
-        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} style={{ textTransform: 'uppercase', letterSpacing: -size * 0.045 }}>{month}</Display>
+        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} style={{ textTransform: 'uppercase', letterSpacing: ls(-size * 0.045) }}>{month}</Display>
         <View style={{ alignSelf: 'flex-start', backgroundColor: C.YELLOW, paddingHorizontal: 12, paddingVertical: 6, marginTop: 8, transform: [{ skewX: '-10deg' }] }}>
-          <Text style={{ color: INK, fontSize: 14, fontWeight: '900', letterSpacing: 1.4, textTransform: 'uppercase', transform: [{ skewX: '10deg' }] }}>{flat}</Text>
+          <Text style={{ color: INK, fontSize: 14, fontWeight: '900', letterSpacing: ls(1.4), textTransform: 'uppercase', transform: [{ skewX: '10deg' }] }}>{flat}</Text>
         </View>
         <Display size={28} lines={1} colour={C.INK} style={{ marginTop: 14 }}>
           {[hours >= 1 ? `${n(hours)}h` : null, counts(d)].filter(Boolean).join('  ·  ')}
@@ -511,7 +512,7 @@ export function MonthGenres({ d, label, width, handle }: CardProps) {
       <YellowLight size={width * 1.4} x={width * 0.2} y={H * 0.3} strength={0.9} />
       <Head label={label} kicker={m('genresKicker')} />
       <View style={abs({ left: 18, right: 18, top: H * 0.17 })}>
-        <Display size={size} lines={wordLines(first, 2)} minScale={0.3} colour={C.YELLOW} style={{ textTransform: 'uppercase', letterSpacing: -size * 0.04 }}>{first}</Display>
+        <Display size={size} lines={wordLines(first, 2)} minScale={0.3} colour={C.YELLOW} style={{ textTransform: 'uppercase', letterSpacing: ls(-size * 0.04) }}>{first}</Display>
         {top[1] ? <Display size={26} lines={1} colour={C.INK} style={{ marginTop: 8 }}>{m('genresLine', { genre: top[1].name })}</Display> : null}
         <View style={{ flexDirection: 'row', height: 26, marginTop: 30, borderRadius: 6, overflow: 'hidden', width: barW }}>
           {top.map((g, i) => (
@@ -587,7 +588,7 @@ export function MonthVerdict({ d, label, width, handle }: CardProps) {
       <Head label={label} kicker={m('verdictKicker')} />
       <View style={abs({ left: 18, right: 18, top: H * 0.15 })}>
         <View style={{ flexDirection: 'row', alignItems: 'baseline' }}>
-          <Display size={150} lines={1} colour={C.YELLOW} style={{ letterSpacing: -6 }}>{avg.toLocaleString(currentLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</Display>
+          <Display size={150} lines={1} colour={C.YELLOW} style={{ letterSpacing: ls(-6) }}>{avg.toLocaleString(currentLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</Display>
           <Text style={{ color: C.YELLOW, fontSize: 64, fontWeight: '900', marginLeft: 6 }}>★</Text>
         </View>
         <Display size={24} lines={1} colour={C.INK}>{m('verdictLine', { count: d.ratedCount }).replace(String(d.ratedCount), n(d.ratedCount))}</Display>
@@ -627,14 +628,14 @@ export function MonthTop({ d, label, width, handle }: CardProps) {
           const pw = big ? 74 : 50;
           return (
             <View key={`${r.title}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-              <Text style={{ width: 34, color: big ? C.YELLOW : C.INK, fontSize: big ? 44 : 30, fontWeight: '900', letterSpacing: -1.5, fontVariant: ['tabular-nums'] }}>{n(i + 1)}</Text>
+              <Text style={{ width: 34, color: big ? C.YELLOW : C.INK, fontSize: big ? 44 : 30, fontWeight: '900', letterSpacing: ls(-1.5), fontVariant: ['tabular-nums'] }}>{n(i + 1)}</Text>
               {r.poster ? (
                 <Image source={{ uri: r.poster }} style={{ width: pw, height: pw * 1.5, borderRadius: 5, borderWidth: big ? 2 : 0, borderColor: C.YELLOW }} contentFit="cover" cachePolicy="disk" />
               ) : (
                 <View style={{ width: pw, height: pw * 1.5, borderRadius: 5, backgroundColor: '#1A1A1E' }} />
               )}
               <View style={{ flex: 1 }}>
-                <Text numberOfLines={2} style={{ color: C.INK, fontSize: big ? 20 : 16, fontWeight: '900', letterSpacing: -0.3 }}>{r.title}</Text>
+                <Text numberOfLines={2} style={{ color: C.INK, fontSize: big ? 20 : 16, fontWeight: '900', letterSpacing: ls(-0.3) }}>{r.title}</Text>
                 <Text numberOfLines={1} style={{ color: big ? C.YELLOW : C.GREY, fontSize: 13, fontWeight: '800', marginTop: 3 }}>
                   {[span(r.minutes), r.film ? null : tt('plus.wrapped.cards.scaleEpisodes', { count: r.episodes }).replace(String(r.episodes), n(r.episodes))].filter(Boolean).join('  ·  ')}
                 </Text>
@@ -697,7 +698,7 @@ export function MonthWeekday({ d, label, width, handle }: CardProps) {
       <YellowLight size={width * 1.3} x={18 + order.indexOf(peak) * (bw + 8) + bw / 2} y={H * 0.62} strength={1} />
       <Head label={label} kicker={m('weekdayKicker')} />
       <View style={abs({ left: 18, right: 18, top: H * 0.15 })}>
-        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} style={{ textTransform: 'uppercase', letterSpacing: -size * 0.04 }}>{day}</Display>
+        <Display size={size} lines={1} minScale={0.3} colour={C.YELLOW} style={{ textTransform: 'uppercase', letterSpacing: ls(-size * 0.04) }}>{day}</Display>
         <Display size={22} lines={2} colour={C.INK} style={{ marginTop: 6 }}>{m('weekdayLine', { day })}</Display>
       </View>
       <View style={abs({ left: 18, right: 18, top: H * 0.44 })}>
@@ -781,7 +782,7 @@ export function MonthSummary({ d, label, width, handle }: CardProps) {
         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
             <Image source={APP_ICON} style={{ width: 20, height: 20, borderRadius: 5 }} />
-            <Text style={{ color: C.INK, fontSize: 12, fontWeight: '900', letterSpacing: 1.6 }}>OPENTV</Text>
+            <Text style={{ color: C.INK, fontSize: 12, fontWeight: '900', letterSpacing: ls(1.6) }}>OPENTV</Text>
           </View>
           {handle ? (
             <View style={{ borderRadius: 999, paddingHorizontal: 10, paddingVertical: 4, backgroundColor: 'rgba(255,255,255,0.08)' }}>
@@ -794,10 +795,10 @@ export function MonthSummary({ d, label, width, handle }: CardProps) {
             place, as a margin under the 18pt padding and the 20pt header row;
             floored, because on a short card that fraction lands inside them. */}
         <View style={{ alignItems: 'center', marginTop: Math.max(6, H * 0.085 - 38) }}>
-          <Label size={12} style={{ letterSpacing: 4 }}>{month}</Label>
+          <Label size={12} style={{ letterSpacing: ls(4) }}>{month}</Label>
           {year ? <Display size={Math.min(64, width * 0.17)} lines={1} align="center">{year}</Display> : null}
           <View style={{ marginTop: 6, borderWidth: 1.5, borderColor: C.YELLOW, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 3 }}>
-            <Text style={{ color: C.YELLOW, fontSize: 9.5, fontWeight: '900', letterSpacing: 2.4 }}>{m('summaryWrapped')}</Text>
+            <Text style={{ color: C.YELLOW, fontSize: 9.5, fontWeight: '900', letterSpacing: ls(2.4) }}>{m('summaryWrapped')}</Text>
           </View>
         </View>
 
@@ -809,7 +810,7 @@ export function MonthSummary({ d, label, width, handle }: CardProps) {
             <View key={sec.key} style={{ gap: labelGap }}>
               {/* The label's height is in the room arithmetic, so it is fixed
                   here and does not follow the phone's text size. */}
-              <Text allowFontScaling={false} style={{ color: C.GREY, fontSize: 9.5, lineHeight: labelH, fontWeight: '900', letterSpacing: 2, textAlign: 'center' }}>— {sec.label} —</Text>
+              <Text allowFontScaling={false} style={{ color: C.GREY, fontSize: 9.5, lineHeight: labelH, fontWeight: '900', letterSpacing: ls(2), textAlign: 'center' }}>— {sec.label} —</Text>
               <View style={{ gap: lineGap }}>
                 {sec.lines.map((count, li) => {
                   const start = sec.lines.slice(0, li).reduce((a, b) => a + b, 0);
@@ -847,8 +848,8 @@ export function MonthSummary({ d, label, width, handle }: CardProps) {
         <View style={{ flexDirection: 'row', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', paddingVertical: 12 }}>
           {stats.map((s, i) => (
             <View key={s.k} style={{ flex: 1, alignItems: 'center', borderLeftWidth: i ? StyleSheet.hairlineWidth : 0, borderColor: 'rgba(255,255,255,0.18)' }}>
-              <Text style={{ color: C.INK, fontSize: 20, fontWeight: '900', letterSpacing: -0.5 }}>{s.v}</Text>
-              <Text style={{ color: C.YELLOW, fontSize: 7.5, fontWeight: '900', letterSpacing: 1.4, marginTop: 2 }}>{s.k}</Text>
+              <Text style={{ color: C.INK, fontSize: 20, fontWeight: '900', letterSpacing: ls(-0.5) }}>{s.v}</Text>
+              <Text style={{ color: C.YELLOW, fontSize: 7.5, fontWeight: '900', letterSpacing: ls(1.4), marginTop: 2 }}>{s.k}</Text>
             </View>
           ))}
         </View>

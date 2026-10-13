@@ -20,6 +20,7 @@
 import { Image } from 'expo-image';
 import type { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { ls } from '@/theme';
 
 /** The app's own black and yellow, written down rather than read from the
  *  theme, because this is the brand and not the reader's preference. */
@@ -140,12 +141,12 @@ const s = StyleSheet.create({
   head: { flexDirection: 'row', gap: 14, padding: 16, paddingBottom: 14 },
   poster: { width: 74, height: 110, borderRadius: 8, backgroundColor: PANEL },
   posterEmpty: { borderWidth: StyleSheet.hairlineWidth, borderColor: 'rgba(255,255,255,0.12)' },
-  heading: { color: BRAND, fontSize: 10.5, fontWeight: '900', letterSpacing: 1.2 },
+  heading: { color: BRAND, fontSize: 10.5, fontWeight: '900', letterSpacing: ls(1.2) },
   title: { color: TEXT, fontSize: 21, fontWeight: '900', lineHeight: 25, marginTop: 4 },
   sub: { color: DIM, fontSize: 12.5, marginTop: 4 },
   figures: { flexDirection: 'row', gap: 22, marginTop: 12 },
   figure: { color: TEXT, fontSize: 22, fontWeight: '900', lineHeight: 24 },
-  figureLabel: { color: FAINT, fontSize: 9.5, fontWeight: '800', letterSpacing: 0.9, marginTop: 2 },
+  figureLabel: { color: FAINT, fontSize: 9.5, fontWeight: '800', letterSpacing: ls(0.9), marginTop: 2 },
   plot: { alignItems: 'center', paddingHorizontal: 16, paddingBottom: 6 },
   brandBar: {
     flexDirection: 'row',
@@ -159,7 +160,7 @@ const s = StyleSheet.create({
   },
   brandLeft: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   badge: { width: 26, height: 26, borderRadius: 7 },
-  brandName: { color: TEXT, fontSize: 11.5, fontWeight: '800', letterSpacing: 0.8 },
+  brandName: { color: TEXT, fontSize: 11.5, fontWeight: '800', letterSpacing: ls(0.8) },
   brandUrl: { color: FAINT, fontSize: 9.5, marginTop: 1 },
   brandDate: { color: FAINT, fontSize: 10 },
 });

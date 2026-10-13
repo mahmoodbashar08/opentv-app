@@ -11,7 +11,7 @@ import db, { addMovieToWatchlist, addShow, deleteMovie, deleteShow, getMovie, in
 import { trendingFeed, tvdbIdFor, type CatalogItem } from '@/catalog';
 import { alertNotOnTvdb } from '@/not-on-tvdb';
 import { movieRoute } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 type FeedItem = CatalogItem;
@@ -401,7 +401,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   pillActive: { backgroundColor: colors.yellow },
-  pillText: { color: colors.text, fontSize: 13, fontWeight: '700', letterSpacing: 1, textTransform: 'uppercase' },
+  pillText: { color: colors.text, fontSize: 13, fontWeight: '700', letterSpacing: ls(1), textTransform: 'uppercase' },
 
   bigCard: { marginHorizontal: space.lg, marginBottom: 14, borderRadius: radius.card, overflow: 'hidden' },
   bigArt: { aspectRatio: 1.8, backgroundColor: colors.card, justifyContent: 'flex-end' },
@@ -458,7 +458,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: space.lg,
     paddingBottom: 8,
   },
-  sortLabel: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  sortLabel: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: ls(1) },
   groupRow: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -24,7 +24,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { useState } from 'react';
 import { type ImageSourcePropType, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { currentLocale, t } from '@/i18n';
 import { cachedTranslation, type Translation } from '@/community-translate';
 
@@ -303,7 +303,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     marginTop: 10,
   },
-  entityText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.7 },
+  entityText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(0.7) },
   replyNote: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
   replyNoteText: { color: colors.dim, fontSize: 12, fontStyle: 'italic', flex: 1 },
   body: { color: colors.text, fontSize: 15, marginTop: 10, lineHeight: 21 },

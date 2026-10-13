@@ -23,7 +23,7 @@ import { currentLocale, t } from '@/i18n';
 import { formatCount } from '@/locale-resolve';
 import { requirePlus, usePlus } from '@/plus';
 import { computeCrowdCompare, computeDeepStats, watchYears } from '@/stats-calc';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** How many of the crowd rows each half of the comparison shows. */
 const CROWD_ROWS = 5;
@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
   chipTextOn: { color: colors.onYellow },
   bigNum: { color: colors.text, fontSize: 30, fontWeight: '800', fontVariant: ['tabular-nums'] },
   sub: { color: colors.dim, fontSize: 13, marginTop: 8 },
-  subHead: { color: colors.faint, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.8, marginBottom: 8 },
+  subHead: { color: colors.faint, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(0.8), marginBottom: 8 },
   note: { color: colors.faint, fontSize: 12, marginTop: 12, lineHeight: 17 },
   rule: { height: 1, backgroundColor: colors.line, marginVertical: 16 },
   empty: { color: colors.dim, fontSize: 14, textAlign: 'center', marginTop: 40 },
@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 18,
   },
-  cardKicker: { color: '#3A3A1E', fontSize: 11, fontWeight: '900', letterSpacing: 1.4 },
+  cardKicker: { color: '#3A3A1E', fontSize: 11, fontWeight: '900', letterSpacing: ls(1.4) },
   cardGenre: { color: '#141414', fontSize: 19, fontWeight: '900', marginTop: 6 },
   cardScore: { color: '#3A3A1E', fontSize: 13, fontWeight: '800', marginTop: 12, marginBottom: 16 },
   cardBrand: {
@@ -358,7 +358,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  cardBrandText: { color: colors.text, fontSize: 11.5, fontWeight: '800', letterSpacing: 0.8 },
+  cardBrandText: { color: colors.text, fontSize: 11.5, fontWeight: '800', letterSpacing: ls(0.8) },
   cardBrandSub: { color: '#C9C9CF', fontSize: 9.5 },
   shareBtn: {
     flexDirection: 'row',
@@ -369,5 +369,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 40,
   },
-  shareText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
+  shareText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(1) },
 });

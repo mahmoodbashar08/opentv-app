@@ -13,7 +13,7 @@ import { getMeta } from '@/db';
 import { documentFileUri, isSeedLibrary } from '@/library';
 import { mixHex, mergeFollowList } from '@/pure';
 import { tapLight } from '@/haptics';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 import { withLink } from '@/share-link';
 
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
-  inviteText: { color: colors.onYellow, fontSize: 12.5, fontWeight: '800', letterSpacing: 0.5 },
+  inviteText: { color: colors.onYellow, fontSize: 12.5, fontWeight: '800', letterSpacing: ls(0.5) },
   soonCard: {
     marginHorizontal: space.lg,
     marginTop: 6,
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     padding: 14,
     gap: 6,
   },
-  soonBadge: { color: colors.yellow, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
+  soonBadge: { color: colors.yellow, fontSize: 11, fontWeight: '800', letterSpacing: ls(1.2) },
   soonText: { color: colors.text, fontSize: 13.5, lineHeight: 19 },
   sectionTitle: { color: colors.text, fontSize: 18, fontWeight: '700', paddingHorizontal: space.lg, paddingVertical: 12 },
   row: {

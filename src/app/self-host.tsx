@@ -33,7 +33,7 @@ import { isCustomServer, officialServerUrl, serverUrl } from '@/server-url';
 import { normaliseServerUrl } from '@/pure';
 import { checkTmdbToken, setUserTmdbToken, userTmdbToken } from '@/tmdb';
 import { checkTvdbKey, setUserTvdbKey, userTvdbKey } from '@/tvdb';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 export default function SelfHostScreen() {
   const [url, setUrl] = useState(() => (isCustomServer() ? serverUrl() : ''));
@@ -197,7 +197,7 @@ export default function SelfHostScreen() {
 const styles = StyleSheet.create({
   body: { paddingHorizontal: space.lg, paddingBottom: 48, gap: 6 },
   intro: { color: colors.text, fontSize: 15, lineHeight: 21, paddingVertical: 12 },
-  label: { color: colors.faint, fontSize: 12, fontWeight: '800', letterSpacing: 1.1, textTransform: 'uppercase', marginTop: 16 },
+  label: { color: colors.faint, fontSize: 12, fontWeight: '800', letterSpacing: ls(1.1), textTransform: 'uppercase', marginTop: 16 },
   input: {
     backgroundColor: colors.card,
     color: colors.text,

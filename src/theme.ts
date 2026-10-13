@@ -18,9 +18,21 @@
  * wrapped because a theme must never be the reason the app fails to boot — a
  * missing table just means "default look".
  */
-import type { TextStyle } from 'react-native';
+import { I18nManager, type TextStyle } from 'react-native';
 
 import { getMeta, setMeta } from '@/db';
+
+/**
+ * LETTER SPACING IS FOR LATIN LABELS, AND ZERO IN ARABIC.
+ *
+ * Arabic letters join, and any tracking pulls them apart: "تعديل" on the
+ * profile's EDIT pill read as "تعد يل", and on iOS the trailing space the
+ * width did not count clipped the last letter (14 Oct). Every style goes
+ * through here rather than checking at each site. `isRTL` is the direction
+ * this launch was laid out in — the same moment the styles are created, and
+ * crossing into or out of Arabic already restarts the app.
+ */
+export const ls = (n: number): number => (I18nManager.isRTL ? 0 : n);
 
 /** The accent set. Yellow is the brand; the rest are the Plus choices. */
 export const ACCENTS = {
@@ -402,7 +414,7 @@ export const type = {
     fontSize: 13.5,
     lineHeight: 16,
     fontWeight: '700',
-    letterSpacing: 1.1,
+    letterSpacing: ls(1.1),
     textTransform: 'uppercase',
     color: colors.faint,
   },

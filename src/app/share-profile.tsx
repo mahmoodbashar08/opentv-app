@@ -7,7 +7,7 @@ import { NavHeader, Screen } from '@/components/ui';
 import seed from '@/seed';
 import { getMeta, getMovieTotals, getTotals } from '@/db';
 import { isSeedLibrary, profileImageUri } from '@/library';
-import { colors, radius } from '@/theme';
+import { colors, radius, ls } from '@/theme';
 import { t } from '@/i18n';
 import { getHandle } from '@/community-session';
 import { profilePath, withLink } from '@/share-link';
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   name: { color: '#141414', fontSize: fs(17), fontWeight: '900' },
   handle: { color: '#3A3A1E', fontSize: fs(11.5), marginTop: 1 },
   dash: { width: fs(30), height: fs(5), backgroundColor: '#141414', marginTop: fs(8) },
-  tracked: { color: '#141414', fontSize: fs(12.5), fontWeight: '900', letterSpacing: 0.5, marginTop: fs(7) },
+  tracked: { color: '#141414', fontSize: fs(12.5), fontWeight: '900', letterSpacing: ls(0.5), marginTop: fs(7) },
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginTop: fs(5) },
   cell: { width: '50%', marginTop: fs(6), paddingRight: 6 },
   value: { color: '#141414', fontSize: fs(14), fontWeight: '900' },
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   otBadge: { width: 22, height: 22 },
-  brandText: { color: '#FFF', fontSize: fs(11.5), fontWeight: '800', letterSpacing: 0.8 },
+  brandText: { color: '#FFF', fontSize: fs(11.5), fontWeight: '800', letterSpacing: ls(0.8) },
   brandCta: { color: '#C9C9CF', fontSize: fs(9.5) },
   shareBtn: {
     flexDirection: 'row',
@@ -272,5 +272,5 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 44,
   },
-  shareText: { color: colors.onBrand, fontSize: 13.5, fontWeight: '800', letterSpacing: 1 },
+  shareText: { color: colors.onBrand, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(1) },
 });

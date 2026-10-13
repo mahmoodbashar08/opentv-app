@@ -38,7 +38,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { tapLight } from '@/haptics';
-import { colors } from '@/theme';
+import { colors, ls } from '@/theme';
 import { gridHeight, reflow, slotAt, slotPosition, splitLineY, type GridGeometry, type GridSplit } from '@/pure';
 
 const SPRING = { damping: 22, stiffness: 220 } as const;
@@ -72,7 +72,7 @@ const rowStyles = StyleSheet.create({
     zIndex: 1,
   },
   ruleLine: { flex: 1, height: 1, backgroundColor: colors.line },
-  ruleLabel: { color: colors.faint, fontSize: 10.5, fontWeight: '800', letterSpacing: 1 },
+  ruleLabel: { color: colors.faint, fontSize: 10.5, fontWeight: '800', letterSpacing: ls(1) },
 });
 
 export function SortableRows({

@@ -15,7 +15,7 @@ import { tapLight } from '@/haptics';
 import { usePlus, requirePlus } from '@/plus';
 import { PROFILE_FAVOURITE_LIMIT, gridGeometry, publishCapHit } from '@/pure';
 import { useJoined } from '@/community-session';
-import { colors, space } from '@/theme';
+import { colors, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 export default function FavoritesScreen() {
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
   shareRow: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingVertical: 2 },
   shareText: { color: colors.blue, fontSize: 15, fontWeight: '600' },
   title: { color: colors.text, fontSize: 24, fontWeight: '800' },
-  sort: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  sort: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: ls(1) },
   cap: { color: colors.faint, fontSize: 12.5, lineHeight: 17 },
   upsell: { color: colors.yellow, fontWeight: '700' },
 });

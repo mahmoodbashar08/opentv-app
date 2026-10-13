@@ -16,7 +16,7 @@ import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { enableEpisodeNotifications } from '@/notifications';
 import { setNotifyAsked } from '@/session-store';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 const PERKS = [
@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     alignItems: 'center',
   },
-  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15, letterSpacing: 0.5 },
+  ctaText: { color: colors.onYellow, fontWeight: '800', fontSize: 15, letterSpacing: ls(0.5) },
   later: { paddingVertical: 16, alignItems: 'center' },
   laterText: { color: colors.dim, fontSize: 15, fontWeight: '600' },
 });

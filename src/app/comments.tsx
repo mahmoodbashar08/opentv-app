@@ -43,7 +43,7 @@ import { isJoined } from '@/community-session';
 import { requireOptionalNativeModule } from 'expo-modules-core';
 
 import { tapLight } from '@/haptics';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 import { withLink } from '@/share-link';
 import { archiveImageSource, primeArchiveImages } from '@/commsuni';
@@ -757,10 +757,10 @@ const styles = StyleSheet.create({
     padding: 13,
     gap: 5,
   },
-  soonBadge: { color: colors.yellow, fontSize: 11, fontWeight: '800', letterSpacing: 1.2 },
+  soonBadge: { color: colors.yellow, fontSize: 11, fontWeight: '800', letterSpacing: ls(1.2) },
   soonText: { color: colors.text, fontSize: 13.5, lineHeight: 19 },
   sortRow: { paddingHorizontal: space.lg, paddingBottom: 10 },
-  sortLabel: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: 1 },
+  sortLabel: { color: colors.dim, fontSize: 12, fontWeight: '700', letterSpacing: ls(1) },
   card: {
     backgroundColor: colors.panel,
     borderRadius: radius.card,
@@ -783,7 +783,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 11,
     marginTop: 10,
   },
-  entityText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.7 },
+  entityText: { color: colors.text, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(0.7) },
   replyNote: { flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 8 },
   replyNoteText: { color: colors.dim, fontSize: 12, fontStyle: 'italic', flex: 1 },
   body: { color: colors.text, fontSize: 15, marginTop: 10, lineHeight: 21 },

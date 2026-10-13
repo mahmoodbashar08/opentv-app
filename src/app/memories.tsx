@@ -43,7 +43,7 @@ import { EmptyState, NavHeader, Screen } from '@/components/ui';
 import { memoryArchive, type DatedMemory } from '@/db';
 import { currentLocale, t } from '@/i18n';
 import { memorySentence } from '@/on-this-day';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** The mark on the left when there is no artwork — per kind, because the strip
  *  only ever shows one memory and a list of forty wants them told apart. */
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     color: colors.faint,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.2,
+    letterSpacing: ls(1.2),
     textTransform: 'uppercase',
     paddingHorizontal: space.lg,
     paddingTop: 20,

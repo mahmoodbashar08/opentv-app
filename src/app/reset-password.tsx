@@ -36,7 +36,7 @@ import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { communityErrorKey } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 export default function ResetPasswordScreen() {
   const { token } = useLocalSearchParams<{ token?: string }>();
@@ -156,6 +156,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 6,
   },
-  ctaText: { color: colors.onYellow, fontSize: 15, fontWeight: '800', letterSpacing: 0.4 },
+  ctaText: { color: colors.onYellow, fontSize: 15, fontWeight: '800', letterSpacing: ls(0.4) },
   dim: { opacity: 0.45 },
 });

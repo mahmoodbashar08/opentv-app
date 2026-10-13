@@ -12,7 +12,7 @@ import { currentLocale, t } from '@/i18n';
 import { NAMES } from '@/app/language';
 import metadata from '@/metadata';
 import { leaveOnboarding } from '@/session-store';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 const COLS = 4;
 
@@ -257,7 +257,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   logoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12 },
   mark: { width: 52, height: 52 },
-  logoText: { color: colors.text, fontSize: 32, fontWeight: '900', letterSpacing: 1 },
+  logoText: { color: colors.text, fontSize: 32, fontWeight: '900', letterSpacing: ls(1) },
   openSrc: { color: '#C9C9CF', fontSize: 14.5, textAlign: 'center' },
   langButton: {
     position: 'absolute',
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 56,
   },
-  ctaText: { color: colors.onYellow, fontSize: 14.5, fontWeight: '800', letterSpacing: 1.2 },
+  ctaText: { color: colors.onYellow, fontSize: 14.5, fontWeight: '800', letterSpacing: ls(1.2) },
   sheet: {
     backgroundColor: '#232326',
     borderTopLeftRadius: 18,
@@ -310,7 +310,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     marginBottom: 12,
   },
-  optionPrimaryText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: 0.8 },
+  optionPrimaryText: { color: colors.onYellow, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(0.8) },
   optionSecondary: {
     marginBottom: 12,
     flexDirection: 'row',
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     paddingVertical: 14,
   },
-  optionSecondaryText: { color: colors.text, fontSize: 13.5, fontWeight: '800', letterSpacing: 0.8 },
+  optionSecondaryText: { color: colors.text, fontSize: 13.5, fontWeight: '800', letterSpacing: ls(0.8) },
   fine: { color: colors.dim, fontSize: 12.5, textAlign: 'center', marginTop: 16 },
   movingLink: { color: colors.blue, fontSize: 14.5, fontWeight: '600', textAlign: 'center', paddingVertical: 4 },
   gateText: { color: '#C9C9CF', fontSize: 14.5, lineHeight: 21, textAlign: 'center', marginBottom: 10 },

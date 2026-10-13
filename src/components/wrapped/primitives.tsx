@@ -16,6 +16,7 @@
 import { Image } from 'expo-image';
 import { createContext, useContext, type ReactNode } from 'react';
 import { StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
+import { ls } from '@/theme';
 
 export const WRAPPED_YELLOW = '#FFD400';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -44,12 +45,12 @@ export function Canvas({ width, children, style }: { width: number; children: Re
 
 /** Small uppercase yellow kicker. */
 export function Label({ children, colour = WRAPPED_YELLOW, size = 11, style }: { children: ReactNode; colour?: string; size?: number; style?: TextStyle }) {
-  return <Text style={[{ color: colour, fontSize: size, fontWeight: '900', letterSpacing: size * 0.18, textTransform: 'uppercase' }, style]}>{children}</Text>;
+  return <Text style={[{ color: colour, fontSize: size, fontWeight: '900', letterSpacing: ls(size * 0.18), textTransform: 'uppercase' }, style]}>{children}</Text>;
 }
 
 /** The period, as a masthead. */
 export function Period({ children, size = 26, style }: { children: ReactNode; size?: number; style?: TextStyle }) {
-  return <Text style={[{ color: INK, fontSize: size, fontWeight: '900', letterSpacing: -size * 0.03, lineHeight: size * 1.05 }, style]}>{children}</Text>;
+  return <Text style={[{ color: INK, fontSize: size, fontWeight: '900', letterSpacing: ls(-size * 0.03), lineHeight: size * 1.05 }, style]}>{children}</Text>;
 }
 
 /**
@@ -86,7 +87,7 @@ export function Display({
       adjustsFontSizeToFit
       minimumFontScale={minScale}
       allowFontScaling={false}
-      style={[{ color: colour, fontSize: size, fontWeight: '900', lineHeight: size * 1.02, letterSpacing: -size * 0.035, textAlign: align }, style]}>
+      style={[{ color: colour, fontSize: size, fontWeight: '900', lineHeight: size * 1.02, letterSpacing: ls(-size * 0.035), textAlign: align }, style]}>
       {children}
     </Text>
   );
@@ -206,10 +207,10 @@ export function Brand({ right, handle }: { right?: string; handle?: string | nul
         {/* The app's own OT mark, not a yellow dot: on a card shared to Reddit
             the logo is the only way a stranger recognises the app again. */}
         <Image source={APP_ICON} style={{ width: 18, height: 18, borderRadius: 4 }} />
-        <Text style={{ color: INK, fontSize: 11.5, fontWeight: '900', letterSpacing: 1.6 }}>OPENTV</Text>
+        <Text style={{ color: INK, fontSize: 11.5, fontWeight: '900', letterSpacing: ls(1.6) }}>OPENTV</Text>
         {handle ? <Text style={{ color: FAINT, fontSize: 10.5, marginLeft: 4 }}>@{handle}</Text> : null}
       </View>
-      {right ? <Text numberOfLines={1} style={{ color: FAINT, fontSize: 8.5, fontWeight: '800', letterSpacing: 1.2, textTransform: 'uppercase', flexShrink: 1, marginLeft: 14, textAlign: 'right' }}>{right}</Text> : null}
+      {right ? <Text numberOfLines={1} style={{ color: FAINT, fontSize: 8.5, fontWeight: '800', letterSpacing: ls(1.2), textTransform: 'uppercase', flexShrink: 1, marginLeft: 14, textAlign: 'right' }}>{right}</Text> : null}
     </View>
   );
 }

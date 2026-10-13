@@ -31,7 +31,7 @@ import {
   type GridSplit,
 } from '@/pure';
 import { t } from '@/i18n';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 // how far from the top/bottom of the screen the drag must reach to auto-scroll,
 // and how fast it scrolls per frame while held there
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   ruleLine: { flex: 1, height: 1, backgroundColor: colors.line },
-  ruleLabel: { color: colors.faint, fontSize: 10.5, fontWeight: '800', letterSpacing: 1 },
+  ruleLabel: { color: colors.faint, fontSize: 10.5, fontWeight: '800', letterSpacing: ls(1) },
   tile: {
     width: '100%',
     height: '100%',

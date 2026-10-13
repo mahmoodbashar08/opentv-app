@@ -37,7 +37,7 @@ import { hasAccount, rememberAccount, signIn as sessionSignIn } from '@/communit
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
 import { postOnboardingRoute, setOnboarded } from '@/session-store';
-import { colors, radius } from '@/theme';
+import { colors, radius, ls } from '@/theme';
 
 type Stage = 'signIn' | 'looking' | 'found' | 'none';
 
@@ -280,5 +280,5 @@ const s = StyleSheet.create({
   cardDate: { color: colors.dim, fontSize: 13, marginTop: 4 },
   figures: { flexDirection: 'row', gap: 22, marginTop: 14 },
   figure: { color: colors.text, fontSize: 20, fontWeight: '900' },
-  figureLabel: { color: colors.faint, fontSize: 9.5, fontWeight: '800', letterSpacing: 0.8, marginTop: 2 },
+  figureLabel: { color: colors.faint, fontSize: 9.5, fontWeight: '800', letterSpacing: ls(0.8), marginTop: 2 },
 });

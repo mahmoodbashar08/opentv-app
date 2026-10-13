@@ -38,7 +38,7 @@ import { disableSync, lastSyncAt, pendingCount, setSyncEnabled, syncDevices, syn
 import { cloudStorageAllowed, isPlus, useCloudStorageAllowed } from '@/plus';
 import { tapLight } from '@/haptics';
 import { currentLocale, t } from '@/i18n';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 export default function CloudBackupScreen() {
   /* PLUS, OR A SERVER OF THEIR OWN — see `cloudStorageAllowed` in plus.ts.
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     color: colors.faint,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.2,
+    letterSpacing: ls(1.2),
     textTransform: 'uppercase',
     paddingHorizontal: space.lg,
     paddingTop: 22,

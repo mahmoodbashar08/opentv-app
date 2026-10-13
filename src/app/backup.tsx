@@ -37,7 +37,7 @@ import {
 import { shareLibraryExport } from '@/manual-backup';
 import { MenuRow, NavHeader, Screen } from '@/components/ui';
 import { currentLocale, t } from '@/i18n';
-import { colors, space } from '@/theme';
+import { colors, space, ls } from '@/theme';
 
 /** Export as a TV Time-format ZIP (images bundled) — our importer reads it
  *  back losslessly. Shares via the Android-safe helper. */
@@ -262,7 +262,7 @@ const s = StyleSheet.create({
     color: colors.faint,
     fontSize: 11,
     fontWeight: '800',
-    letterSpacing: 0.8,
+    letterSpacing: ls(0.8),
     textTransform: 'uppercase',
     paddingHorizontal: space.lg,
     paddingTop: space.lg,

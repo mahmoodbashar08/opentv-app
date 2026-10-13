@@ -11,7 +11,7 @@ import { restoreWatchesFromExport } from '@/importer';
 import { linkShowToMovie, linkShowToSeries } from '@/show-meta-fetch';
 import { tmdb } from '@/tmdb';
 import { tvdbSearchMovies } from '@/tvdb';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { t } from '@/i18n';
 
 type Result = {
@@ -346,5 +346,5 @@ const styles = StyleSheet.create({
   posterEmpty: { alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.line },
   rTitle: { color: colors.text, fontSize: 15.5, fontWeight: '600' },
   rSub: { color: colors.dim, fontSize: 13 },
-  source: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginTop: 1 },
+  source: { fontSize: 11, fontWeight: '700', letterSpacing: ls(0.5), marginTop: 1 },
 });

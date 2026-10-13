@@ -20,7 +20,7 @@ import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import type { LocaleKey } from '@/locales/keys';
 import { isOnboarded } from '@/session-store';
-import { ACCENTS, colors, space } from '@/theme';
+import { ACCENTS, colors, space, ls } from '@/theme';
 
 const KEY = 'whatsNewSeen';
 
@@ -126,7 +126,7 @@ const s = StyleSheet.create({
   head: { alignItems: 'center', gap: 10 },
   logo: { width: 64, height: 64, borderRadius: 16 },
   pill: { backgroundColor: ACCENTS.yellow, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 3 },
-  pillText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
+  pillText: { color: '#000', fontSize: 13, fontWeight: '900', letterSpacing: ls(0.5) },
   title: { color: '#FFF', fontSize: 24, fontWeight: '900', textAlign: 'center', marginTop: 8, marginBottom: 16 },
   list: { gap: 8 },
   row: { flexDirection: 'row', gap: 12, alignItems: 'center', borderRadius: 14, borderWidth: 1, padding: 10 },

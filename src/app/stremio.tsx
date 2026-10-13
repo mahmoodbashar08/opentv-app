@@ -18,7 +18,7 @@ import { tapLight } from '@/haptics';
 import { t } from '@/i18n';
 import { stremioLogin } from '@/stremio';
 import { disconnectStremio, getStremioSession, setStremioSession, stremioEmail, stremioSyncedAt, syncStremio } from '@/stremio-sync';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 export default function StremioScreen() {
   const [connected, setConnected] = useState(false);
@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
     color: colors.faint,
     fontSize: 12,
     fontWeight: '800',
-    letterSpacing: 1.2,
+    letterSpacing: ls(1.2),
     textTransform: 'uppercase',
     paddingHorizontal: space.lg,
     paddingTop: 22,

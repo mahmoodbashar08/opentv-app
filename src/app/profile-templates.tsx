@@ -32,7 +32,7 @@ import {
   type Template,
 } from '@/profile-templates';
 import { cardGrid } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 /** The column gap. One number for the container's `gap` and the card arithmetic:
  *  a card sized against a different gap than the row lays out with wraps early. */
@@ -229,7 +229,7 @@ function Preview({ tpl, width, avatar, initial }: { tpl: Template; width: number
 }
 
 const s = StyleSheet.create({
-  section: { color: colors.dim, fontSize: 13, fontWeight: '800', letterSpacing: 0.6, textTransform: 'uppercase', marginHorizontal: space.lg, marginTop: space.lg, marginBottom: space.md },
+  section: { color: colors.dim, fontSize: 13, fontWeight: '800', letterSpacing: ls(0.6), textTransform: 'uppercase', marginHorizontal: space.lg, marginTop: space.lg, marginBottom: space.md },
   grid2: { flexDirection: 'row', flexWrap: 'wrap', gap: GAP, rowGap: 18, paddingHorizontal: space.lg },
   loading: { flexDirection: 'row', alignItems: 'center', gap: 10, marginHorizontal: space.lg, marginTop: space.lg },
   intro: { color: colors.dim, fontSize: 14, lineHeight: 20, marginHorizontal: space.lg, marginBottom: space.sm },
@@ -242,7 +242,7 @@ const s = StyleSheet.create({
   dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1.5, borderColor: colors.bg },
   name: { color: colors.text, fontSize: 15, fontWeight: '800', flex: 1 },
   // Yellow acts: the chip says "this one is new / for the event", in the accent.
-  chip: { color: colors.onYellow, backgroundColor: colors.yellow, fontSize: 10, fontWeight: '800', letterSpacing: 0.4, textTransform: 'uppercase', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, overflow: 'hidden' },
+  chip: { color: colors.onYellow, backgroundColor: colors.yellow, fontSize: 10, fontWeight: '800', letterSpacing: ls(0.4), textTransform: 'uppercase', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 999, overflow: 'hidden' },
   layout: { color: colors.dim, fontSize: 12.5, marginTop: 1, lineHeight: 17 },
   persona: { color: colors.text, fontSize: 13, fontWeight: '700', marginTop: 2 },
 });

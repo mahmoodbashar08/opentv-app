@@ -54,7 +54,7 @@ import {
   type FilterSort,
   PLUS_FILTER_AXES,
 } from '@/pure';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 
 const SORTS: { value: FilterSort; key: 'filters.sortLastWatched' | 'filters.sortLastAdded' | 'filters.sortAlpha' }[] = [
   { value: 'lastWatched', key: 'filters.sortLastWatched' },
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 13,
   },
-  resetText: { color: colors.text, fontWeight: '700', letterSpacing: 1, fontSize: 13 },
+  resetText: { color: colors.text, fontWeight: '700', letterSpacing: ls(1), fontSize: 13 },
   applyBtn: { flex: 1, backgroundColor: colors.yellow, borderRadius: radius.pill, alignItems: 'center', paddingVertical: 14 },
-  applyText: { color: colors.onYellow, fontWeight: '700', letterSpacing: 1, fontSize: 13 },
+  applyText: { color: colors.onYellow, fontWeight: '700', letterSpacing: ls(1), fontSize: 13 },
 });

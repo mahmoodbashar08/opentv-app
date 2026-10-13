@@ -52,7 +52,7 @@ import {
 } from '@/community-ratings';
 import { tmdb } from '@/tmdb';
 import type { TvdbMovieMeta } from '@/tvdb';
-import { colors, radius, space } from '@/theme';
+import { colors, radius, space, ls } from '@/theme';
 import { SeasonEffect } from '@/components/season-effect';
 import { currentLook } from '@/season';
 import { isPlus } from '@/plus';
@@ -1102,7 +1102,7 @@ export default function MovieScreen() {
                   <View style={styles.tBadge}>
                     <Text style={{ fontWeight: '800', color: colors.onYellow, fontSize: 13 }}>T</Text>
                   </View>
-                  <Text style={{ color: colors.yellow, letterSpacing: 2 }}>
+                  <Text style={{ color: colors.yellow, letterSpacing: ls(2) }}>
                     {'★'.repeat(filled)}
                     {'☆'.repeat(5 - filled)}
                   </Text>
@@ -1414,7 +1414,7 @@ const styles = StyleSheet.create({
     color: colors.dim,
     fontSize: 11.5,
     fontWeight: '700',
-    letterSpacing: 1.2,
+    letterSpacing: ls(1.2),
     textAlign: 'center',
     marginBottom: 13,
   },
@@ -1436,7 +1436,7 @@ const styles = StyleSheet.create({
     color: colors.dim,
     fontSize: 10,
     fontWeight: '700',
-    letterSpacing: 0.5,
+    letterSpacing: ls(0.5),
     textAlign: 'center',
     marginTop: 7,
   },
@@ -1459,7 +1459,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     marginTop: 6,
   },
-  starLabel: { color: colors.dim, fontSize: 9.5, fontWeight: '700', letterSpacing: 0.5 },
+  starLabel: { color: colors.dim, fontSize: 9.5, fontWeight: '700', letterSpacing: ls(0.5) },
   starLabelMine: { color: colors.text, fontWeight: '800' },
   starLabelOther: { color: colors.faint },
   starPct: { color: colors.dim, fontSize: 11, fontWeight: '600' },
@@ -1481,7 +1481,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     gap: 4,
   },
-  emoLabel: { color: colors.dim, fontSize: 9, fontWeight: '700', letterSpacing: 0.4, textTransform: 'uppercase' },
+  emoLabel: { color: colors.dim, fontSize: 9, fontWeight: '700', letterSpacing: ls(0.4), textTransform: 'uppercase' },
   charCard: {
     width: 96,
     height: 110,
@@ -1509,7 +1509,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   castName: { color: colors.text, fontSize: 12.5, marginTop: 6 },
-  charName: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: 0.6, marginTop: 3 },
+  charName: { color: colors.dim, fontSize: 10.5, fontWeight: '700', letterSpacing: ls(0.6), marginTop: 3 },
   /** The community's share, rendered only when there is one — no zeroes. */
   charPct: { color: colors.dim, fontSize: 9, fontWeight: '700', marginTop: 2 },
   trailerRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingHorizontal: space.lg },
@@ -1544,7 +1544,7 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 28,
   },
-  commentsText: { color: '#FFF', fontSize: 13.5, fontWeight: '700', letterSpacing: 1 },
+  commentsText: { color: '#FFF', fontSize: 13.5, fontWeight: '700', letterSpacing: ls(1) },
   addBar: {
     position: 'absolute',
     left: 0,
@@ -1557,5 +1557,5 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingTop: 18,
   },
-  addBarText: { color: colors.onYellow, fontSize: 16, fontWeight: '900', letterSpacing: 1.5 },
+  addBarText: { color: colors.onYellow, fontSize: 16, fontWeight: '900', letterSpacing: ls(1.5) },
 });
