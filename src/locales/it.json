@@ -125,7 +125,7 @@
     "sortBy": "ORDINA PER",
     "popular": "Popolari",
     "noActivityTitle": "Ancora nessuna attività",
-    "noActivityCaption": "Quando le persone che segui guardano qualcosa, appare qui.",
+    "noActivityCaption": "Quando le persone che segui votano, reagiscono o commentano, appare qui.",
     "watchedBy": "Visto da",
     "groups": {
       "anime": "Anime",
@@ -1750,9 +1750,9 @@
     }
   },
   "activity": {
-    "title": "Attività",
+    "title": "In arrivo",
     "tabArchive": "TV Time",
-    "tabCommunity": "Attività",
+    "tabCommunity": "In arrivo",
     "empty": "Ancora niente — follow, Mi piace e risposte appariranno qui.",
     "someone": "qualcuno",
     "follow": "{{who}} ha iniziato a seguirti",
@@ -3367,5 +3367,23 @@
     "label": "Il tuo voto",
     "value": "{{value}} su 5 stelle",
     "unrated": "Nessun voto"
+  },
+  "feed": {
+    "rated": "ha votato {{title}}",
+    "felt": "ha reagito a {{title}}",
+    "commented": "ha commentato {{title}}",
+    "replied": "ha risposto su {{title}}",
+    "picked": "ha scelto il personaggio preferito in {{title}}",
+    "locked": "Guardalo per vedere",
+    "lockedA11y": "Nascosto finché non lo guardi",
+    "starsA11y": "{{count}} su 5",
+    "photo": "Foto",
+    "joinTitle": "Le reazioni dei tuoi amici",
+    "joinCaption": "Unisciti alla community per vedere cosa votano, provano e dicono le persone che segui — e mai nulla che non hai ancora visto.",
+    "noFollowsTitle": "Segui qualcuno per vedere cosa ne pensa",
+    "noFollowsCaption": "I loro voti, emozioni e commenti appaiono qui, dal più recente.",
+    "unfollow": "Smetti di seguire",
+    "optOut": "Mostra le mie reazioni ai follower",
+    "optOutSub": "I tuoi voti, emozioni, commenti e personaggi preferiti appaiono nel feed di chi ti segue."
   }
 }

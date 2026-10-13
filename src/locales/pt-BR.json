@@ -125,7 +125,7 @@
     "sortBy": "ORDENAR POR",
     "popular": "Populares",
     "noActivityTitle": "Ainda sem atividade",
-    "noActivityCaption": "Quando as pessoas que você segue assistirem algo, aparece aqui.",
+    "noActivityCaption": "Quando as pessoas que você segue avaliam, reagem ou comentam, aparece aqui.",
     "watchedBy": "Assistido por",
     "groups": {
       "anime": "Anime",
@@ -1750,9 +1750,9 @@
     }
   },
   "activity": {
-    "title": "Atividade",
+    "title": "Caixa de entrada",
     "tabArchive": "TV Time",
-    "tabCommunity": "Atividade",
+    "tabCommunity": "Caixa de entrada",
     "empty": "Nada ainda — seguidores, curtidas e respostas aparecerão aqui.",
     "someone": "alguém",
     "follow": "{{who}} começou a seguir você",
@@ -3367,5 +3367,23 @@
     "label": "Sua nota",
     "value": "{{value}} de 5 estrelas",
     "unrated": "Sem nota"
+  },
+  "feed": {
+    "rated": "avaliou {{title}}",
+    "felt": "reagiu a {{title}}",
+    "commented": "comentou em {{title}}",
+    "replied": "respondeu sobre {{title}}",
+    "picked": "escolheu o personagem favorito de {{title}}",
+    "locked": "Assista para ver",
+    "lockedA11y": "Oculto até você assistir",
+    "starsA11y": "{{count}} de 5",
+    "photo": "Foto",
+    "joinTitle": "As reações dos seus amigos",
+    "joinCaption": "Entre na comunidade para ver o que as pessoas que você segue avaliam, sentem e dizem — e nunca nada que você ainda não assistiu.",
+    "noFollowsTitle": "Siga pessoas para ver o que elas acham",
+    "noFollowsCaption": "As avaliações, emoções e comentários delas aparecem aqui, dos mais recentes aos mais antigos.",
+    "unfollow": "Deixar de seguir",
+    "optOut": "Mostrar minhas reações aos seguidores",
+    "optOutSub": "Suas avaliações, emoções, comentários e personagens favoritos aparecem no feed de quem segue você."
   }
 }

@@ -125,7 +125,7 @@
     "sortBy": "TRIER PAR",
     "popular": "Populaire",
     "noActivityTitle": "Aucune activité pour l'instant",
-    "noActivityCaption": "Quand les personnes que vous suivez regardent quelque chose, ça apparaît ici.",
+    "noActivityCaption": "Quand les personnes que vous suivez notent, réagissent ou commentent, ça apparaît ici.",
     "watchedBy": "Vu par",
     "groups": {
       "anime": "Anime",
@@ -1750,9 +1750,9 @@
     }
   },
   "activity": {
-    "title": "Activité",
+    "title": "Boîte de réception",
     "tabArchive": "TV Time",
-    "tabCommunity": "Activité",
+    "tabCommunity": "Boîte de réception",
     "empty": "Rien pour l’instant — abonnements, mentions J’aime et réponses apparaîtront ici.",
     "someone": "quelqu’un",
     "follow": "{{who}} vous suit",
@@ -3367,5 +3367,23 @@
     "label": "Votre note",
     "value": "{{value}} sur 5 étoiles",
     "unrated": "Pas noté"
+  },
+  "feed": {
+    "rated": "a noté {{title}}",
+    "felt": "a réagi à {{title}}",
+    "commented": "a commenté {{title}}",
+    "replied": "a répondu sur {{title}}",
+    "picked": "a choisi son personnage préféré dans {{title}}",
+    "locked": "Regardez-le pour voir",
+    "lockedA11y": "Masqué jusqu'à ce que vous l'ayez vu",
+    "starsA11y": "{{count}} sur 5",
+    "photo": "Photo",
+    "joinTitle": "Les réactions de vos amis",
+    "joinCaption": "Rejoignez la communauté pour voir ce que les personnes que vous suivez notent, ressentent et disent — et jamais rien que vous n'avez pas encore vu.",
+    "noFollowsTitle": "Suivez des personnes pour voir ce qu'elles en pensent",
+    "noFollowsCaption": "Leurs notes, émotions et commentaires apparaissent ici, les plus récents d'abord.",
+    "unfollow": "Ne plus suivre",
+    "optOut": "Montrer mes réactions à mes abonnés",
+    "optOutSub": "Vos notes, émotions, commentaires et personnages préférés apparaissent dans le fil des personnes qui vous suivent."
   }
 }

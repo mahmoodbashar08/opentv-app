@@ -1038,7 +1038,7 @@ export async function importZipBytes(zipBytes: Uint8Array, onProgress: (p: Progr
   // OpenTV's own backups carry the name in the sidecar instead
   const charVotes = readCharacterVotes(csv('show_character_episode_vote.csv'));
 
-  // OUT OF TEN, as  is since 2.0.0. A foreign export brings its
+  // OUT OF TEN, as `movies.stars` is since 2.0.0. A foreign export brings its
   // own, already converted; a GDPR one has whole stars in a file of vote keys,
   // and a whole star is two points.
   const movieRatings = foreignMovieRatings.length
