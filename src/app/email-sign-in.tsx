@@ -391,6 +391,7 @@ export default function EmailSignInScreen() {
                    the remembered address is not the one they want. */
                 editable={!locked || mode === 'create'}
                 placeholder={t('community.email.emailPlaceholder')}
+                accessibilityLabel={t('community.email.emailPlaceholder')}
                 placeholderTextColor={colors.faint}
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -410,6 +411,7 @@ export default function EmailSignInScreen() {
                   value={password}
                   onChangeText={setPassword}
                   placeholder={t('community.email.passwordPlaceholder')}
+                  accessibilityLabel={t('community.email.passwordPlaceholder')}
                   placeholderTextColor={colors.faint}
                   autoCapitalize="none"
                   autoCorrect={false}
@@ -422,7 +424,7 @@ export default function EmailSignInScreen() {
                   onSubmitEditing={() => void submit()}
                   textAlign="left"
                 />
-                <Pressable style={styles.eye} hitSlop={10} onPress={() => setShow((v) => !v)}>
+                <Pressable style={styles.eye} hitSlop={10} onPress={() => setShow((v) => !v)} accessibilityRole="button" accessibilityLabel={t(show ? 'a11y.hidePassword' : 'a11y.showPassword')}>
                   <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.dim} />
                 </Pressable>
               </View>
@@ -431,7 +433,7 @@ export default function EmailSignInScreen() {
                 {mode === 'create' ? t('community.email.passwordRule', { n: PASSWORD_MIN }) : ' '}
               </Text>
 
-              <Pressable style={[styles.cta, !ready && styles.dim]} disabled={!ready || busy} onPress={() => void submit()}>
+              <Pressable accessibilityRole="button" style={[styles.cta, !ready && styles.dim]} disabled={!ready || busy} onPress={() => void submit()}>
                 {busy ? (
                   <ActivityIndicator color={colors.onYellow} />
                 ) : (
@@ -442,7 +444,7 @@ export default function EmailSignInScreen() {
               </Pressable>
 
               {mode === 'signIn' && (
-                <Pressable onPress={() => void forgot()} hitSlop={8}>
+                <Pressable accessibilityRole="button" onPress={() => void forgot()} hitSlop={8}>
                   <Text style={styles.link}>{t('community.email.forgotLink')}</Text>
                 </Pressable>
               )}
@@ -464,7 +466,7 @@ export default function EmailSignInScreen() {
                   still hides it, because there is nothing to restore from an
                   account made a moment ago. */}
               {signInOnly ? null : (
-                <Pressable
+                <Pressable accessibilityRole="button"
                   style={styles.switchRow}
                   hitSlop={8}
                   onPress={() => setMode((m) => (m === 'create' ? 'signIn' : 'create'))}>

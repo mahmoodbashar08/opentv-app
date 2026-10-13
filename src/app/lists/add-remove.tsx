@@ -100,7 +100,7 @@ export default function AddRemoveScreen() {
               : listName || t('addToList.title')
         }
         right={
-          <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Pressable accessibilityRole="button" onPress={() => router.back()} hitSlop={10}>
             <Text style={{ color: colors.blue, fontSize: 16, fontWeight: '700' }}>{t('common.done')}</Text>
           </Pressable>
         }
@@ -111,6 +111,7 @@ export default function AddRemoveScreen() {
           <TextInput
             style={styles.input}
             placeholder={t('listAddRemove.searchPlaceholder')}
+            accessibilityLabel={t('listAddRemove.searchPlaceholder')}
             placeholderTextColor={colors.faint}
             value={query}
             onChangeText={setQuery}
@@ -125,7 +126,7 @@ export default function AddRemoveScreen() {
         renderItem={({ item }) => {
           const on = inList(item);
           return (
-            <Pressable style={styles.row} onPress={() => toggle(item)}>
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: on }} style={styles.row} onPress={() => toggle(item)}>
               {item.poster ? (
                 <Image source={{ uri: item.poster }} style={styles.thumb} contentFit="cover" cachePolicy="disk" />
               ) : (

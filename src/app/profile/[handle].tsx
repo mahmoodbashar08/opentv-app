@@ -504,7 +504,7 @@ export default function PublicProfileScreen() {
           // the two taps worth making and keep the yellow; Following and
           // Requested describe where you already are and step back to an
           // outline — the same rule the FollowChip follows.
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={[styles.followPill, pillUndoes(pillState) && styles.followingPill]}
             onPress={() => void toggleFollow()}>
             <Text style={[styles.followText, pillUndoes(pillState) && styles.followingText]}>
@@ -512,7 +512,7 @@ export default function PublicProfileScreen() {
             </Text>
           </Pressable>
         ) : (
-          <Pressable style={styles.joinRow} onPress={() => router.push('/join')}>
+          <Pressable accessibilityRole="button" style={styles.joinRow} onPress={() => router.push('/join')}>
             <Ionicons name="people-outline" size={16} color={colors.yellow} />
             <Text style={styles.joinText}>{t('community.profile.joinToFollow')}</Text>
           </Pressable>
@@ -521,7 +521,7 @@ export default function PublicProfileScreen() {
       // This screen is a modal, so the bell's place in the bar is the way out
       // of it. The tab has no such control because a tab cannot be dismissed.
       barLeft={
-        <Pressable hitSlop={10} onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} hitSlop={10} onPress={() => router.back()}>
           <Ionicons name="chevron-down" size={22} color={colors.text} />
         </Pressable>
       }
@@ -530,7 +530,7 @@ export default function PublicProfileScreen() {
       // menu whose every item is inapplicable is worse than no menu.
       barRight={
         !isSelf && joined ? (
-          <Pressable hitSlop={10} onPress={() => setMenu(true)}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.more')} hitSlop={10} onPress={() => setMenu(true)}>
             <Ionicons name="ellipsis-horizontal" size={22} color={colors.text} />
           </Pressable>
         ) : undefined

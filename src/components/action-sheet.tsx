@@ -10,6 +10,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { t } from '@/i18n';
 import { colors, radius, space } from '@/theme';
 
 export type SheetAction = {
@@ -53,7 +54,10 @@ export function ActionSheet({
   return (
     <Modal visible={visible} transparent animationType="none" onRequestClose={onClose} statusBarTranslucent>
       <Animated.View style={[StyleSheet.absoluteFill, styles.backdrop, { opacity: slide.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        {/* The backdrop is the way out for a screen reader too: `Modal` already
+            confines focus to the sheet on both platforms, and the escape
+            gesture reaches nothing, so the one element that closes is named. */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityRole="button" accessibilityLabel={t('a11y.close')} />
       </Animated.View>
       <Animated.View
         style={[
@@ -67,7 +71,7 @@ export function ActionSheet({
           },
         ]}>
         {title != null && (
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={styles.title} numberOfLines={1} accessibilityRole="header">
             {title}
           </Text>
         )}
@@ -75,6 +79,7 @@ export function ActionSheet({
         {actions.map((a, i) => (
           <Pressable
             key={a.text}
+            accessibilityRole="button"
             style={({ pressed }) => [styles.row, i > 0 && styles.rowLine, pressed && styles.rowPressed]}
             onPress={() => {
               onClose();

@@ -89,19 +89,19 @@ export default function BadgeScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Pressable style={[styles.close, { top: insets.top + 10 }]} onPress={() => router.back()} hitSlop={12}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} style={[styles.close, { top: insets.top + 10 }]} onPress={() => router.back()} hitSlop={12}>
         <Ionicons name="close" size={28} color={colors.text} />
       </Pressable>
 
       <View ref={cardRef} collapsable={false} style={styles.card}>
         <Text style={{ fontSize: 96 }}>🏅</Text>
-        <Text style={styles.title}>{meta.title}</Text>
+        <Text accessibilityRole="header" style={styles.title}>{meta.title}</Text>
         {meta.desc !== '' && <Text style={styles.desc}>{meta.desc}</Text>}
         {longDate(meta.date) && <Text style={styles.date}>{longDate(meta.date)}</Text>}
       </View>
 
       <View style={{ position: 'absolute', bottom: insets.bottom + 24, alignSelf: 'center' }}>
-        <Pressable style={styles.shareBtn} onPress={share}>
+        <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={share}>
           <Text style={styles.shareText}>{t('badge.share')}</Text>
         </Pressable>
       </View>

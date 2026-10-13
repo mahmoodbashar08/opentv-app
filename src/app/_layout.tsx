@@ -6,6 +6,7 @@ import { ActivityIndicator, Alert, AppState, InteractionManager, StyleSheet, Tex
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
+import { markIconsDecorative } from '@/a11y';
 import { trackScreen } from '@/analytics';
 import { initAutoBackup } from '@/backup';
 import { backfillCharacterNames } from '@/character-name-fetch';
@@ -42,6 +43,7 @@ import { UpdateGate } from '@/components/update-gate';
 /* Before anything can be tapped, and at module scope rather than in an effect:
    the first thing a cold launch does is render a screen with links on it. */
 installNavGuard();
+markIconsDecorative();
 import { PopcornGame } from '@/components/popcorn-game';
 import { initI18n, t } from '@/i18n';
 import { useNotifyAsked, useOnboarded } from '@/session-store';

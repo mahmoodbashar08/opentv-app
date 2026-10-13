@@ -846,8 +846,22 @@ export function topBanner(s: {
 
 export type PosterStatus = 'watching' | 'upToDate' | 'finished' | 'stopped' | 'none';
 
+export type PosterSpeech = {
+  key:
+    | 'a11y.poster'
+    | 'a11y.posterNotStarted'
+    | 'a11y.posterFinished'
+    | 'a11y.posterProgress'
+    | 'a11y.posterWatching'
+    | 'a11y.posterUpToDate'
+    | 'a11y.posterStopped';
+  vars: Record<string, string | number>;
+};
+
 /**
- * What VoiceOver reads for a poster tile.
+ * What VoiceOver reads for a poster tile — as a key and its variables, never a
+ * sentence, for the reason `airCountdown` gives: this used to build
+ * "Silo, 45% watched" in English and hand it to every locale.
  *
  * A poster is artwork with no text, so the tile aggregated to an EMPTY
  * accessibility label — the whole library grid came back as unlabelled
@@ -860,21 +874,21 @@ export type PosterStatus = 'watching' | 'upToDate' | 'finished' | 'stopped' | 'n
 export function posterLabel(
   name: string,
   s: { progress?: number; status?: PosterStatus },
-): string {
+): PosterSpeech {
+  const title = name;
   if (s.progress != null) {
-    if (s.progress <= 0) return `${name}, not started`;
-    if (s.progress >= 1) return `${name}, finished`;
-    return `${name}, ${Math.round(s.progress * 100)}% watched`;
+    if (s.progress <= 0) return { key: 'a11y.posterNotStarted', vars: { title } };
+    if (s.progress >= 1) return { key: 'a11y.posterFinished', vars: { title } };
+    return { key: 'a11y.posterProgress', vars: { title, percent: Math.round(s.progress * 100) } };
   }
-  const words: Record<PosterStatus, string> = {
-    watching: 'watching',
-    upToDate: 'up to date',
-    finished: 'finished',
-    stopped: 'stopped',
-    none: '',
+  const keys: Record<PosterStatus, PosterSpeech['key']> = {
+    watching: 'a11y.posterWatching',
+    upToDate: 'a11y.posterUpToDate',
+    finished: 'a11y.posterFinished',
+    stopped: 'a11y.posterStopped',
+    none: 'a11y.poster',
   };
-  const w = s.status ? words[s.status] : '';
-  return w ? `${name}, ${w}` : name;
+  return { key: keys[s.status ?? 'none'], vars: { title } };
 }
 
 /** Below this the screen is not wide enough for two usable halves: a 60% pane

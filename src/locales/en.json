@@ -3246,5 +3246,78 @@
       "public": "Streak on your public profile",
       "publicSub": "Days and colours only — never which show."
     }
+  },
+  "a11y": {
+    "back": "Back",
+    "close": "Close",
+    "more": "More",
+    "inbox": "Inbox",
+    "watched": "Watched",
+    "inLibrary": "In your library",
+    "show": "TV show",
+    "movie": "Movie",
+    "showAsGrid": "Show as grid",
+    "showAsList": "Show as list",
+    "seasonEpisode": "Season {{season}}, episode {{episode}}",
+    "episodesLeft": {
+      "one": "{{count}} episode left",
+      "other": "{{count}} episodes left"
+    },
+    "openShow": "Open the show",
+    "poster": "{{title}}",
+    "posterNotStarted": "{{title}}, not started",
+    "posterFinished": "{{title}}, finished",
+    "posterProgress": "{{title}}, {{percent}}% watched",
+    "posterWatching": "{{title}}, watching",
+    "posterUpToDate": "{{title}}, up to date",
+    "posterStopped": "{{title}}, stopped",
+    "seeAllHint": "Opens the whole section",
+    "earlier": "Earlier",
+    "later": "Later",
+    "dayWatched": {
+      "one": "{{date}}, {{count}} watched",
+      "other": "{{date}}, {{count}} watched"
+    },
+    "website": "Website",
+    "removeWidget": "Remove this widget",
+    "editWidget": "Edit this widget",
+    "oneFewer": "One fewer",
+    "oneMore": "One more",
+    "sharedList": "Shared list",
+    "pinned": "Pinned",
+    "stars": {
+      "one": "{{count}} star",
+      "other": "{{count}} stars"
+    },
+    "addToLibrary": "Add to library",
+    "removeFromLibrary": "Remove from library",
+    "backToNext": "Back to the next episode",
+    "markAll": "Mark or unmark every episode",
+    "rewatches": {
+      "one": "{{count}} rewatch",
+      "other": "{{count}} rewatches"
+    },
+    "airsInDays": {
+      "one": "airs in {{count}} day",
+      "other": "airs in {{count}} days"
+    },
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "bestEpisode": "Best episode",
+    "worstEpisode": "Worst episode",
+    "favourite": "Favourite",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "colour": "Colour {{n}}",
+    "attachImage": "Attach a picture",
+    "like": "Like",
+    "clearSearch": "Clear search",
+    "picture": "Picture {{n}}",
+    "newTopic": "New topic",
+    "season": "Season {{n}}",
+    "episode": "Episode {{n}}",
+    "looksRight": "Looks right",
+    "previousSlide": "Previous slide",
+    "nextSlide": "Next slide"
   }
 }

@@ -1,7 +1,7 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router } from 'expo-router';
-import type { ReactNode } from 'react';
-import { Dimensions, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
+import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
+import { Dimensions, I18nManager, Pressable, StyleSheet, Switch, Text, View, useWindowDimensions, type StyleProp, type SwitchProps, type ViewStyle } from 'react-native';
 import { initialWindowMetrics, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { track } from '@/analytics';
@@ -128,14 +128,19 @@ export function NavHeader({
   const windowed = appW < Dimensions.get('screen').width - 1;
   return (
     <View style={[s.navHead, windowed && { paddingLeft: WINDOW_CONTROLS_W }]}>
-      <Pressable style={s.iconBtn} onPress={() => router.back()} hitSlop={8}>
+      <Pressable
+        style={s.iconBtn}
+        onPress={() => router.back()}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={t(close ? 'a11y.close' : 'a11y.back')}>
         <Ionicons
           name={close ? 'chevron-down' : I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'}
           size={24}
           color={colors.text}
         />
       </Pressable>
-      <Text style={s.navTitle} numberOfLines={1}>
+      <Text style={s.navTitle} numberOfLines={1} accessibilityRole="header">
         {title ?? ''}
       </Text>
       <View style={s.navRight}>{right}</View>
@@ -213,6 +218,8 @@ export function TopTabs<T extends string>({
         <Pressable
           key={t}
           style={s.topTab}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: t === active }}
           onPress={() => {
             tapSelection();
             // The tab KEY, not its label: keys are constants chosen in code, so
@@ -232,7 +239,9 @@ export function TopTabs<T extends string>({
 export function SectionPill({ label }: { label: string }) {
   return (
     <View style={s.sectionPillWrap}>
-      <Text style={s.sectionPill}>{label}</Text>
+      <Text style={s.sectionPill} accessibilityRole="header">
+        {label}
+      </Text>
     </View>
   );
 }
@@ -284,6 +293,9 @@ export function PillButton({
             }
           : undefined
       }
+      accessibilityRole="button"
+      // The same rule as the opacity below, said to the screen reader.
+      accessibilityState={{ disabled: onPress == null }}
       style={[
         s.pill,
         { backgroundColor: bg },
@@ -330,6 +342,12 @@ export function CheckCircle({
           : undefined
       }
       hitSlop={8}
+      // A checkbox named after the state, not a button named after the action:
+      // "Watched, checked" is what it is, and flipping it is what a double-tap
+      // does. (A button would have to rename itself on every press.)
+      accessibilityRole="checkbox"
+      accessibilityLabel={t('a11y.watched')}
+      accessibilityState={{ checked: !!watched, disabled: onPress == null }}
       style={{
         width: size,
         height: size,
@@ -363,9 +381,25 @@ export function MenuRow({
   icon?: ReactNode;
   trackId?: string;
 }) {
+  /*
+   * A SWITCH ROW READS AS THE SWITCH, the way the system Settings app does it:
+   * "Private profile, only people you approve…, switch, off". The row is not an
+   * element (a Pressable is a leaf to VoiceOver, so a switch inside one could
+   * never be reached — every settings screen read as rows of "button" with
+   * nothing to flip), the Switch is handed the row's words, and the text
+   * column steps out of the way so the title is not read twice.
+   */
+  const switchRow = onPress == null && isValidElement(right) && right.type === Switch;
+  const rightNode = switchRow
+    ? cloneElement(right as ReactElement<SwitchProps>, { accessibilityLabel: [title, sub].filter(Boolean).join(', ') })
+    : right;
   return (
     <Pressable
       style={s.menuRow}
+      // A row that opens something is one button. A row that only HOLDS a
+      // control must not be an element itself, or nothing inside it is.
+      accessible={onPress != null}
+      accessibilityRole={onPress ? 'button' : undefined}
       onPress={
         onPress
           ? () => {
@@ -375,12 +409,12 @@ export function MenuRow({
           : undefined
       }>
       {icon}
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1 }} accessibilityElementsHidden={switchRow} importantForAccessibility={switchRow ? 'no-hide-descendants' : 'auto'}>
         <Text style={[s.menuTitle, danger && { color: colors.danger }]}>{title}</Text>
         {sub != null && <Text style={s.menuSub}>{sub}</Text>}
       </View>
       {value != null && <Text style={s.menuValue}>{value}</Text>}
-      {right ?? (onPress ? <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.faint} /> : null)}
+      {rightNode ?? (onPress ? <Ionicons name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'} size={18} color={colors.faint} /> : null)}
     </Pressable>
   );
 }
@@ -399,8 +433,11 @@ export function EmptyState({
 }) {
   return (
     <View style={s.empty}>
-      <Text style={s.emptyTitle}>{title}</Text>
-      <View style={s.emptyIllo}>
+      <Text style={s.emptyTitle} accessibilityRole="header">
+        {title}
+      </Text>
+      {/* Decoration: a screen reader would otherwise announce "popcorn". */}
+      <View style={s.emptyIllo} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
         <Text style={{ fontSize: 48 }}>🍿</Text>
       </View>
       {caption != null && <Text style={s.emptySub}>{caption}</Text>}
@@ -415,10 +452,10 @@ export function ErrorBar({ message, onDismiss, onRefresh }: { message: string; o
     <View style={s.errorBar}>
       <Text style={{ color: '#201014', fontSize: 15 }}>{message}</Text>
       <View style={s.errorActions}>
-        <Pressable onPress={onDismiss}>
+        <Pressable onPress={onDismiss} accessibilityRole="button">
           <Text style={s.errorAction}>{t('ui.dismiss')}</Text>
         </Pressable>
-        <Pressable onPress={onRefresh}>
+        <Pressable onPress={onRefresh} accessibilityRole="button">
           <Text style={s.errorAction}>{t('ui.refresh')}</Text>
         </Pressable>
       </View>
@@ -438,7 +475,8 @@ export function BlueLink({ label, onPress, trackId }: { label: string; onPress?:
             }
           : undefined
       }
-      hitSlop={6}>
+      hitSlop={6}
+      accessibilityRole="button">
       <Text style={{ color: colors.blue, fontWeight: '600', fontSize: 14.5 }}>{label}</Text>
     </Pressable>
   );
@@ -448,7 +486,9 @@ export function BlueLink({ label, onPress, trackId }: { label: string; onPress?:
 export function StatCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <View style={s.statCard}>
-      <Text style={s.statCardTitle}>{title}</Text>
+      <Text style={s.statCardTitle} accessibilityRole="header">
+        {title}
+      </Text>
       {children}
     </View>
   );

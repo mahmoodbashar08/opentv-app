@@ -258,7 +258,7 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
           <View style={styles.right}>
             <Text style={styles.best}>{t('popcornGame.best', { score: best })}</Text>
             {/* One control, one outcome, discoverable by pressing it. */}
-            <Pressable hitSlop={12} onPress={shuffle} accessibilityLabel={t('popcornGame.shuffle')}>
+            <Pressable accessibilityRole="button" hitSlop={12} onPress={shuffle} accessibilityLabel={t('popcornGame.shuffle')}>
               <Ionicons name="shuffle" size={16} color={colors.dim} />
             </Pressable>
           </View>
@@ -293,7 +293,7 @@ export function PopcornGame({ height = 240 }: { height?: number }) {
                 ? `  ·  ${t('popcornGame.newBest')}`
                 : `  ·  ${t('popcornGame.best', { score: best })}`}
             </Text>
-            <Pressable style={styles.again} onPress={restart}>
+            <Pressable accessibilityRole="button" style={styles.again} onPress={restart}>
               <Text style={styles.againText}>{t('popcornGame.playAgain')}</Text>
             </Pressable>
           </View>

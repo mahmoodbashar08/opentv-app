@@ -139,15 +139,17 @@ export function Heatmap({
   return (
     <View style={s.wrap}>
       <View style={s.head}>
-        <Pressable onPress={() => go(-1)} hitSlop={10}>
+        <Pressable onPress={() => go(-1)} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('a11y.earlier')}>
           <Ionicons
             name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'}
             size={20}
             color={colors.dim}
           />
         </Pressable>
-        <Text style={s.month}>{range}</Text>
-        <Pressable onPress={() => go(1)} hitSlop={10} disabled={atPresent}>
+        <Text style={s.month} accessibilityRole="header">
+          {range}
+        </Text>
+        <Pressable onPress={() => go(1)} hitSlop={10} disabled={atPresent} accessibilityRole="button" accessibilityLabel={t('a11y.later')}>
           <Ionicons
             name={I18nManager.isRTL ? 'chevron-back' : 'chevron-forward'}
             size={20}
@@ -178,10 +180,26 @@ export function Heatmap({
                   // starts on a 1st and ends on a 31st.
                   <View key={di} style={{ width: cell, height: cell }} />
                 ) : (
+                  /*
+                   * A DAY IS AN ELEMENT ONLY WHEN IT CAN BE TAPPED. Every cell
+                   * is a Pressable, so on the profile — where none of them do
+                   * anything — a screen reader was walked through a hundred
+                   * and eighty "dimmed buttons" with nothing to say; the
+                   * caption under the grid already carries the total. On the
+                   * emotion calendar a watched day is a button that names
+                   * its date and count.
+                   */
                   <Pressable
                     key={c.date}
                     onPress={onPressDay ? () => onPressDay(c.date) : undefined}
                     disabled={onPressDay == null || c.count === 0}
+                    accessible={onPressDay != null && c.count > 0}
+                    importantForAccessibility={onPressDay != null && c.count > 0 ? 'yes' : 'no-hide-descendants'}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('a11y.dayWatched', {
+                      date: new Date(`${c.date}T12:00:00`).toLocaleDateString(currentLocale(), { day: 'numeric', month: 'long' }),
+                      count: c.count,
+                    })}
                     style={[
                       {
                         width: cell,

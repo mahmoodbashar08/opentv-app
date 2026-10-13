@@ -105,7 +105,7 @@ export default function JellyfinScreen() {
 
         {connected ? (
           <>
-            <Text style={styles.sectionTitle}>{t('plex.connected')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('plex.connected')}</Text>
             <MenuRow trackId="jellyfin.server" title={t('jellyfin.server')} value={jellyfinServer() ?? ''} />
             <MenuRow trackId="jellyfin.lastSync" title={t('plex.lastSync')} value={syncedLabel} />
             <MenuRow trackId="jellyfin.syncNow" title={busy ? t('plex.syncing') : t('plex.syncNow')} onPress={busy ? undefined : () => void run()} />
@@ -118,6 +118,7 @@ export default function JellyfinScreen() {
               value={server}
               onChangeText={setServer}
               placeholder={t('jellyfin.serverHint')}
+              accessibilityLabel={t('jellyfin.serverHint')}
               placeholderTextColor={colors.faint}
               autoCapitalize="none"
               autoCorrect={false}
@@ -129,6 +130,7 @@ export default function JellyfinScreen() {
               value={user}
               onChangeText={setUser}
               placeholder={t('jellyfin.username')}
+              accessibilityLabel={t('jellyfin.username')}
               placeholderTextColor={colors.faint}
               autoCapitalize="none"
               autoCorrect={false}
@@ -139,6 +141,7 @@ export default function JellyfinScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder={t('jellyfin.password')}
+              accessibilityLabel={t('jellyfin.password')}
               placeholderTextColor={colors.faint}
               secureTextEntry
               textContentType="password"

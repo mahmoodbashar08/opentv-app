@@ -3246,5 +3246,78 @@
       "public": "Racha en tu perfil público",
       "publicSub": "Solo días y colores — nunca qué serie."
     }
+  },
+  "a11y": {
+    "back": "Atrás",
+    "close": "Cerrar",
+    "more": "Más",
+    "inbox": "Bandeja de entrada",
+    "watched": "Visto",
+    "inLibrary": "En tu biblioteca",
+    "show": "Serie",
+    "movie": "Película",
+    "showAsGrid": "Mostrar como cuadrícula",
+    "showAsList": "Mostrar como lista",
+    "seasonEpisode": "Temporada {{season}}, episodio {{episode}}",
+    "episodesLeft": {
+      "one": "{{count}} episodio pendiente",
+      "other": "{{count}} episodios pendientes"
+    },
+    "openShow": "Abrir la serie",
+    "poster": "{{title}}",
+    "posterNotStarted": "{{title}}, sin empezar",
+    "posterFinished": "{{title}}, terminado",
+    "posterProgress": "{{title}}, {{percent}} % visto",
+    "posterWatching": "{{title}}, viendo",
+    "posterUpToDate": "{{title}}, al día",
+    "posterStopped": "{{title}}, abandonado",
+    "seeAllHint": "Abre toda la sección",
+    "earlier": "Anterior",
+    "later": "Siguiente",
+    "dayWatched": {
+      "one": "{{date}}, {{count}} visto",
+      "other": "{{date}}, {{count}} vistos"
+    },
+    "website": "Sitio web",
+    "removeWidget": "Quitar este widget",
+    "editWidget": "Editar este widget",
+    "oneFewer": "Uno menos",
+    "oneMore": "Uno más",
+    "sharedList": "Lista compartida",
+    "pinned": "Fijada",
+    "stars": {
+      "one": "{{count}} estrella",
+      "other": "{{count}} estrellas"
+    },
+    "addToLibrary": "Añadir a la biblioteca",
+    "removeFromLibrary": "Quitar de la biblioteca",
+    "backToNext": "Volver al siguiente episodio",
+    "markAll": "Marcar o desmarcar todos los episodios",
+    "rewatches": {
+      "one": "{{count}} revisionado",
+      "other": "{{count}} revisionados"
+    },
+    "airsInDays": {
+      "one": "se emite en {{count}} día",
+      "other": "se emite en {{count}} días"
+    },
+    "previousMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "bestEpisode": "Mejor episodio",
+    "worstEpisode": "Peor episodio",
+    "favourite": "Favorito",
+    "showPassword": "Mostrar la contraseña",
+    "hidePassword": "Ocultar la contraseña",
+    "colour": "Color {{n}}",
+    "attachImage": "Adjuntar una imagen",
+    "like": "Me gusta",
+    "clearSearch": "Borrar la búsqueda",
+    "picture": "Imagen {{n}}",
+    "newTopic": "Nuevo tema",
+    "season": "Temporada {{n}}",
+    "episode": "Episodio {{n}}",
+    "looksRight": "Es correcto",
+    "previousSlide": "Diapositiva anterior",
+    "nextSlide": "Diapositiva siguiente"
   }
 }

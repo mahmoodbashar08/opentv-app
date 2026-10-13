@@ -33,10 +33,10 @@ const ITEMS = [
 
 export default function ProfileMenuSheet() {
   return (
-    <Pressable style={styles.backdrop} onPress={() => router.back()}>
-      <View style={styles.sheet}>
+    <Pressable accessible={false} style={styles.backdrop} onPress={() => router.back()}>
+      <View style={styles.sheet} accessibilityViewIsModal onAccessibilityEscape={() => router.back()}>
         {ITEMS.map((item) => (
-          <Pressable
+          <Pressable accessibilityRole="button"
             key={item.name}
             style={styles.row}
             onPress={() => {

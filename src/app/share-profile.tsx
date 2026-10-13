@@ -199,7 +199,7 @@ export default function ShareProfileScreen() {
         </View>
         </View>
 
-        <Pressable style={styles.shareBtn} onPress={share}>
+        <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={share}>
           <Ionicons name="share-outline" size={18} color={colors.onBrand} />
           <Text style={styles.shareText}>{t('shareCard.share')}</Text>
         </Pressable>

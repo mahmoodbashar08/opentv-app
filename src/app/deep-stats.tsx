@@ -37,7 +37,7 @@ function YearChips({ years, year, onChange }: { years: number[]; year: number | 
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.chipRow}>
       {[null, ...years].map((y) => (
-        <Pressable
+        <Pressable accessibilityRole="button" accessibilityState={{ selected: y === year }}
           key={y ?? 'all'}
           style={[styles.chip, y === year && styles.chipOn]}
           onPress={() => {
@@ -96,7 +96,7 @@ function ShareRow({ genres, score }: { genres: string[]; score: number | null })
           <Text style={styles.cardBrandSub}>{t('plus.stats.cardTagline')}</Text>
         </View>
       </View>
-      <Pressable style={styles.shareBtn} onPress={share}>
+      <Pressable accessibilityRole="button" style={styles.shareBtn} onPress={share}>
         <Ionicons name="share-outline" size={18} color={colors.onYellow} />
         <Text style={styles.shareText}>{t('plus.stats.share')}</Text>
       </Pressable>
@@ -109,7 +109,7 @@ function Locked() {
     <View style={styles.locked}>
       <Text style={styles.lockedTitle}>{t('plus.stats.lockedTitle')}</Text>
       <Text style={styles.lockedBody}>{t('plus.stats.lockedBody')}</Text>
-      <Pressable
+      <Pressable accessibilityRole="button"
         style={styles.shareBtn}
         onPress={() => {
           tapLight();

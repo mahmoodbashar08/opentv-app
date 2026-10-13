@@ -35,7 +35,7 @@ export default function GroupScreen() {
           </View>
         ))}
       </ScrollView>
-      <Pressable style={styles.fab} onPress={() => router.push('/create-topic')}>
+      <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.newTopic')} style={styles.fab} onPress={() => router.push('/create-topic')}>
         <Ionicons name="pencil" size={22} color={colors.onYellow} />
       </Pressable>
     </Screen>

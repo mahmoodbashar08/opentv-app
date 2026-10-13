@@ -94,7 +94,7 @@ function DeepStatsRow() {
   // is how it gets looked at before release. See `plusUiVisible`.
   if (!plusUi) return null;
   return (
-    <Pressable
+    <Pressable accessibilityRole="button"
       style={styles.deepRow}
       onPress={() => {
         tapLight();
@@ -167,7 +167,7 @@ export default function StatsScreen() {
           name -- and putting its only door behind a subscription was exactly
           backwards.
         */}
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={styles.deepRow}
           onPress={() => {
             tapLight();
@@ -184,7 +184,7 @@ export default function StatsScreen() {
             a view of marks the reader already made; Deep Stats is capability.
             Putting the free one first stops the section reading as a list of
             things they cannot have. */}
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={styles.deepRow}
           onPress={() => {
             tapLight();
@@ -356,7 +356,7 @@ export default function StatsScreen() {
             <StatCard title={t('stats.shows.appBadges', { count: badges.app.filter((b) => b.unlocked).length })}>
               <View style={styles.badgeGrid}>
                 {badges.app.map((b) => (
-                  <Pressable
+                  <Pressable accessibilityRole="button" accessibilityState={{ disabled: !b.unlocked }}
                     key={b.id}
                     style={[styles.appBadge, !b.unlocked && { opacity: 0.3 }]}
                     disabled={!b.unlocked}
@@ -374,7 +374,7 @@ export default function StatsScreen() {
             <StatCard title={t('stats.shows.watchBadges', { count: seedLib ? badges.watch.length : s.badges.length })}>
               <View style={styles.badgeGrid}>
                 {(seedLib ? badges.watch : []).map((b) => (
-                  <Pressable key={b.id} style={styles.appBadge} onPress={() => router.push(`/badge/${encodeURIComponent(b.id)}`)}>
+                  <Pressable accessibilityRole="button" key={b.id} style={styles.appBadge} onPress={() => router.push(`/badge/${encodeURIComponent(b.id)}`)}>
                     <Text style={{ fontSize: 30 }}>🏅</Text>
                     <Text style={styles.badgeLabel} numberOfLines={1}>
                       {b.show}

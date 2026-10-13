@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Animated, I18nManager, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { a11yAction } from '@/a11y';
 import { offerCommunityIfDue } from '@/community-prompt';
 import { isJoined } from '@/community-session';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
@@ -231,13 +232,27 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
       {actionable.length > 0 && (
         <View style={styles.card}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Text style={styles.cardTitle}>{t('import.summary.needsAttentionTitle', { count: actionable.length })}</Text>
-            <Pressable onPress={() => void copy(actionable.map((n) => n.name).join('\n'), 'all')} hitSlop={8}>
+            <Text accessibilityRole="header" style={styles.cardTitle}>{t('import.summary.needsAttentionTitle', { count: actionable.length })}</Text>
+            <Pressable accessibilityRole="button" onPress={() => void copy(actionable.map((n) => n.name).join('\n'), 'all')} hitSlop={8}>
               <Text style={styles.copyAll}>{copied === 'all' ? t('import.summary.copiedCheck') : t('import.summary.copyAll')}</Text>
             </Pressable>
           </View>
           {shown.map((n, i) => (
-            <Pressable key={i} style={[styles.missItem, { flexDirection: 'row', alignItems: 'center', gap: 10 }]} onPress={() => void copy(n.name, i)}>
+            <Pressable
+              key={i}
+              style={[styles.missItem, { flexDirection: 'row', alignItems: 'center', gap: 10 }]}
+              accessibilityRole="button"
+              // The Find button sits inside this row, so it is offered as the row's action too — see `a11y.ts`.
+              {...(fixed.has(`${n.kind}:${n.name}`)
+                ? null
+                : a11yAction('find', t('import.summary.find'), () =>
+                    router.push(
+                      n.kind === 'movie'
+                        ? `/fix-match?name=${encodeURIComponent(n.name)}`
+                        : `/fix-match?type=show&id=${n.id}&name=${encodeURIComponent(n.name)}`,
+                    ),
+                  ))}
+              onPress={() => void copy(n.name, i)}>
               <View style={{ flex: 1, gap: 2 }}>
                 <Text style={styles.missName}>
                   {n.kind === 'movie'
@@ -260,6 +275,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
                   <Pressable
                     style={styles.findBtn}
                     hitSlop={6}
+                    accessibilityRole="button"
                     onPress={() =>
                       router.push(
                         n.kind === 'movie'
@@ -274,7 +290,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
             </Pressable>
           ))}
           {actionable.length > shown.length && (
-            <Pressable style={styles.showAllBtn} onPress={() => setShowAllMissed(true)} hitSlop={6}>
+            <Pressable accessibilityRole="button" style={styles.showAllBtn} onPress={() => setShowAllMissed(true)} hitSlop={6}>
               <Text style={styles.showAllText}>{t('import.summary.showAll', { count: actionable.length })}</Text>
             </Pressable>
           )}
@@ -284,10 +300,10 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
 
       {explained.length > 0 && (
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>{t('import.summary.whyEmptyTitle', { count: explained.length })}</Text>
+          <Text accessibilityRole="header" style={styles.cardTitle}>{t('import.summary.whyEmptyTitle', { count: explained.length })}</Text>
           <Text style={[styles.missReason, { marginTop: 2 }]}>{t('import.summary.whyEmptyExplanation')}</Text>
           {explained.map((n, i) => (
-            <Pressable key={i} style={styles.missItem} onPress={() => void copy(n.name, `x${i}`)}>
+            <Pressable accessibilityRole="button" key={i} style={styles.missItem} onPress={() => void copy(n.name, `x${i}`)}>
               <Text style={styles.missName}>{n.name}</Text>
               <Text style={[styles.missReason, copied === `x${i}` && { color: colors.green }]}>
                 {copied === `x${i}` ? t('import.summary.copiedToClipboard') : n.reason}
@@ -325,7 +341,7 @@ function Summary({ result, onDone }: { result: ImportResult; onDone: () => void 
         </View>
       )}
 
-      <Pressable style={styles.cta} onPress={onDone}>
+      <Pressable accessibilityRole="button" style={styles.cta} onPress={onDone}>
         <Text style={styles.ctaText}>{t('import.summary.letsGo')}</Text>
       </Pressable>
     </ScrollView>
@@ -540,7 +556,7 @@ export default function ImportScreen() {
       <NavHeader />
       <ContentColumn style={{ flex: 1 }}>
       <View style={{ paddingHorizontal: space.xl, gap: 18, marginTop: 12, flex: 1 }}>
-        <Text style={styles.title}>{fromCloud ? t('import.titleRestore') : t('import.titleImport')}</Text>
+        <Text accessibilityRole="header" style={styles.title}>{fromCloud ? t('import.titleRestore') : t('import.titleImport')}</Text>
         {!result && (
           <Text style={styles.sub}>{fromCloud ? t('import.subRestore') : t('import.subImport')}</Text>
         )}
@@ -583,7 +599,7 @@ export default function ImportScreen() {
             {result ? (
               <>
                 <Text style={styles.donePhase}>{t('import.donePhase')}</Text>
-                <Pressable style={styles.doneCta} onPress={() => setRevealed(true)}>
+                <Pressable accessibilityRole="button" style={styles.doneCta} onPress={() => setRevealed(true)}>
                   <Text style={styles.ctaText}>{t('import.doneCta')}</Text>
                   <Ionicons name="arrow-forward" size={17} color={colors.onYellow} />
                 </Pressable>
@@ -591,7 +607,12 @@ export default function ImportScreen() {
             ) : progress ? (
               <>
                 <Text style={styles.phase}>{progress.phase}</Text>
-                <View style={styles.track}>
+                <View
+                  style={styles.track}
+                  accessible
+                  accessibilityRole="progressbar"
+                  accessibilityLabel={progress.phase}
+                  accessibilityValue={{ min: 0, max: 100, now: pct }}>
                   <View style={[styles.fill, { width: `${pct}%` }]} />
                 </View>
                 <Text style={styles.pct}>
@@ -659,7 +680,7 @@ export default function ImportScreen() {
           <>
             <Text style={styles.fromTitle}>{t('import.from.title')}</Text>
             {FROM.map((f) => (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 key={f.id}
                 style={styles.fromRow}
                 onPress={() => {
@@ -677,7 +698,7 @@ export default function ImportScreen() {
             {/* Only when it is true. On an empty phone this dropped people on
                 an empty home screen, with nothing imported and no way back. */}
             {hasLibrary() && (
-              <Pressable onPress={alreadyImported} hitSlop={8}>
+              <Pressable accessibilityRole="button" onPress={alreadyImported} hitSlop={8}>
                 <Text style={styles.link}>{t('import.alreadyOnDevice')}</Text>
               </Pressable>
             )}
@@ -697,12 +718,12 @@ export default function ImportScreen() {
               </View>
             ))}
 
-            <Pressable style={styles.cta} onPress={pick}>
+            <Pressable accessibilityRole="button" style={styles.cta} onPress={pick}>
               <Ionicons name="folder-open-outline" size={18} color={colors.onYellow} />
               <Text style={styles.ctaText}>{t('import.chooseFileButton')}</Text>
             </Pressable>
 
-            <Pressable onPress={() => setFrom(null)} hitSlop={8}>
+            <Pressable accessibilityRole="button" onPress={() => setFrom(null)} hitSlop={8}>
               <Text style={styles.link}>{t('import.from.change')}</Text>
             </Pressable>
           </>

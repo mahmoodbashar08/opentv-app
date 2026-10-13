@@ -342,17 +342,17 @@ export default function AddWidgetSheet() {
      * gesture because there is no longer anybody above it to take it first.
      */
     <View style={s.backdrop}>
-      <Pressable style={{ flex: 1 }} onPress={() => router.back()} />
+      <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} style={{ flex: 1 }} onPress={() => router.back()} />
 
       <View style={s.sheet}>
         <View style={s.head}>
-          <Text style={s.title}>{t('editLayout.add')}</Text>
+          <Text accessibilityRole="header" style={s.title}>{t('editLayout.add')}</Text>
           {/* HERE RATHER THAN ON THE GRID. Reset is wanted once, after an
               experiment somebody did not like, and the moment they want it is
               the moment they are already looking for a way to change what is on
               the profile. A permanent button on the page would cost every visit
               to serve that one occasion. */}
-          <Pressable hitSlop={10} onPress={reset}>
+          <Pressable accessibilityRole="button" hitSlop={10} onPress={reset}>
             <Text style={s.reset}>{t('editLayout.reset')}</Text>
           </Pressable>
         </View>
@@ -368,7 +368,7 @@ export default function AddWidgetSheet() {
               const placed = alreadyPlaced(id, layout);
               return (
                 <View key={id}>
-                  <Pressable style={s.row} disabled={placed} onPress={() => add(id)}>
+                  <Pressable accessibilityRole="button" accessibilityState={{ disabled: placed }} style={s.row} disabled={placed} onPress={() => add(id)}>
                     <Ionicons
                       name={(ICONS[id] ?? 'apps-outline') as never}
                       size={20}
@@ -411,13 +411,13 @@ export default function AddWidgetSheet() {
               fell straight through to it and closed the thing being looked at.
               Given the space above instead, it can only be hit where there is
               nothing else. */}
-          <Pressable style={{ flex: 1 }} onPress={() => setPreviewing(null)} />
+          <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} style={{ flex: 1 }} onPress={() => setPreviewing(null)} />
           <View style={s.preview}>
             <View style={s.previewHead}>
-              <Text style={s.previewTitle} numberOfLines={1}>
+              <Text accessibilityRole="header" style={s.previewTitle} numberOfLines={1}>
                 {WIDGET_NAME[previewing] ? t(WIDGET_NAME[previewing] as never) : previewing}
               </Text>
-              <Pressable
+              <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')}
                 hitSlop={12}
                 onPress={() => {
                   setPreviewing(null);
@@ -473,7 +473,7 @@ export default function AddWidgetSheet() {
               ))}
             </View>
 
-            <Pressable style={s.confirm} onPress={confirm}>
+            <Pressable accessibilityRole="button" style={s.confirm} onPress={confirm}>
               <Ionicons name="add-circle" size={20} color={colors.onYellow} />
               <Text style={s.confirmText}>{t('editLayout.addWidget')}</Text>
             </Pressable>

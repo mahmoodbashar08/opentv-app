@@ -19,6 +19,7 @@ import { Image } from 'expo-image';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { Poster } from '@/components/poster';
+import { a11yAction } from '@/a11y';
 import { t } from '@/i18n';
 import { colors, radius } from '@/theme';
 
@@ -78,6 +79,18 @@ export function ListCollage({
     <Pressable
       style={[styles.collage, empty && styles.collageEmpty, { height: collageHeight(tileW) }]}
       disabled={onPress == null}
+      accessibilityRole="button"
+      // The name, then the badges that change what the list is: the artwork is decoration.
+      accessibilityLabel={[
+        list.name,
+        list.hidden === true ? t('listsIndex.hiddenBadge') : null,
+        list.shared === true ? t('a11y.sharedList') : null,
+        list.pinned === true ? t('a11y.pinned') : null,
+      ]
+        .filter(Boolean)
+        .join(', ')}
+      // The ⋯ sits inside this element, so it is offered as an action too — see `a11y.ts`.
+      {...(onMenu != null ? a11yAction('menu', t('a11y.more'), onMenu) : null)}
       onPress={onPress}>
       {cover != null && (
         <Image source={{ uri: cover }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -118,6 +131,8 @@ export function ListCollage({
         <Pressable
           style={styles.dots}
           hitSlop={12}
+          accessibilityRole="button"
+          accessibilityLabel={t('a11y.more')}
           onPress={(e) => {
             e.stopPropagation();
             onMenu();

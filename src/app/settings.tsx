@@ -83,7 +83,7 @@ function confirmDeleteCommunityAccount(run: () => void) {
 const TABS = ['Account', 'App', 'Data'] as const;
 
 function SectionTitle({ title }: { title: string }) {
-  return <Text style={styles.sectionTitle}>{title}</Text>;
+  return <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>;
 }
 
 export default function SettingsScreen() {

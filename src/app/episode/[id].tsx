@@ -640,7 +640,7 @@ function EpisodePage({
                 that is not in the library — it falls back to fetched metadata —
                 so guarding on the library row here made the pill inert for
                 exactly the shows somebody most wants to look up. */}
-            <Pressable style={styles.showPill} onPress={() => tvdbId && router.push(`/show/${tvdbId}`)}>
+            <Pressable style={styles.showPill} onPress={() => tvdbId && router.push(`/show/${tvdbId}`)} accessibilityRole="button" accessibilityLabel={showName}>
               <Text style={styles.showPillText} numberOfLines={1}>
                 {showName.toUpperCase()} ›
               </Text>
@@ -648,6 +648,8 @@ function EpisodePage({
             <Pressable
               hitSlop={10}
               style={{ position: 'absolute', top: 12, end: 12 }}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.share')}
               onPress={() =>
                 show && router.push(`/share-card?type=episode&id=${show.tvdbId}&season=${season}&episode=${ep}`)
               }>
@@ -718,6 +720,9 @@ function EpisodePage({
                 <Pressable
                   key={tile.name}
                   style={{ width: 82, alignItems: 'center' }}
+                  accessibilityRole="radio"
+                  accessibilityLabel={tile.labelKey ? t(tile.labelKey) : tile.name}
+                  accessibilityState={{ selected: watchedOn === tile.name }}
                   onPress={() => {
                     const next = watchedOn === tile.name ? null : tile.name;
                     setWatchedOn(next);
@@ -764,7 +769,14 @@ function EpisodePage({
                 one that leaves room for a percentage per column */}
             <View style={styles.rateBox}>
               {STARS.map((lblKey, i) => (
-                <Pressable key={lblKey} style={styles.starCell} onPress={() => rate(i)}>
+                <Pressable
+                  key={lblKey}
+                  style={styles.starCell}
+                  // "3 stars, GOOD" — the legend under the box, said with the star.
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${t('a11y.stars', { count: i + 1 })}, ${t(lblKey)}`}
+                  accessibilityState={{ selected: stars === i }}
+                  onPress={() => rate(i)}>
                   <Text style={{ fontSize: 29, color: stars != null && i <= stars ? colors.brand : colors.pillGrey }}>★</Text>
                 </Pressable>
               ))}
@@ -803,6 +815,10 @@ function EpisodePage({
                   <Pressable
                     key={e.label}
                     style={[styles.emo, emotions.has(i) && { backgroundColor: colors.brand }]}
+                    accessibilityRole="checkbox"
+                    // The word, not the emoji's own name, and the share when there is one.
+                    accessibilityLabel={pct != null ? `${t(e.label)}, ${pct}%` : t(e.label)}
+                    accessibilityState={{ checked: emotions.has(i) }}
                     onPress={() => feel(i)}>
                     <Text style={{ fontSize: 24 }}>{e.face}</Text>
                     <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onBrand }]}>{t(e.label)}</Text>
@@ -842,6 +858,9 @@ function EpisodePage({
                             // `favChar === c.name` is how picking works at all.
                             key={c.name}
                             style={[{ width: 96, alignItems: 'center' }, dimmed && styles.charDim]}
+                            accessibilityRole="radio"
+                            accessibilityLabel={charPct[c.name] != null ? `${c.name}, ${charPct[c.name]}%` : c.name}
+                            accessibilityState={{ selected: picked }}
                             onPress={() => pickCharacter(c.name)}>
                             <View style={[styles.charCard, picked && styles.charPicked]}>
                               <Image source={{ uri: c.image }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -873,6 +892,9 @@ function EpisodePage({
                             // is recorded against, so it is the identity here.
                             key={label || c.name}
                             style={[{ width: 96, alignItems: 'center' }, dimmed && styles.charDim]}
+                            accessibilityRole="radio"
+                            accessibilityLabel={charPct[label] != null ? `${label}, ${charPct[label]}%` : label}
+                            accessibilityState={{ selected: picked }}
                             onPress={() => label && pickCharacter(label)}>
                             <View style={[styles.charCard, picked && styles.charPicked]}>
                               {face ? (
@@ -934,7 +956,12 @@ function EpisodePage({
             the blue pill below is the entry instead, so this must not also
             render or the screen has two doors to one place. */}
         {!watched && (
-          <Pressable style={[styles.card, styles.commentsRow]} onPress={openComments}>
+          <Pressable
+            style={[styles.card, styles.commentsRow]}
+            onPress={openComments}
+            accessibilityRole="button"
+            // Without this the › at the end is read out as a bracket.
+            accessibilityLabel={joined ? `${t('show.commentsTitle')}, ${t('community.comments.rowSub')}` : t('show.commentsTitle')}>
             <View style={{ flex: 1 }}>
               <Text style={styles.h2}>{t('show.commentsTitle')}</Text>
               {joined && (
@@ -950,7 +977,7 @@ function EpisodePage({
 
       {/* watched: the blue comments pill floats over the content */}
       {watched && (
-        <Pressable style={styles.commentsPillFloat} onPress={openComments}>
+        <Pressable style={styles.commentsPillFloat} onPress={openComments} accessibilityRole="button">
           <Text style={styles.commentsText}>{t('media.commentsPill')}</Text>
           <Ionicons name={I18nManager.isRTL ? 'arrow-back' : 'arrow-forward'} size={16} color="#FFF" />
         </Pressable>
@@ -1104,11 +1131,11 @@ export default function EpisodePagerScreen() {
             scrolls, so dragging it down always dismisses */}
         <GestureDetector gesture={headerGesture}>
         <View style={styles.header}>
-          <Pressable onPress={() => router.back()} hitSlop={10} style={{ position: 'absolute', start: 14 }}>
+          <Pressable onPress={() => router.back()} hitSlop={10} style={{ position: 'absolute', start: 14 }} accessibilityRole="button" accessibilityLabel={t('a11y.close')}>
             <Ionicons name="chevron-down" size={26} color={colors.text} />
           </Pressable>
           {titleMode ? (
-            <Text style={styles.headerTitle} numberOfLines={1}>
+            <Text style={styles.headerTitle} numberOfLines={1} accessibilityRole="header">
               {show?.name ?? ''} {headerCode}
             </Text>
           ) : (

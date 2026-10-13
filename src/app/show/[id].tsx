@@ -17,7 +17,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Image } from 'expo-image';
 
+import { a11yAction } from '@/a11y';
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
+import { posterSpeech } from '@/components/poster';
 import { useSwipeDown } from '@/components/swipe-down';
 import { StatusBarOnCover } from '@/components/profile-template';
 import { RatingsGrid } from '@/components/ratings-grid';
@@ -645,7 +647,7 @@ export default function ShowScreen() {
             <Text style={{ color: colors.dim, fontSize: 14.5, textAlign: 'center', paddingHorizontal: 40 }}>
               {t('show.loadFailed')}
             </Text>
-            <Pressable onPress={() => setMetaState('loading')} hitSlop={10}>
+            <Pressable onPress={() => setMetaState('loading')} hitSlop={10} accessibilityRole="button">
               <Text style={{ color: colors.blue, fontSize: 15, fontWeight: '600' }}>{t('show.retry')}</Text>
             </Pressable>
           </>
@@ -654,7 +656,7 @@ export default function ShowScreen() {
             <Text style={{ color: colors.dim, fontSize: 14.5 }}>{t('show.loading')}</Text>
           </RNAnimated.View>
         )}
-        <Pressable onPress={() => router.back()} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, start: 16 }}>
+        <Pressable onPress={() => router.back()} hitSlop={10} style={{ position: 'absolute', top: insets.top + 8, start: 16 }} accessibilityRole="button" accessibilityLabel={t('a11y.back')}>
           {/* Absolutely positioned over the backdrop image — see `colors.onArt`. */}
           <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={26} color={colors.onArt} />
         </Pressable>
@@ -686,15 +688,18 @@ export default function ShowScreen() {
               </>
             )}
         <View style={[styles.backdropBar, { marginTop: insets.top + 4 }]}>
-          <Pressable onPress={() => router.back()} hitSlop={10}>
+          <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('a11y.close')}>
             {/* In the bar that sits on the backdrop — see `colors.onArt`. */}
             <Ionicons name="chevron-down" size={26} color={colors.onArt} />
           </Pressable>
-          <Animated.Text style={[styles.barTitle, barTitleFade]} numberOfLines={1}>
+          {/* The title's scrolled-in twin; the heading below is the one read. */}
+          <Animated.Text style={[styles.barTitle, barTitleFade]} numberOfLines={1} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             {show.name}
           </Animated.Text>
           <Pressable
             hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t('a11y.more')}
             onPress={() => {
               const following = !!dbShow?.followed;
               const favorited = !!dbShow?.favorited;
@@ -816,7 +821,7 @@ export default function ShowScreen() {
                 with screenshots). Scaling down to 65% buys roughly half a line
                 of characters again and costs nothing in layout — the header is
                 still at most two lines, so nothing below it moves. */}
-            <Text selectable style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65}>
+            <Text selectable style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65} accessibilityRole="header">
               {show.name}
             </Text>
             <Text style={styles.meta}>
@@ -904,6 +909,7 @@ export default function ShowScreen() {
       {dbShow && metaState === 'failed' && meta?.tmdbId !== 0 && (
         <Pressable
           style={styles.fixMatch}
+          accessibilityRole="button"
           onPress={() => router.push(`/fix-match?type=show&id=${tvdbId}&name=${encodeURIComponent(show.name)}`)}>
           <Ionicons name="link-outline" size={20} color={colors.onYellow} />
           <View style={{ flex: 1, gap: 1 }}>
@@ -960,6 +966,8 @@ export default function ShowScreen() {
             <Pressable
               key={labelKey}
               style={[styles.interestBtn, interest === i && { backgroundColor: colors.brand }]}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: interest === i }}
               onPress={() => pickInterest(i)}>
               <Text style={[styles.interestText, interest === i && { color: colors.onBrand }]}>
                 {t(labelKey)}
@@ -971,7 +979,7 @@ export default function ShowScreen() {
           {meta?.similar?.[0] && (
             <>
               <View style={[styles.divider, { marginTop: 18 }]} />
-              <Pressable style={styles.similarRow} onPress={() => openSimilar(meta.similar![0]!)}>
+              <Pressable style={styles.similarRow} onPress={() => openSimilar(meta.similar![0]!)} accessibilityRole="button">
                 <View style={styles.similarThumb}>
                   {meta.similar[0].poster && (
                     <Image source={{ uri: meta.similar[0].poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
@@ -1060,6 +1068,7 @@ export default function ShowScreen() {
                     key={`${c.name}-${i}`}
                     style={styles.castCard}
                     disabled={!c.personId}
+                    accessibilityRole="button"
                     onPress={() => {
                       const pid = c.personId;
                       if (pid) router.push(`/person/${pid}?name=${encodeURIComponent(c.name ?? '')}`);
@@ -1109,7 +1118,14 @@ export default function ShowScreen() {
                   const tracked = isSimilarTracked(sim);
                   const busy = busySimilar === sim.tmdbId;
                   return (
-                    <Pressable key={sim.tmdbId} style={styles.alsoCard} onPress={() => openSimilar(sim)}>
+                    <Pressable
+                      key={sim.tmdbId}
+                      style={styles.alsoCard}
+                      onPress={() => openSimilar(sim)}
+                      accessibilityRole="button"
+                      accessibilityLabel={posterSpeech(sim.name ?? '')}
+                      // The badge is inside this element, so adding is offered as its action — see `a11y.ts`.
+                      {...a11yAction('library', t(tracked ? 'a11y.removeFromLibrary' : 'a11y.addToLibrary'), () => toggleSimilar(sim))}>
                       {sim.poster && (
                         <Image source={{ uri: sim.poster }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                       )}
@@ -1121,6 +1137,9 @@ export default function ShowScreen() {
                       <Pressable
                         hitSlop={8}
                         disabled={busy}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={t('a11y.inLibrary')}
+                        accessibilityState={{ checked: tracked, disabled: busy }}
                         onPress={() => toggleSimilar(sim)}
                         style={[
                           styles.alsoBadge,
@@ -1431,6 +1450,8 @@ export default function ShowScreen() {
                 return (
                   <Pressable
                     style={styles.chartPick}
+                    accessibilityRole="button"
+                    accessibilityLabel={[t('a11y.seasonEpisode', { season: picked.season, episode: picked.episode }), em?.title].filter(Boolean).join(', ')}
                     onPress={() => {
                       tapSelection();
                       router.push(`/episode/${show.tvdbId}-s${picked.season}e${picked.episode}`);
@@ -1496,6 +1517,7 @@ export default function ShowScreen() {
                 */}
               <Pressable
                 style={styles.rowBetween}
+                accessibilityRole="button"
                 onPress={() => {
                   tapSelection();
                   router.push(`/ratings/${show.tvdbId}`);
@@ -1524,6 +1546,7 @@ export default function ShowScreen() {
           <View style={[styles.divider, { marginTop: 18 }]} />
           <Pressable
             style={styles.rowBetween}
+            accessibilityRole="button"
             onPress={() => {
               tapSelection();
               if (joined) {
@@ -1562,6 +1585,8 @@ export default function ShowScreen() {
                 scrolling ahead to peek at later episodes without marking any */}
             <Pressable
               hitSlop={12}
+              accessibilityRole="button"
+              accessibilityLabel={t('a11y.backToNext')}
               onPress={() => {
                 if (!carousel.length) return;
                 const target = Math.min(carouselStart, carousel.length - 1);
@@ -1617,10 +1642,13 @@ export default function ShowScreen() {
               }
               const em = episodeMeta(show.tvdbId, item.season, item.episode);
               return (
+                // Not one element: the circle inside is its own checkbox and
+                // the text block is the button — see `a11y.ts`.
                 <Pressable
                   style={[styles.carCard, { width: CARD_W }]}
+                  accessible={false}
                   onPress={() => router.push(`/episode/${show.tvdbId}-s${item.season}e${item.episode}`)}>
-                  <View style={styles.carThumb}>
+                  <View style={styles.carThumb} accessible={false} importantForAccessibility="no-hide-descendants">
                     {em?.still ? (
                       <Image source={{ uri: em.still }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                     ) : (
@@ -1629,7 +1657,14 @@ export default function ShowScreen() {
                       </Text>
                     )}
                   </View>
-                  <View style={{ flex: 1, minWidth: 0, paddingHorizontal: 10 }}>
+                  <View
+                    style={{ flex: 1, minWidth: 0, paddingHorizontal: 10 }}
+                    accessible
+                    accessibilityRole="button"
+                    accessibilityLabel={[
+                      t('a11y.seasonEpisode', { season: item.season, episode: item.episode }),
+                      em?.title ?? t('show.episodeFallbackTitle', { n: item.episode }),
+                    ].join(', ')}>
                     <Text style={{ color: colors.text, fontSize: 16, fontWeight: '800' }}>
                       S{String(item.season).padStart(2, '0')} | E{String(item.episode).padStart(2, '0')}
                     </Text>
@@ -1661,9 +1696,13 @@ export default function ShowScreen() {
           <View style={styles.trackDivider} />
 
           <View style={[styles.rowBetween, { marginTop: 18, marginBottom: 8 }]}>
-            <Text style={[styles.h2, { fontSize: 16 }]}>{t('show.allEpisodesTitle')}</Text>
+            <Text style={[styles.h2, { fontSize: 16 }]} accessibilityRole="header">
+              {t('show.allEpisodesTitle')}
+            </Text>
             <Pressable
               hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t('a11y.markAll')}
               onPress={() => {
                 // mark/unmark the whole show — only verified aired episodes
                 const m = showMeta(show.tvdbId);
@@ -1737,8 +1776,12 @@ export default function ShowScreen() {
                * opacity in place and moves nothing.
                */
               <View key={sr.season}>
+                {/* Not one element — the season's circle is inside it. The
+                    name is the button that opens the season (a double-tap
+                    lands on this Pressable) and carries the count. */}
                 <Pressable
                   style={styles.seasonCard}
+                  accessible={false}
                   onPress={() => {
                     setExpanded((prev) => {
                       const next = new Set(prev);
@@ -1749,12 +1792,17 @@ export default function ShowScreen() {
                     // reopening a season starts from the top of its list again
                     if (isOpen) setEpLimits((prev) => ({ ...prev, [sr.season]: 120 }));
                   }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}
+                    accessible
+                    accessibilityRole="button"
+                    accessibilityState={{ expanded: isOpen }}
+                    accessibilityLabel={`${sr.season === 0 ? t('show.specials') : t('show.season', { n: sr.season })}, ${sr.watched}/${total ?? '—'}`}>
                     <Text style={styles.seasonName}>{sr.season === 0 ? t('show.specials') : t('show.season', { n: sr.season })}</Text>
                     <Ionicons name={isOpen ? 'chevron-up' : 'chevron-down'} size={18} color={colors.text} />
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                    <Text style={styles.seasonCount}>
+                    <Text style={styles.seasonCount} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                       {sr.watched}/{total ?? '—'}
                     </Text>
                     <CheckCircle
@@ -1904,11 +1952,14 @@ export default function ShowScreen() {
                     // control regardless (a date can be wrong; history isn't).
                     const soon = w ? null : airCountdown(em?.air, Date.now());
                     return (
+                      // The same shape as every card with a circle in it: the
+                      // row is not an element, the text block is the button.
                       <Pressable
                         key={epNum}
                         style={styles.epRow}
+                        accessible={false}
                         onPress={() => router.push(`/episode/${show.tvdbId}-s${sr.season}e${epNum}`)}>
-                        <View style={styles.epThumb}>
+                        <View style={styles.epThumb} accessible={false} importantForAccessibility="no-hide-descendants">
                           {em?.still ? (
                             <Image source={{ uri: em.still }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                           ) : (
@@ -1917,7 +1968,19 @@ export default function ShowScreen() {
                             </Text>
                           )}
                         </View>
-                        <View style={{ flex: 1, paddingVertical: 13 }}>
+                        <View
+                          style={{ flex: 1, paddingVertical: 13 }}
+                          accessible
+                          accessibilityRole="button"
+                          accessibilityLabel={[
+                            t('a11y.seasonEpisode', { season: sr.season, episode: epNum }),
+                            em?.title ?? t('show.episodeFallbackTitle', { n: epNum }),
+                            w ? t('show.watchedOnDate', { date: shortDate(w.watchedAt) }) : em?.air ? shortDate(em.air) : null,
+                            w?.rewatch ? t('a11y.rewatches', { count: w.rewatches ?? 1 }) : null,
+                            soon != null ? (soon.key === 'airIn.days' ? t('a11y.airsInDays', { count: soon.count }) : t(soon.key, { count: soon.count })) : null,
+                          ]
+                            .filter(Boolean)
+                            .join(', ')}>
                           <Text style={styles.epCode}>
                             S{String(sr.season).padStart(2, '0')} | E{String(epNum).padStart(2, '0')}
                             {abs != null ? ` (E${String(abs).padStart(2, '0')})` : ''}
@@ -1931,7 +1994,8 @@ export default function ShowScreen() {
                           </Text>
                         </View>
                         {soon != null ? (
-                          <View style={styles.epCountdown}>
+                          // Said in the row's label, in words; the bare number here is not.
+                          <View style={styles.epCountdown} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
                             <Text style={styles.epCountdownText} numberOfLines={2}>
                               {t(soon.key, { count: soon.count })}
                             </Text>
@@ -1956,6 +2020,7 @@ export default function ShowScreen() {
                   {epCount > epLimit && (
                     <Pressable
                       onPress={() => setEpLimits((prev) => ({ ...prev, [sr.season]: epLimit + 200 }))}
+                      accessibilityRole="button"
                       style={{ paddingVertical: 14, alignItems: 'center' }}>
                       <Text style={{ color: colors.yellow, fontWeight: '800', fontSize: 13.5 }}>
                         {t('show.showMoreLeft', { count: epCount - epLimit })}
@@ -1978,6 +2043,7 @@ export default function ShowScreen() {
       {!dbShow && (
         <Pressable
           style={[styles.addBar, { paddingBottom: insets.bottom + 14 }]}
+          accessibilityRole="button"
           onPress={() => {
             addShow(tvdbId, fetched?.name ?? show.name, fetched?.poster ?? null);
             setTick((t) => t + 1);
@@ -2129,6 +2195,17 @@ function ExtremeRow({
   return (
     <Pressable
       style={styles.extremeRow}
+      accessibilityRole="button"
+      // Spelled out: a run of ★ reads as "star star star".
+      accessibilityLabel={[
+        t(kind === 'best' ? 'a11y.bestEpisode' : 'a11y.worstEpisode'),
+        t('a11y.seasonEpisode', { season, episode }),
+        title || null,
+        t('a11y.stars', { count: stars }),
+        air ? shortDate(air) : null,
+      ]
+        .filter(Boolean)
+        .join(', ')}
       onPress={() => {
         tapSelection();
         router.push(`/episode/${showId}-s${season}e${episode}`);

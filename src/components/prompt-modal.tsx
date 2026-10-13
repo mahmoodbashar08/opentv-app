@@ -35,13 +35,16 @@ export function PromptModal({
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel} statusBarTranslucent>
       <KeyboardAvoidingView style={styles.center} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} />
+        <Pressable style={StyleSheet.absoluteFill} onPress={onCancel} accessibilityRole="button" accessibilityLabel={t('common.cancel')} />
         <View style={styles.card}>
-          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.title} accessibilityRole="header">
+            {title}
+          </Text>
           <TextInput
             value={text}
             onChangeText={setText}
             keyboardType={keyboardType}
+            accessibilityLabel={title}
             autoFocus
             selectTextOnFocus
             style={styles.input}
@@ -50,10 +53,10 @@ export function PromptModal({
             onSubmitEditing={() => onSubmit(text)}
           />
           <View style={styles.row}>
-            <Pressable style={styles.btn} onPress={onCancel} hitSlop={6}>
+            <Pressable style={styles.btn} onPress={onCancel} hitSlop={6} accessibilityRole="button">
               <Text style={styles.cancel}>{t('common.cancel')}</Text>
             </Pressable>
-            <Pressable style={styles.btn} onPress={() => onSubmit(text)} hitSlop={6}>
+            <Pressable style={styles.btn} onPress={() => onSubmit(text)} hitSlop={6} accessibilityRole="button">
               <Text style={styles.save}>{t('promptModal.save')}</Text>
             </Pressable>
           </View>

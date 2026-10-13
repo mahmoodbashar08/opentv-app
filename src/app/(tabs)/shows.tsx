@@ -4,7 +4,8 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { FlatList, I18nManager, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 
-import { Poster } from '@/components/poster';
+import { a11yAction } from '@/a11y';
+import { Poster, posterSpeech } from '@/components/poster';
 import { CheckCircle, EmptyState, Screen, TopTabs } from '@/components/ui';
 import { archiveCounts, getHistory, getMeta, getMovieTotals, getShowProgress, getTotals, libraryOwner, setMeta, type ShowProgress } from '@/db';
 import { markWatchedWithPrompt } from '@/mark';
@@ -351,7 +352,7 @@ export default function ShowsScreen() {
       {/* UX #5: hidden while there is nothing to watch — it was a fresh start's
           first tappable row, and for a free user it opened the paywall. */}
       {rows.length > 0 && (plus || !tonightClosed) && (
-        <Pressable style={styles.tonightRow} onPress={() => router.push(plus ? '/tonight' : '/paywall')}>
+        <Pressable style={styles.tonightRow} onPress={() => router.push(plus ? '/tonight' : '/paywall')} accessibilityRole="button">
           <Ionicons name="moon-outline" size={18} color={colors.yellow} />
           <View style={{ flex: 1 }}>
             <Text style={styles.tonightTitle}>{t('tonight.entry')}</Text>
@@ -375,7 +376,7 @@ export default function ShowsScreen() {
       )}
 
       {needsOriginal && (
-        <Pressable style={styles.upgradeBanner} onPress={() => router.push('/import')}>
+        <Pressable style={styles.upgradeBanner} onPress={() => router.push('/import')} accessibilityRole="button">
           <Ionicons name="shield-checkmark-outline" size={20} color={colors.yellow} />
           <View style={{ flex: 1 }}>
             <Text style={styles.upgradeTitle}>{t('shows.upgradeBannerTitle')}</Text>
@@ -394,7 +395,7 @@ export default function ShowsScreen() {
           profile showed nothing with no explanation anywhere. The phone knew.
           It just never said. */}
       {lostHistory && (
-        <Pressable style={styles.upgradeBanner} onPress={() => router.push('/import')}>
+        <Pressable style={styles.upgradeBanner} onPress={() => router.push('/import')} accessibilityRole="button">
           <Ionicons name="alert-circle-outline" size={20} color={colors.yellow} />
           <View style={{ flex: 1 }}>
             <Text style={styles.upgradeTitle}>{t('shows.lostHistoryTitle')}</Text>
@@ -434,24 +435,42 @@ export default function ShowsScreen() {
               {view === 'list' && history.length > 0 && (
                 <>
                   <View style={styles.pillRow}>
-                    <Text style={styles.sectionPill}>{t('shows.watchedHistorySection')}</Text>
+                    <Text style={styles.sectionPill} accessibilityRole="header">
+                      {t('shows.watchedHistorySection')}
+                    </Text>
                   </View>
                   {history.map((w, i) => {
                     const em = episodeMeta(w.showId, w.season, w.episode);
+                    const title = em?.title ?? t('show.episodeFallbackTitle', { n: w.episode });
                     return (
+                      /*
+                       * NOT AN ELEMENT ITSELF: see `a11y.ts`. The card holds the
+                       * mark-watched circle, the single most-pressed control in
+                       * the app, and a card that is one VoiceOver element hides
+                       * everything inside it. So the circle stands on its own
+                       * and the text block is the button that opens the episode
+                       * (a double-tap on it lands on this Pressable), with "open
+                       * the show" as its custom action in place of the pill.
+                       */
                       <Pressable
                         key={`h${i}`}
                         style={[styles.card, styles.histCard]}
+                        accessible={false}
                         onPress={() => router.push(`/episode/${w.showId}-s${w.season}e${w.episode}`)}>
-                        <View style={styles.thumb}>
+                        <View style={styles.thumb} accessible={false} importantForAccessibility="no-hide-descendants">
                           {em?.still ? (
                             <Image source={{ uri: em.still }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                           ) : (
                             <Text style={styles.thumbText}>{w.name.slice(0, 2).toUpperCase()}</Text>
                           )}
                         </View>
-                        <View style={styles.cardBody}>
-                          <Pressable style={styles.showPill} onPress={() => router.push(`/show/${w.showId}`)}>
+                        <View
+                          style={styles.cardBody}
+                          accessible
+                          accessibilityRole="button"
+                          accessibilityLabel={[w.name, t('a11y.seasonEpisode', { season: w.season, episode: w.episode }), title].join(', ')}
+                          {...a11yAction('openShow', t('a11y.openShow'), () => router.push(`/show/${w.showId}`))}>
+                          <Pressable style={styles.showPill} onPress={() => router.push(`/show/${w.showId}`)} accessibilityRole="button" accessibilityLabel={w.name}>
                             <Text style={styles.showPillText} numberOfLines={1}>
                               {w.name.toUpperCase()} ›
                             </Text>
@@ -460,7 +479,7 @@ export default function ShowsScreen() {
                             S{String(w.season).padStart(2, '0')} | E{String(w.episode).padStart(2, '0')}
                           </Text>
                           <Text style={styles.epSub} numberOfLines={1}>
-                            {em?.title ?? t('show.episodeFallbackTitle', { n: w.episode })}
+                            {title}
                           </Text>
                         </View>
                         <View style={{ paddingEnd: 12 }}>
@@ -490,7 +509,9 @@ export default function ShowsScreen() {
             if (item.type === 'pill') {
               return (
                 <View style={styles.pillRow}>
-                  <Text style={styles.sectionPill}>{item.label.toUpperCase()}</Text>
+                  <Text style={styles.sectionPill} accessibilityRole="header">
+                    {item.label.toUpperCase()}
+                  </Text>
                 </View>
               );
             }
@@ -505,9 +526,14 @@ export default function ShowsScreen() {
               // is claimed — see `seasonAirState`.
               const air = next === 'unknown' ? null : seasonAirState(showMeta(sp.tvdbId), nextCoords(sp, next).season, new Date().toISOString().slice(0, 10));
               const thumbUri = em?.still ?? sp.posterUrl;
+              const sub =
+                em?.title ?? (sp.lastWatchedAt ? t('shows.lastWatched', { date: shortDate(sp.lastWatchedAt) }) : t('shows.notStartedYet'));
               return (
+                // Same shape as the history card above: the circle is its own
+                // element, the text block is the button.
                 <Pressable
                   style={styles.card}
+                  accessible={false}
                   onPress={() =>
                     // metadata still loading — the coords are an unverified
                     // guess, so open the show (which fetches the real
@@ -518,7 +544,7 @@ export default function ShowsScreen() {
                       : router.push(`/episode/${sp.tvdbId}-s${nextS}e${nextE}`)
                   }
                 >
-                  <View style={styles.thumb}>
+                  <View style={styles.thumb} accessible={false} importantForAccessibility="no-hide-descendants">
                     {thumbUri ? (
                       <Image source={{ uri: thumbUri }} style={StyleSheet.absoluteFill} contentFit="cover" cachePolicy="disk" />
                     ) : (
@@ -544,8 +570,21 @@ export default function ShowsScreen() {
                       </View>
                     ) : null}
                   </View>
-                  <View style={styles.cardBody}>
-                    <Pressable style={styles.showPill} onPress={() => router.push(`/show/${sp.tvdbId}`)}>
+                  <View
+                    style={styles.cardBody}
+                    accessible
+                    accessibilityRole="button"
+                    accessibilityLabel={[
+                      sp.name,
+                      t('a11y.seasonEpisode', { season: nextS, episode: nextE }),
+                      sub,
+                      left != null && left > 0 ? t('a11y.episodesLeft', { count: left }) : null,
+                      air?.state === 'fullyAired' ? t('shows.allAired') : null,
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
+                    {...a11yAction('openShow', t('a11y.openShow'), () => router.push(`/show/${sp.tvdbId}`))}>
+                    <Pressable style={styles.showPill} onPress={() => router.push(`/show/${sp.tvdbId}`)} accessibilityRole="button" accessibilityLabel={sp.name}>
                       <Text style={styles.showPillText} numberOfLines={1}>
                         {sp.name.toUpperCase()} ›
                       </Text>
@@ -575,8 +614,7 @@ export default function ShowsScreen() {
                       ) : null}
                     </Text>
                     <Text style={styles.epSub} numberOfLines={1}>
-                      {em?.title ??
-                        (sp.lastWatchedAt ? t('shows.lastWatched', { date: shortDate(sp.lastWatchedAt) }) : t('shows.notStartedYet'))}
+                      {sub}
                     </Text>
                   </View>
                   <View style={{ paddingEnd: 12 }}>
@@ -588,7 +626,12 @@ export default function ShowsScreen() {
             return (
               <View style={styles.gridRow}>
                 {item.shows.map((sp) => (
-                  <Pressable key={sp.tvdbId} style={{ flex: 1 }} onPress={() => router.push(`/show/${sp.tvdbId}`)}>
+                  <Pressable
+                    key={sp.tvdbId}
+                    style={{ flex: 1 }}
+                    onPress={() => router.push(`/show/${sp.tvdbId}`)}
+                    accessibilityRole="button"
+                    accessibilityLabel={posterSpeech(sp.name, { progress: progressOf(sp) })}>
                     <Poster name={sp.name} uri={sp.posterUrl} progress={progressOf(sp)} progressColor={progressColorOf(sp)} animateProgress />
                   </Pressable>
                 ))}
@@ -602,6 +645,8 @@ export default function ShowsScreen() {
         <Pressable
           style={styles.gridToggle}
           hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={t(view === 'list' ? 'a11y.showAsGrid' : 'a11y.showAsList')}
           onPress={() => {
             const next = view === 'list' ? 'grid' : 'list';
             setView(next);
@@ -629,11 +674,18 @@ export default function ShowsScreen() {
             const days = Math.round((d.getTime() - new Date(today.toDateString()).getTime()) / 86400000);
             const label =
               days <= 0 ? t('shows.today') : days === 1 ? t('shows.tomorrow') : d.toLocaleDateString(currentLocale(), { weekday: 'short', month: 'short', day: 'numeric' });
+            const title = u.title ?? t('show.episodeFallbackTitle', { n: u.episode });
             return (
               <View>
-                {first && <Text style={styles.upcomingDate}>{label}</Text>}
+                {first && (
+                  <Text style={styles.upcomingDate} accessibilityRole="header">
+                    {label}
+                  </Text>
+                )}
                 <Pressable
                   style={styles.card}
+                  accessibilityRole="button"
+                  accessibilityLabel={[u.showName, t('a11y.seasonEpisode', { season: u.season, episode: u.episode }), title].join(', ')}
                   onPress={() => router.push(`/episode/${u.showId}-s${u.season}e${u.episode}`)}>
                   <View style={styles.thumb}>
                     {(u.still ?? u.poster) && (
@@ -647,7 +699,7 @@ export default function ShowsScreen() {
                     <Text style={styles.epCode}>
                       S{String(u.season).padStart(2, '0')} | E{String(u.episode).padStart(2, '0')}
                     </Text>
-                    <Text style={styles.epSub} numberOfLines={1}>{u.title ?? t('show.episodeFallbackTitle', { n: u.episode })}</Text>
+                    <Text style={styles.epSub} numberOfLines={1}>{title}</Text>
                   </View>
                 </Pressable>
               </View>

@@ -245,7 +245,7 @@ export function useCommentAttachment() {
           <View style={s.gifScreen}>
             <View style={s.gifHead}>
               <Text style={s.gifTitle}>{t('pickGif.title')}</Text>
-              <Pressable hitSlop={12} onPress={() => setGifOpen(false)}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} hitSlop={12} onPress={() => setGifOpen(false)}>
                 <Ionicons name="close" size={24} color={colors.text} />
               </Pressable>
             </View>

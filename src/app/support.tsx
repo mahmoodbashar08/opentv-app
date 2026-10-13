@@ -80,7 +80,7 @@ export default function SupportScreen() {
         <View style={s.gate}>
           <Ionicons name="chatbubbles-outline" size={40} color={colors.yellow} />
           <Text style={s.gateText}>{t('support.needAccount')}</Text>
-          <Pressable style={s.gateCta} onPress={() => router.replace('/sign-in?next=/support')}>
+          <Pressable accessibilityRole="button" style={s.gateCta} onPress={() => router.replace('/sign-in?next=/support')}>
             <Text style={s.gateCtaText}>{t('support.signIn')}</Text>
           </Pressable>
         </View>
@@ -120,11 +120,12 @@ export default function SupportScreen() {
             value={text}
             onChangeText={setText}
             placeholder={t('support.placeholder')}
+            accessibilityLabel={t('support.placeholder')}
             placeholderTextColor={colors.faint}
             multiline
             maxLength={MAX}
           />
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={[s.send, (!text.trim() || sending) && s.sendOff]}
             disabled={!text.trim() || sending}
             accessibilityLabel={t('support.send')}

@@ -152,7 +152,7 @@ export default function CoverAdjustScreen() {
       )}
 
       <View style={[styles.panel, { paddingBottom: Math.max(insets.bottom, space.lg) }]}>
-        <Text style={styles.title}>{t('coverAdjust.title')}</Text>
+        <Text accessibilityRole="header" style={styles.title}>{t('coverAdjust.title')}</Text>
         {uri == null && <Text style={styles.rowSub}>{t('editProfile.chooseCover')}</Text>}
 
         {plus && (
@@ -162,7 +162,7 @@ export default function CoverAdjustScreen() {
         )}
 
         {plus && (
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={styles.row}
             onPress={() => {
               tapSelection();
@@ -189,7 +189,7 @@ export default function CoverAdjustScreen() {
             {[null, ...OVERLAY_COLOURS].map((c) => {
               const on = (frame.tint ?? null) === c;
               return (
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityState={{ selected: on }}
                   key={c ?? 'auto'}
                   accessibilityLabel={c ?? t('coverAdjust.overlayAuto')}
                   onPress={() => {
@@ -221,10 +221,10 @@ export default function CoverAdjustScreen() {
         </View>
 
         <View style={styles.buttons}>
-          <Pressable style={styles.secondary} onPress={cancel}>
+          <Pressable accessibilityRole="button" style={styles.secondary} onPress={cancel}>
             <Text style={styles.secondaryText}>{t('common.cancel')}</Text>
           </Pressable>
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={styles.secondary}
             onPress={() => {
               tapSelection();
@@ -232,7 +232,7 @@ export default function CoverAdjustScreen() {
             }}>
             <Text style={styles.secondaryText}>{t('coverAdjust.reset')}</Text>
           </Pressable>
-          <Pressable style={styles.primary} onPress={done}>
+          <Pressable accessibilityRole="button" style={styles.primary} onPress={done}>
             <Text style={styles.primaryText}>{t('common.done')}</Text>
           </Pressable>
         </View>

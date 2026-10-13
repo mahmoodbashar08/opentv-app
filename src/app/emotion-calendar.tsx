@@ -134,7 +134,7 @@ export default function EmotionCalendarScreen() {
                 scrollEnabled={false}
                 keyExtractor={(x, i) => `${x.showId}-${x.season}-${x.episode}-${i}`}
                 renderItem={({ item }) => (
-                  <Pressable
+                  <Pressable accessibilityRole="button"
                     style={s.row}
                     onPress={() => router.push(`/episode/${item.showId}-s${item.season}e${item.episode}`)}>
                     <View style={{ flex: 1 }}>

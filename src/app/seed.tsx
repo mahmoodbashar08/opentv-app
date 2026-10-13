@@ -137,7 +137,7 @@ export default function SeedScreen() {
           ListHeaderComponent={
             <View style={styles.head}>
               <Text style={styles.emoji}>🗂️</Text>
-              <Text style={styles.title}>{t('community.seed.title')}</Text>
+              <Text accessibilityRole="header" style={styles.title}>{t('community.seed.title')}</Text>
 
               {phase === 'offer' && (
                 <>
@@ -244,10 +244,10 @@ export default function SeedScreen() {
         <View style={[styles.actions, { paddingBottom: space.sm + insets.bottom }]}>
           {phase === 'offer' && (
             <>
-              <Pressable style={styles.cta} onPress={bring}>
+              <Pressable accessibilityRole="button" style={styles.cta} onPress={bring}>
                 <Text style={styles.ctaText}>{t('community.seed.bring')}</Text>
               </Pressable>
-              <Pressable style={styles.later} onPress={close} hitSlop={12}>
+              <Pressable accessibilityRole="button" style={styles.later} onPress={close} hitSlop={12}>
                 <Text style={styles.laterText}>{t('community.seed.notNow')}</Text>
               </Pressable>
             </>
@@ -262,11 +262,11 @@ export default function SeedScreen() {
           {phase === 'finished' && (
             <>
               {result && !result.finished && (
-                <Pressable style={styles.cta} onPress={bring}>
+                <Pressable accessibilityRole="button" style={styles.cta} onPress={bring}>
                   <Text style={styles.ctaText}>{t('community.seed.tryAgain')}</Text>
                 </Pressable>
               )}
-              <Pressable style={styles.later} onPress={close} hitSlop={12}>
+              <Pressable accessibilityRole="button" style={styles.later} onPress={close} hitSlop={12}>
                 <Text style={styles.laterText}>{t('community.seed.close')}</Text>
               </Pressable>
             </>

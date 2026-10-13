@@ -692,6 +692,7 @@ export function ProfileTemplate({
               styles.statCell,
               i > 0 && i < cells.length - 1 && layout !== 'cards' && styles.statCellMid,
             ]}
+            accessibilityRole="button"
             onPress={c.onPress}
             // While arranging, the tap belongs to the block's menu (9 Oct).
             disabled={!c.onPress || editing}>
@@ -773,6 +774,7 @@ export function ProfileTemplate({
                 },
               ]}
               onPress={list.onSeeAll ?? first?.onPress}
+              accessibilityRole="button"
               disabled={editing || (list.onSeeAll == null && first?.onPress == null)}>
               {first != null ? (
                 // A real list: its name sits where a poster band's name sits.
@@ -797,6 +799,9 @@ export function ProfileTemplate({
             <Pressable
               style={styles.collage}
               onPress={list.onSeeAll ?? first.onPress}
+              accessibilityRole="button"
+              // The posters are decoration here; the list's name is the card.
+              accessibilityLabel={first.name}
               disabled={editing || (list.onSeeAll == null && !first.onPress)}>
               {first.items.slice(0, listTiles(W)).map((it, i) => (
                 <View key={`${it.name}-${i}`} style={{ width: LIST_TILE_W }}>
@@ -1053,7 +1058,13 @@ export function ProfileTemplate({
           {/* Both slots are rendered even when empty, so the centred name stays
               centred on a screen that has a bell and one that does not. */}
           <View style={styles.barSlot}>{barLeft}</View>
-          <Animated.Text style={[styles.barName, barNameStyle]} numberOfLines={1}>
+          {/* A second copy of the name, faded in by scroll. Opacity is nothing
+              to a screen reader, so this one is hidden from it for good. */}
+          <Animated.Text
+            style={[styles.barName, barNameStyle]}
+            numberOfLines={1}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants">
             {username}
           </Animated.Text>
           <View style={styles.barSlot}>{barRight}</View>
@@ -1084,7 +1095,7 @@ export function ProfileTemplate({
           </View>
           <View style={[styles.nameBlock, layout !== 'classic' && styles.nameBlockCards]}>
             <View style={styles.nameRow}>
-              <Text style={[styles.username, layout !== 'classic' && styles.usernameCards]} numberOfLines={1}>
+              <Text style={[styles.username, layout !== 'classic' && styles.usernameCards]} numberOfLines={1} accessibilityRole="header">
                 {username}
               </Text>
               {/* An outline, not a filled badge: it sits beside a name, not
@@ -1345,6 +1356,7 @@ export function ProfileTemplate({
               {editing && laid.length === 0 && (
                 <Pressable
                   style={[styles.emptyAdd, { top: 0, height: m.height(1) }]}
+                  accessibilityRole="button"
                   onPress={() => onAddWidget?.()}>
                   <Ionicons name="add" size={26} color={colors.dim} />
                   <Text style={styles.emptyAddText}>{t('editLayout.add')}</Text>

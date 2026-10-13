@@ -93,7 +93,7 @@ const COLLAPSED = 12;
 
 function Chip({ label, count, on, onPress }: { label: string; count: number; on: boolean; onPress: () => void }) {
   return (
-    <Pressable
+    <Pressable accessibilityRole="button" accessibilityState={{ selected: on }}
       style={[styles.chip, on ? styles.chipOn : styles.chipOff]}
       onPress={() => {
         tapLight();
@@ -108,7 +108,7 @@ function Chip({ label, count, on, onPress }: { label: string; count: number; on:
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>
       <View style={styles.chipRow}>{children}</View>
     </View>
   );
@@ -147,7 +147,7 @@ function AxisSection({
         />
       ))}
       {options.length > visible.length || expanded ? (
-        <Pressable style={styles.moreBtn} onPress={() => setExpanded((e) => !e)}>
+        <Pressable accessibilityRole="button" accessibilityState={{ expanded }} style={styles.moreBtn} onPress={() => setExpanded((e) => !e)}>
           <Text style={styles.moreText}>{expanded ? t('filters.showLess') : t('filters.showMore')}</Text>
         </Pressable>
       ) : null}
@@ -240,7 +240,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
       : t('filters.resultMovies', { n: shown, count: facts.length });
 
   return (
-    <Pressable style={styles.backdrop} onPress={() => router.back()}>
+    <Pressable accessible={false} style={styles.backdrop} onPress={() => router.back()}>
       <Animated.View style={[styles.wrap, { transform: [{ translateY: slide }] }]}>
         {/*
           THE NAVIGATION BAR IS PART OF THE SCREEN, NOT PART OF THE PADDING.
@@ -255,7 +255,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
           `Math.max` shape as `action-sheet.tsx`: the inset when there is one,
           the designed spacing when there is not.
         */}
-        <Pressable style={[styles.sheet, { paddingBottom: Math.max(insets.bottom + 10, 26) }]} onPress={() => {}}>
+        <Pressable accessible={false} accessibilityViewIsModal onAccessibilityEscape={() => router.back()} style={[styles.sheet, { paddingBottom: Math.max(insets.bottom + 10, 26) }]} onPress={() => {}}>
           <View style={styles.grabber} />
           <ScrollView
             style={styles.scroll}
@@ -265,7 +265,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
             {plusUi && (
             <Section title={t('filters.presetsTitle')}>
               {presets.map((p) => (
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityState={{ selected: sameFilters(p.filters, draft) }}
                   key={p.id}
                   style={[styles.chip, sameFilters(p.filters, draft) ? styles.chipOn : styles.chipOff]}
                   onPress={() => applyPreset(p)}
@@ -278,7 +278,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
                   </Text>
                 </Pressable>
               ))}
-              <Pressable style={styles.savePresetBtn} onPress={startSave}>
+              <Pressable accessibilityRole="button" style={styles.savePresetBtn} onPress={startSave}>
                 <Ionicons name={plus ? 'bookmark-outline' : 'lock-closed'} size={13} color={colors.yellow} />
                 <Text style={styles.savePresetText}>{t('filters.savePreset')}</Text>
               </Pressable>
@@ -288,7 +288,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
 
             <Section title={t('filters.sortByTitle')}>
               {SORTS.map((s) => (
-                <Pressable
+                <Pressable accessibilityRole="button" accessibilityState={{ selected: draft.sort === s.value }}
                   key={s.value}
                   style={[styles.chip, draft.sort === s.value ? styles.chipOn : styles.chipOff]}
                   onPress={() => {
@@ -402,7 +402,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
           <View style={styles.footer}>
             <Text style={styles.result}>{resultLine}</Text>
             <View style={styles.actions}>
-              <Pressable
+              <Pressable accessibilityRole="button"
                 style={styles.resetBtn}
                 onPress={() => {
                   tapLight();
@@ -410,7 +410,7 @@ export function FiltersSheet({ kind }: { kind: FilterKind }) {
                 }}>
                 <Text style={styles.resetText}>{t('filters.reset')}</Text>
               </Pressable>
-              <Pressable
+              <Pressable accessibilityRole="button"
                 style={styles.applyBtn}
                 onPress={() => router.back()}>
                 <Text style={styles.applyText}>{t('filters.apply')}</Text>

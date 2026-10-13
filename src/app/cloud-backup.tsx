@@ -428,6 +428,7 @@ export default function CloudBackupScreen() {
               value={url}
               onChangeText={setUrl}
               placeholder={t('cloudBackup.serverHint')}
+              accessibilityLabel={t('cloudBackup.serverHint')}
               placeholderTextColor={colors.faint}
               autoCapitalize="none"
               autoCorrect={false}
@@ -439,6 +440,7 @@ export default function CloudBackupScreen() {
               value={user}
               onChangeText={setUser}
               placeholder={t('cloudBackup.username')}
+              accessibilityLabel={t('cloudBackup.username')}
               placeholderTextColor={colors.faint}
               autoCapitalize="none"
               autoCorrect={false}
@@ -449,6 +451,7 @@ export default function CloudBackupScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder={t('cloudBackup.password')}
+              accessibilityLabel={t('cloudBackup.password')}
               placeholderTextColor={colors.faint}
               secureTextEntry
               textContentType="password"
@@ -463,7 +466,7 @@ export default function CloudBackupScreen() {
           </View>
         ) : (
           <>
-            <Text style={styles.sectionTitle}>{t('cloudBackup.chooseTitle')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('cloudBackup.chooseTitle')}</Text>
             {/* ON A SERVER OF THEIR OWN the first row is their server, not
                 ours, and it is free — the same row under its own name. */}
             <MenuRow

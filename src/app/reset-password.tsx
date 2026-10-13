@@ -105,6 +105,7 @@ export default function ResetPasswordScreen() {
                 value={password}
                 onChangeText={setPassword}
                 placeholder={t('community.setPassword.placeholder')}
+                accessibilityLabel={t('community.setPassword.placeholder')}
                 placeholderTextColor={colors.faint}
                 secureTextEntry={!show}
                 autoCapitalize="none"
@@ -114,14 +115,14 @@ export default function ResetPasswordScreen() {
                 autoFocus
                 onSubmitEditing={() => void submit()}
               />
-              <Pressable hitSlop={10} onPress={() => setShow((v) => !v)}>
+              <Pressable hitSlop={10} onPress={() => setShow((v) => !v)} accessibilityRole="button" accessibilityLabel={t(show ? 'a11y.hidePassword' : 'a11y.showPassword')}>
                 <Ionicons name={show ? 'eye-off-outline' : 'eye-outline'} size={20} color={colors.dim} />
               </Pressable>
             </View>
 
             <Text style={styles.hint}>{t('community.setPassword.rule', { count: PASSWORD_MIN })}</Text>
 
-            <Pressable style={[styles.cta, !ready && styles.dim]} disabled={!ready || busy} onPress={() => void submit()}>
+            <Pressable accessibilityRole="button" style={[styles.cta, !ready && styles.dim]} disabled={!ready || busy} onPress={() => void submit()}>
               {busy ? (
                 <ActivityIndicator color={colors.onYellow} />
               ) : (

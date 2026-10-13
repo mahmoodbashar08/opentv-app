@@ -188,7 +188,7 @@ function openActivity(n: Notification): void {
 function ActivityRow({ item }: { item: Notification }) {
   const uri = avatarUri(item.actor?.avatar_key);
   return (
-    <Pressable style={styles.row} onPress={() => openActivity(item)}>
+    <Pressable accessibilityRole="button" style={styles.row} onPress={() => openActivity(item)}>
       {uri != null ? (
         <Image source={{ uri }} style={styles.thumb} contentFit="cover" />
       ) : (
@@ -239,7 +239,7 @@ export default function NotificationsScreen() {
       <NavHeader
         title={t('notifications.title')}
         right={
-          <Pressable hitSlop={12} accessibilityLabel={t('activity.settings')} onPress={() => router.push('/notifications')}>
+          <Pressable accessibilityRole="button" hitSlop={12} accessibilityLabel={t('activity.settings')} onPress={() => router.push('/notifications')}>
             <Ionicons name="settings-outline" size={22} color={colors.text} />
           </Pressable>
         }

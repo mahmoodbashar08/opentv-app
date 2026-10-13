@@ -101,7 +101,7 @@ export default function StremioScreen() {
 
         {connected ? (
           <>
-            <Text style={styles.sectionTitle}>{t('plex.connected')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('plex.connected')}</Text>
             <MenuRow trackId="stremio.account" title={t('stremio.account')} value={stremioEmail() ?? ''} />
             <MenuRow trackId="stremio.lastSync" title={t('plex.lastSync')} value={syncedLabel} />
             <MenuRow trackId="stremio.syncNow" title={busy ? t('plex.syncing') : t('plex.syncNow')} onPress={busy ? undefined : () => void run()} />
@@ -114,6 +114,7 @@ export default function StremioScreen() {
               value={user}
               onChangeText={setUser}
               placeholder={t('stremio.email')}
+              accessibilityLabel={t('stremio.email')}
               placeholderTextColor={colors.faint}
               autoCapitalize="none"
               autoCorrect={false}
@@ -125,6 +126,7 @@ export default function StremioScreen() {
               value={password}
               onChangeText={setPassword}
               placeholder={t('stremio.password')}
+              accessibilityLabel={t('stremio.password')}
               placeholderTextColor={colors.faint}
               secureTextEntry
               textContentType="password"

@@ -197,7 +197,7 @@ export default function PlexScreen() {
                 copied. `selectable` stays: a long-press is what some people
                 reach for first, and taking it away to add a button would be a
                 trade rather than an addition. */}
-            <Pressable
+            <Pressable accessibilityRole="button"
               onPress={() => {
                 void Clipboard.setStringAsync(pin.code);
                 tapLight();
@@ -222,7 +222,7 @@ export default function PlexScreen() {
           </View>
         ) : connected ? (
           <>
-            <Text style={styles.sectionTitle}>{t('plex.connected')}</Text>
+            <Text accessibilityRole="header" style={styles.sectionTitle}>{t('plex.connected')}</Text>
             <MenuRow trackId="plex.lastSync" title={t('plex.lastSync')} value={syncedLabel} />
             <MenuRow
               trackId="plex.syncNow"

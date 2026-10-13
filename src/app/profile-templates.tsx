@@ -153,7 +153,7 @@ export default function ProfileTemplatesScreen() {
       {/* Twenty at most, so a plain wrapped grid rather than a virtualised list. */}
       <ScrollView contentContainerStyle={{ paddingBottom: 48, paddingTop: space.sm }}>
         <Text style={s.intro}>{t('templates.intro')}</Text>
-        {(fromTitles.length > 0 || making) && <Text style={s.section}>{t('templates.fromTitles')}</Text>}
+        {(fromTitles.length > 0 || making) && <Text accessibilityRole="header" style={s.section}>{t('templates.fromTitles')}</Text>}
         {fromTitles.length > 0 && <View style={s.grid2}>{fromTitles.map(card)}</View>}
         {making && (
           <View style={s.loading}>
@@ -161,9 +161,9 @@ export default function ProfileTemplatesScreen() {
             <Text style={s.layout}>{t('templates.fromTitlesLoading')}</Text>
           </View>
         )}
-        <Text style={s.section}>{t('templates.seasonal')}</Text>
+        <Text accessibilityRole="header" style={s.section}>{t('templates.seasonal')}</Text>
         <View style={s.grid2}>{TEMPLATES.filter((x) => x.season).map(card)}</View>
-        <Text style={s.section}>{t('templates.made')}</Text>
+        <Text accessibilityRole="header" style={s.section}>{t('templates.made')}</Text>
         <View style={s.grid2}>{TEMPLATES.filter((x) => !x.season).map(card)}</View>
         {/* The built-in ones first, always; the server's follow, and only
             when there are any — no empty heading for a phone without an account. */}

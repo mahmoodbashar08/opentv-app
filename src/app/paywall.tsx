@@ -272,11 +272,16 @@ export default function PaywallScreen() {
           {/* Long-press flips the entitlement in dev builds, so every Plus
               feature can be built and reviewed before a store product exists.
               __DEV__ only — it is compiled out of a release bundle. */}
+          {/* A Pressable only for the dev long-press; not an element, so the
+              title underneath reads as the heading it is. */}
           <Pressable
+            accessible={false}
             onLongPress={__DEV__ ? () => { tapLight(); setPlusEntitled(!plus); } : undefined}
             delayLongPress={800}>
             <Image source={require('@/assets/images/icon.png')} style={styles.mark} contentFit="contain" />
-            <Text style={styles.title}>{t('plus.title')}</Text>
+            <Text style={styles.title} accessibilityRole="header">
+              {t('plus.title')}
+            </Text>
           </Pressable>
 
           {plus ? (
@@ -291,7 +296,7 @@ export default function PaywallScreen() {
                 <View style={styles.accountCard}>
                   <Text style={styles.accountTitle}>{t('plus.accountTitle')}</Text>
                   <Text style={styles.accountBody}>{t('plus.accountBody')}</Text>
-                  <Pressable style={styles.accountCta} onPress={() => router.push('/sign-in?next=/cloud-backup')}>
+                  <Pressable accessibilityRole="button" style={styles.accountCta} onPress={() => router.push('/sign-in?next=/cloud-backup')}>
                     <Text style={styles.accountCtaText}>{t('plus.accountCta')}</Text>
                   </Pressable>
                 </View>
@@ -323,7 +328,7 @@ export default function PaywallScreen() {
               {/* CANCELLING IS NEVER HIDDEN. Apple requires the route and a
                   tier that buries it collects refunds rather than renewals. */}
               {status?.managementUrl != null && (
-                <Pressable onPress={() => void Linking.openURL(status.managementUrl!).catch(() => {})}>
+                <Pressable accessibilityRole="button" onPress={() => void Linking.openURL(status.managementUrl!).catch(() => {})}>
                   <Text style={styles.manage}>{t('plus.manage')}</Text>
                 </Pressable>
               )}
@@ -389,6 +394,7 @@ export default function PaywallScreen() {
                     value={codeText}
                     onChangeText={setCodeText}
                     placeholder={t('plus.code.placeholder')}
+                    accessibilityLabel={t('plus.code.placeholder')}
                     placeholderTextColor={colors.faint}
                     autoCapitalize="characters"
                     autoCorrect={false}
@@ -397,12 +403,12 @@ export default function PaywallScreen() {
                     onSubmitEditing={applyCode}
                     style={styles.codeInput}
                   />
-                  <Pressable style={styles.codeApply} onPress={applyCode} disabled={!codeText.trim()}>
+                  <Pressable accessibilityRole="button" style={styles.codeApply} onPress={applyCode} disabled={!codeText.trim()}>
                     <Text style={styles.codeApplyText}>{t('plus.code.apply')}</Text>
                   </Pressable>
                 </View>
               ) : (
-                <Pressable onPress={haveCode} hitSlop={8}>
+                <Pressable accessibilityRole="button" onPress={haveCode} hitSlop={8}>
                   <Text style={styles.codeLink}>{t('plus.code.have')}</Text>
                 </Pressable>
               )}
@@ -457,7 +463,7 @@ export default function PaywallScreen() {
                 today" over a product that charges today is the kind of claim
                 that gets an app pulled, not just rejected. */}
             {trial && <Text style={styles.noPayment}>{t('plus.noPaymentToday')}</Text>}
-            <Pressable
+            <Pressable accessibilityRole="button"
               style={[styles.cta, (!chosen || busy) && styles.dim]}
               disabled={!chosen || busy}
               onPress={() => void go()}>
@@ -467,7 +473,7 @@ export default function PaywallScreen() {
                 <Text style={styles.ctaText}>{trial ? t('plus.ctaTrial') : t('plus.ctaBuy')}</Text>
               )}
             </Pressable>
-            <Pressable style={styles.restore} hitSlop={12} disabled={busy} onPress={() => void doRestore()}>
+            <Pressable accessibilityRole="button" style={styles.restore} hitSlop={12} disabled={busy} onPress={() => void doRestore()}>
               <Text style={styles.restoreText}>{t('plus.restore')}</Text>
             </Pressable>
           </View>
@@ -523,7 +529,7 @@ function PlanCard({
   const months = offer ? offerMonths(offer) : null;
   if (offer?.pricingPhases[0]) price = offer.pricingPhases[0].price.formatted;
   return (
-    <Pressable style={[styles.plan, active && styles.planActive]} onPress={onPress}>
+    <Pressable style={[styles.plan, active && styles.planActive]} onPress={onPress} accessibilityRole="radio" accessibilityState={{ selected: active }}>
       <View style={{ flex: 1 }}>
         <Text style={styles.planLabel}>{label}</Text>
         {offer != null && months != null ? (

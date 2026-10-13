@@ -496,10 +496,10 @@ export default function CoverPickerScreen() {
     return (
       <Screen>
         <View style={styles.head}>
-          <Pressable onPress={() => setSelected(null)} hitSlop={8}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.back')} onPress={() => setSelected(null)} hitSlop={8}>
             <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={24} color={colors.text} />
           </Pressable>
-          <Text style={styles.headTitle} numberOfLines={1}>
+          <Text accessibilityRole="header" style={styles.headTitle} numberOfLines={1}>
             {selected.name}
           </Text>
           <View style={{ width: 24 }} />
@@ -517,8 +517,8 @@ export default function CoverPickerScreen() {
             data={backdrops}
             keyExtractor={(b) => b.path}
             contentContainerStyle={{ paddingHorizontal: space.lg, gap: 14, paddingBottom: 40, paddingTop: 8 }}
-            renderItem={({ item }) => (
-              <Pressable onPress={() => pick(item.path)} disabled={saving}>
+            renderItem={({ item, index }) => (
+              <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.picture', { n: index + 1 })} onPress={() => pick(item.path)} disabled={saving}>
                 <Image
                   source={{ uri: item.path }}
                   style={{ width: CONTENT_W - 2 * space.lg, aspectRatio: 16 / 9, borderRadius: 4, backgroundColor: colors.raise }}
@@ -541,10 +541,10 @@ export default function CoverPickerScreen() {
   return (
     <Screen>
       <View style={styles.head}>
-        <Pressable onPress={() => router.back()} hitSlop={8}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.back')} onPress={() => router.back()} hitSlop={8}>
           <Ionicons name={I18nManager.isRTL ? 'chevron-forward' : 'chevron-back'} size={24} color={colors.text} />
         </Pressable>
-        <Text style={styles.headTitle}>
+        <Text accessibilityRole="header" style={styles.headTitle}>
           {listName != null ? t('plus.lists.chooseCover') : t('editProfile.chooseCover')}
         </Text>
         <View style={{ width: 24 }} />
@@ -577,7 +577,7 @@ export default function CoverPickerScreen() {
             /* A MOVING BANNER IS PLUS, a still one is not — the same line the
                profile theme already draws. Both are cosmetics other people see;
                choosing a cover at all is not. */
-            <Pressable
+            <Pressable accessibilityRole="tab" accessibilityState={{ selected: tab === k }}
               key={k}
               style={[styles.tab, tab === k && styles.tabOn]}
               // The row only exists for a Plus user now, so there is nothing
@@ -613,7 +613,7 @@ export default function CoverPickerScreen() {
           <Ionicons name="cloud-upload-outline" size={44} color={colors.yellow} />
           <Text style={styles.uploadTitle}>{t('coverPicker.uploadTitle')}</Text>
           <Text style={styles.uploadBody}>{t('coverPicker.uploadBody')}</Text>
-          <Pressable style={styles.uploadBtn} onPress={() => void chooseUpload()} disabled={uploading}>
+          <Pressable accessibilityRole="button" style={styles.uploadBtn} onPress={() => void chooseUpload()} disabled={uploading}>
             {uploading ? (
               <ActivityIndicator color={colors.onYellow} />
             ) : (
@@ -626,7 +626,7 @@ export default function CoverPickerScreen() {
            so nothing here is anybody's show. */
         <ScrollView contentContainerStyle={styles.oursGrid}>
           {TEMPLATES.map((tpl) => (
-            <Pressable key={tpl.id} style={{ width: oursW }} onPress={() => void chooseOurs(tpl)} disabled={saving}>
+            <Pressable accessibilityRole="button" key={tpl.id} style={{ width: oursW }} onPress={() => void chooseOurs(tpl)} disabled={saving}>
               <Image source={tpl.banner} style={styles.oursImg} contentFit="cover" />
               <Text style={styles.oursName} numberOfLines={1}>
                 {t(`templates.name.${tpl.id}` as LocaleKey)}

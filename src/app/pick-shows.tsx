@@ -165,15 +165,15 @@ function PickGrid({ kind, onSkip, onContinue }: { kind: 'tv' | 'movie'; onSkip: 
   return (
     <View style={[s.screen, { paddingTop: insets.top + space.md }]}>
       <View style={s.head}>
-        <Text style={s.title}>{t(film ? 'pickShows.filmsTitle' : 'pickShows.title')}</Text>
-        <Pressable hitSlop={12} onPress={onSkip}>
+        <Text accessibilityRole="header" style={s.title}>{t(film ? 'pickShows.filmsTitle' : 'pickShows.title')}</Text>
+        <Pressable accessibilityRole="button" hitSlop={12} onPress={onSkip}>
           <Text style={s.skip}>{t('pickShows.skip')}</Text>
         </Pressable>
       </View>
       <Text style={s.sub}>{t(film ? 'pickShows.filmsSub' : 'pickShows.sub')}</Text>
       <View style={s.searchBox}>
         <Ionicons name="search" size={18} color={colors.dim} />
-        <TextInput
+        <TextInput accessibilityLabel={t(film ? 'pickShows.filmsSearch' : 'pickShows.search')}
           style={s.search}
           value={query}
           onChangeText={setQuery}
@@ -230,7 +230,7 @@ function PickGrid({ kind, onSkip, onContinue }: { kind: 'tv' | 'movie'; onSkip: 
       )}
 
       <View style={[s.bar, { paddingBottom: Math.max(insets.bottom, space.md) }]}>
-        <Pressable style={[s.cta, picked.size === 0 && s.ctaOff]} disabled={picked.size === 0} onPress={() => {
+        <Pressable accessibilityRole="button" style={[s.cta, picked.size === 0 && s.ctaOff]} disabled={picked.size === 0} onPress={() => {
             tapLight();
             onContinue([...picked.values()]);
           }}>
@@ -297,8 +297,8 @@ function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
   return (
     <View style={[s.screen, { paddingTop: insets.top + space.md }]}>
       <View style={s.head}>
-        <Text style={s.title}>{t('pickShows.whereTitle')}</Text>
-        <Pressable hitSlop={12} onPress={onDone}>
+        <Text accessibilityRole="header" style={s.title}>{t('pickShows.whereTitle')}</Text>
+        <Pressable accessibilityRole="button" hitSlop={12} onPress={onDone}>
           <Text style={s.skip}>{t('pickShows.skip')}</Text>
         </Pressable>
       </View>
@@ -318,7 +318,7 @@ function WhereStep({ picks, onDone }: { picks: Pick[]; onDone: () => void }) {
         )}
       />
       <View style={[s.bar, { paddingBottom: Math.max(insets.bottom, space.md) }]}>
-        <Pressable style={s.cta} onPress={apply}>
+        <Pressable accessibilityRole="button" style={s.cta} onPress={apply}>
           <Text style={s.ctaText}>{t('pickShows.done')}</Text>
         </Pressable>
       </View>
@@ -404,7 +404,7 @@ function WhereCard({
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ gap: 8 }}
             renderItem={({ item: n }) => (
-              <Pressable
+              <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.season', { n })} accessibilityState={{ selected: n === ep.seasonNumber }}
                 style={[s.seasonPill, n === ep.seasonNumber && s.seasonOn]}
                 onPress={() => onSet({ mode: 'partway', at: Math.max(1, list.findIndex((x) => x.seasonNumber === n)) })}>
                 <Text style={[s.seasonText, n === ep.seasonNumber && s.seasonTextOn]}>S{n}</Text>
@@ -421,7 +421,7 @@ function WhereCard({
             getItemLayout={(_, i) => ({ length: EP_W + 8, offset: (EP_W + 8) * i, index: i })}
             initialScrollIndex={Math.max(0, inSeason.findIndex((x) => x.i === at) - 2)}
             renderItem={({ item: x }) => (
-              <Pressable
+              <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.episode', { n: x.ep.number })} accessibilityState={{ selected: x.i === at, disabled: x.i === 0 }}
                 style={[s.epPill, x.i === at && s.seasonOn, x.i === 0 && { opacity: 0.35 }]}
                 disabled={x.i === 0}
                 onPress={() => onSet({ mode: 'partway', at: x.i })}>

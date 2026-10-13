@@ -222,7 +222,7 @@ export default function AppearanceScreen() {
                 }}
               />
               {profileTheme != null && (
-                <Pressable onPress={() => pickProfileTheme(null)} hitSlop={8} disabled={publishing}>
+                <Pressable accessibilityRole="button" onPress={() => pickProfileTheme(null)} hitSlop={8} disabled={publishing}>
                   <Text style={s.clear}>{t('plus.appearance.profileThemeClear')}</Text>
                 </Pressable>
               )}

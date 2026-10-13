@@ -52,6 +52,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import { tapLight } from '@/haptics';
+import { t } from '@/i18n';
 import { colors } from '@/theme';
 
 /** The corner the remove badge occupies: 24pt of badge, its overhang, and a
@@ -399,14 +400,14 @@ export function ArrangeableBlock({
         {editing && canRemove && (
           /* Top-LEFT, where a home screen puts it — less a design choice than a
              place people's thumbs already go. */
-          <Pressable style={[s.minus, { left: badgeLeft, top: badgeTop }]} hitSlop={10} onPress={onRemove}>
+          <Pressable style={[s.minus, { left: badgeLeft, top: badgeTop }]} hitSlop={10} onPress={onRemove} accessibilityRole="button" accessibilityLabel={t('a11y.removeWidget')}>
             <Ionicons name="remove" size={16} color="#000" />
           </Pressable>
         )}
         {/* TOP-RIGHT, opposite the minus, so remove and edit can never be
             confused for one another under a moving thumb. */}
         {editing && onEdit != null && (
-          <Pressable style={[s.pencil, { right: badgeLeft, top: badgeTop }]} hitSlop={10} onPress={onEdit}>
+          <Pressable style={[s.pencil, { right: badgeLeft, top: badgeTop }]} hitSlop={10} onPress={onEdit} accessibilityRole="button" accessibilityLabel={t('a11y.editWidget')}>
             <Ionicons name="pencil" size={13} color="#000" />
           </Pressable>
         )}
@@ -424,10 +425,10 @@ export function ArrangeBar({ onAdd, onDone }: { onAdd: () => void; onDone: () =>
           for was missing exactly when they went looking for it. A sheet that
           says "nothing to add" answers the question; an absent button leaves
           them hunting for a feature they were told exists. */}
-      <Pressable style={s.add} onPress={onAdd} hitSlop={8}>
+      <Pressable style={s.add} onPress={onAdd} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('editLayout.add')}>
         <Ionicons name="add" size={22} color={colors.text} />
       </Pressable>
-      <Pressable style={s.done} onPress={onDone} hitSlop={8}>
+      <Pressable style={s.done} onPress={onDone} hitSlop={8} accessibilityRole="button" accessibilityLabel={t('common.done')}>
         <Ionicons name="checkmark" size={20} color={colors.onYellow} />
       </Pressable>
     </View>

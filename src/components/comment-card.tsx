@@ -126,7 +126,7 @@ export function CommentCard({
   return (
     <Card style={styles.card} onPress={onPress}>
       <View style={styles.head}>
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={styles.head}
           onPress={onPressAuthor}
           disabled={onPressAuthor == null}
@@ -148,14 +148,14 @@ export function CommentCard({
         <View style={{ flex: 1 }} />
         {mine === true && <View style={styles.mineDot} />}
         {onMenu != null && (
-          <Pressable hitSlop={10} onPress={onMenu}>
+          <Pressable hitSlop={10} onPress={onMenu} accessibilityRole="button" accessibilityLabel={t('a11y.more')}>
             <Ionicons name="ellipsis-horizontal" size={17} color={colors.dim} />
           </Pressable>
         )}
       </View>
 
       {entity != null && entity !== '' && (
-        <Pressable style={styles.entityPill} onPress={onPressEntity} disabled={onPressEntity == null}>
+        <Pressable style={styles.entityPill} onPress={onPressEntity} disabled={onPressEntity == null} accessibilityRole="button" accessibilityLabel={entity}>
           <Text style={styles.entityText}>{entity.toUpperCase()} ›</Text>
         </Pressable>
       )}
@@ -170,7 +170,7 @@ export function CommentCard({
       {hidden ? (
         // The tap target is the hidden body itself: a reader who wants it says
         // so deliberately, and one who does not never has it on screen.
-        <Pressable style={styles.spoiler} onPress={onReveal}>
+        <Pressable accessibilityRole="button" style={styles.spoiler} onPress={onReveal}>
           <Ionicons name="eye-off-outline" size={15} color={colors.dim} />
           <Text style={styles.spoilerText}>
             {t(spoilerReason === 'unseen' ? 'community.comments.unseenHidden' : 'community.comments.spoilerHidden')}
@@ -181,7 +181,7 @@ export function CommentCard({
           {body !== '' && <Text style={styles.body}>{showTranslated && translation ? translation.text : body}</Text>}
           {/* The same link, words and behaviour as on OpenTV's own comments. */}
           {translate != null && body !== '' && !translation?.same && (
-            <Pressable
+            <Pressable accessibilityRole="button"
               hitSlop={6}
               onPress={() => {
                 if (busy) return;
@@ -239,7 +239,17 @@ export function CommentCard({
       )}
 
       <View style={styles.actions}>
-        <Pressable style={styles.action} onPress={onLike} disabled={onLike == null} hitSlop={8}>
+        {/* "Like, 12, checked": the count is the value, so the heart is still
+            the thing being toggled. */}
+        <Pressable
+          style={styles.action}
+          onPress={onLike}
+          disabled={onLike == null}
+          hitSlop={8}
+          accessibilityRole="checkbox"
+          accessibilityLabel={t('a11y.like')}
+          accessibilityState={{ checked: liked === true }}
+          accessibilityValue={{ text: String(likes) }}>
           <Ionicons
             name={liked === true ? 'heart' : 'heart-outline'}
             size={22}
@@ -247,12 +257,19 @@ export function CommentCard({
           />
           <Text style={styles.actionCount}>{likes}</Text>
         </Pressable>
-        <Pressable style={styles.action} onPress={onReply} disabled={onReply == null} hitSlop={8}>
+        <Pressable
+          style={styles.action}
+          onPress={onReply}
+          disabled={onReply == null}
+          hitSlop={8}
+          accessibilityRole="button"
+          accessibilityLabel={t('community.comments.reply')}
+          accessibilityValue={{ text: String(replies) }}>
           <Ionicons name="chatbubble-outline" size={20} color="#C9C9CF" />
           <Text style={styles.actionCount}>{replies}</Text>
         </Pressable>
         {onShare != null && (
-          <Pressable hitSlop={10} style={{ marginStart: 'auto' }} onPress={onShare}>
+          <Pressable hitSlop={10} style={{ marginStart: 'auto' }} onPress={onShare} accessibilityRole="button" accessibilityLabel={t('common.share')}>
             <Ionicons name="share-outline" size={20} color="#C9C9CF" />
           </Pressable>
         )}

@@ -300,7 +300,7 @@ export default function SharedCommentScreen() {
               <View>
                 <Card c={item} reply mine={mine.has(item.id) || item.id.startsWith('local-')} revealed={revealed.has(item.id)} onReveal={() => reveal(item.id)} onMenu={menuFor(item)} onReply={() => openWriter(item)} />
                 {item.replyCount > 0 && !branches[item.id] && !sent[item.id] && (
-                  <Pressable style={styles.branch} onPress={() => openBranch(item)}>
+                  <Pressable accessibilityRole="button" style={styles.branch} onPress={() => openBranch(item)}>
                     <Text style={styles.branchText}>{t('commsuni.showReplies', { count: item.replyCount })}</Text>
                   </Pressable>
                 )}
@@ -323,7 +323,7 @@ export default function SharedCommentScreen() {
             )}
             contentContainerStyle={{ paddingBottom: 110 }}
           />
-          <Pressable style={[styles.pencil, { bottom: Math.max(insets.bottom, space.xl) }]} accessibilityLabel={t('community.comments.reply')} onPress={() => openWriter()}>
+          <Pressable accessibilityRole="button" style={[styles.pencil, { bottom: Math.max(insets.bottom, space.xl) }]} accessibilityLabel={t('community.comments.reply')} onPress={() => openWriter()}>
             <Ionicons name="pencil" size={24} color={colors.onYellow} />
           </Pressable>
         </>
@@ -341,10 +341,10 @@ export default function SharedCommentScreen() {
       <Modal visible={writing} animationType="slide" presentationStyle="fullScreen" onRequestClose={() => setWriting(false)}>
         <KeyboardAvoidingView style={[styles.writeScreen, { paddingTop: insets.top + 8 }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <View style={styles.writeHead}>
-            <Pressable hitSlop={12} accessibilityLabel={t('community.comments.closeWriting')} onPress={() => setWriting(false)}>
+            <Pressable accessibilityRole="button" hitSlop={12} accessibilityLabel={t('community.comments.closeWriting')} onPress={() => setWriting(false)}>
               <Ionicons name="close" size={26} color={colors.text} />
             </Pressable>
-            <Pressable disabled={!canSend} style={[styles.post, !canSend && styles.postOff]} onPress={() => void send()}>
+            <Pressable accessibilityRole="button" disabled={!canSend} style={[styles.post, !canSend && styles.postOff]} onPress={() => void send()}>
               {sending ? <ActivityIndicator size="small" color={colors.onYellow} /> : <Text style={styles.postText}>{t('createTopic.post')}</Text>}
             </Pressable>
           </View>
@@ -358,6 +358,7 @@ export default function SharedCommentScreen() {
             value={text}
             onChangeText={setText}
             placeholder={t('community.comments.placeholder')}
+            accessibilityLabel={t('community.comments.placeholder')}
             placeholderTextColor={colors.faint}
             multiline
             maxLength={COMMENT_BODY_MAX + 200}
@@ -368,7 +369,7 @@ export default function SharedCommentScreen() {
             <View style={styles.gifRow}>
               <Image source={{ uri: gif }} style={styles.gifThumb} contentFit="cover" />
               <View style={{ flex: 1 }} />
-              <Pressable hitSlop={10} onPress={() => setGif(null)}>
+              <Pressable accessibilityRole="button" accessibilityLabel={t('common.remove')} hitSlop={10} onPress={() => setGif(null)}>
                 <Ionicons name="close-circle" size={22} color={colors.dim} />
               </Pressable>
             </View>
@@ -376,7 +377,7 @@ export default function SharedCommentScreen() {
           <View style={[styles.tools, { paddingBottom: Math.max(insets.bottom, 10) }]}>
             {/* PLUS, as a picture on a comment is everywhere else in the app. */}
             {plusUi && (
-              <Pressable
+              <Pressable accessibilityRole="button"
                 hitSlop={8}
                 style={styles.toolBtn}
                 disabled={sending}
@@ -390,7 +391,7 @@ export default function SharedCommentScreen() {
                 <Text style={[styles.gifLabel, gif != null && { color: colors.yellow }]}>{t('commsuni.gif')}</Text>
               </Pressable>
             )}
-            <Pressable
+            <Pressable accessibilityRole="checkbox" accessibilityState={{ checked: spoiler }}
               hitSlop={8}
               style={[styles.spoiler, spoiler && styles.spoilerOn]}
               onPress={() => {
@@ -404,8 +405,8 @@ export default function SharedCommentScreen() {
           <Modal visible={gifOpen} animationType="slide" onRequestClose={() => setGifOpen(false)}>
             <View style={[styles.writeScreen, { paddingTop: insets.top + 8 }]}>
               <View style={styles.writeHead}>
-                <Text style={styles.postText}>{t('pickGif.title')}</Text>
-                <Pressable hitSlop={12} onPress={() => setGifOpen(false)}>
+                <Text accessibilityRole="header" style={styles.postText}>{t('pickGif.title')}</Text>
+                <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.close')} hitSlop={12} onPress={() => setGifOpen(false)}>
                   <Ionicons name="close" size={24} color={colors.text} />
                 </Pressable>
               </View>

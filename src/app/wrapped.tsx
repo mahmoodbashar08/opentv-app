@@ -212,7 +212,7 @@ export default function WrappedScreen() {
           <Text style={s.quietBody}>
             {seen === 0 ? t('plus.wrapped.quietEmpty') : t('plus.wrapped.quietBody', { count: seen })}
           </Text>
-          <Pressable
+          <Pressable accessibilityRole="button"
             style={s.cta}
             onPress={() => {
               tapLight();
@@ -295,8 +295,8 @@ export default function WrappedScreen() {
               Arabic) and the second is already the END side. Back on start,
               forward on end, which is the reading direction in both. */}
           <View style={[s.taps, { top: topInset + 66 }]} pointerEvents="box-none">
-            <Pressable style={s.tapHalf} onPress={() => go(-1)} />
-            <Pressable style={s.tapHalf} onPress={() => go(1)} />
+            <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.previousSlide')} style={s.tapHalf} onPress={() => go(-1)} />
+            <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.nextSlide')} style={s.tapHalf} onPress={() => go(1)} />
           </View>
 
           {/* AFTER the tap zones, so Share beats the story rather than being
@@ -309,7 +309,7 @@ export default function WrappedScreen() {
 
           {(
             <View style={[s.shareRow, { bottom: insets.bottom + 18 }]}>
-              <Pressable style={[s.cta, { backgroundColor: accent }]} onPress={() =>
+              <Pressable accessibilityRole="button" style={[s.cta, { backgroundColor: accent }]} onPress={() =>
                   void (async () => {
                     setCapturing(true);
                     // two frames: one to render square, one to be on screen

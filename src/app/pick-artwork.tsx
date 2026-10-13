@@ -60,10 +60,10 @@ export default function PickArtworkScreen() {
   return (
     <View style={s.page}>
       <View style={s.head}>
-        <Pressable hitSlop={12} onPress={() => router.back()}>
+        <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.back')} hitSlop={12} onPress={() => router.back()}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Pressable>
-        <Text style={s.title}>{t('pickArtwork.title')}</Text>
+        <Text accessibilityRole="header" style={s.title}>{t('pickArtwork.title')}</Text>
         <View style={{ width: 26 }} />
       </View>
 

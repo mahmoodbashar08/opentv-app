@@ -73,6 +73,8 @@ function Row({
         // is absent is a real choice and has to be selectable, not merely the
         // state you are in before tapping anything.
         <Pressable
+          accessibilityRole="radio"
+          accessibilityState={{ selected: value == null }}
           onPress={() => {
             tapLight();
             onPick(null);
@@ -81,10 +83,12 @@ function Row({
           <Text style={s.noneText}>{t('themeColours.same')}</Text>
         </Pressable>
       )}
-      {SWATCHES.map((hex) => (
+      {SWATCHES.map((hex, i) => (
         <Pressable
           key={hex}
-          accessibilityRole="button"
+          accessibilityRole="radio"
+          // A swatch has no name a screen reader could use; its place in the row is one.
+          accessibilityLabel={t('a11y.colour', { n: i + 1 })}
           accessibilityState={{ selected: value === hex }}
           onPress={() => {
             tapLight();
@@ -186,13 +190,13 @@ export default function ThemeColoursScreen() {
           </View>
         )}
 
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={[s.save, (primary == null || saving) && s.saveOff]}
           disabled={primary == null || saving}
           onPress={() => void save()}>
           <Text style={s.saveText}>{t('common.done')}</Text>
         </Pressable>
-        <Pressable style={s.reset} disabled={saving} onPress={() => void reset()}>
+        <Pressable accessibilityRole="button" style={s.reset} disabled={saving} onPress={() => void reset()}>
           <Text style={s.resetText}>{t('themeColours.reset')}</Text>
         </Pressable>
       </ScrollView>

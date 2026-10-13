@@ -886,12 +886,12 @@ export default function MovieScreen() {
               </>
             )}
             <View style={[styles.backdropBar, { marginTop: insets.top + 4 }]}>
-              <Pressable onPress={() => router.back()} hitSlop={10}>
+              <Pressable onPress={() => router.back()} hitSlop={10} accessibilityRole="button" accessibilityLabel={t('a11y.close')}>
                 {/* In the bar that sits on the backdrop — see `colors.onArt`.
                     Fixed on the show screen and missed here. */}
                 <Ionicons name="chevron-down" size={26} color={colors.onArt} />
               </Pressable>
-              <Pressable hitSlop={10} onPress={openMenu}>
+              <Pressable hitSlop={10} onPress={openMenu} accessibilityRole="button" accessibilityLabel={t('a11y.more')}>
                 <Ionicons name="ellipsis-horizontal" size={22} color={colors.onArt} />
               </Pressable>
             </View>
@@ -899,7 +899,7 @@ export default function MovieScreen() {
               <View style={{ flex: 1 }}>
                 {/* shrinks instead of truncating — same reason as the show
                     header, and long film titles hit it just as hard */}
-                <Text selectable style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65}>
+                <Text selectable style={styles.title} numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.65} accessibilityRole="header">
                   {title}
                 </Text>
                 <Text style={styles.subtitle}>
@@ -954,6 +954,7 @@ export default function MovieScreen() {
         {inDb && matchState === 'unmatched' && (
           <Pressable
             style={styles.fixMatch}
+            accessibilityRole="button"
             onPress={() => router.push(`/fix-match?name=${encodeURIComponent(name ?? title)}`)}>
             <Ionicons name="link-outline" size={20} color={colors.onYellow} />
             <View style={{ flex: 1, gap: 1 }}>
@@ -1000,6 +1001,12 @@ export default function MovieScreen() {
                         <Pressable
                           key={r.tmdbId}
                           style={{ width: 92 }}
+                          accessibilityRole="button"
+                          accessibilityLabel={[r.title, r.unreleased ? t('franchise.soon') : r.release.slice(0, 4), r.watched ? t('a11y.watched') : null]
+                            .filter(Boolean)
+                            .join(', ')}
+                          // Nothing to open for a film the library never held — said, not just done.
+                          accessibilityState={{ disabled: !r.libraryName }}
                           onPress={() => {
                             tapSelection();
                             /* Only somewhere real. A film the library has never
@@ -1053,6 +1060,8 @@ export default function MovieScreen() {
                       <Pressable
                         key={labelKey}
                         style={[styles.interestBtn, interest === i && { backgroundColor: colors.brand }]}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: interest === i }}
                         onPress={() => pickInterest(i)}>
                         <Text style={[styles.interestText, interest === i && { color: colors.onBrand }]}>
                           {t(labelKey)}
@@ -1090,6 +1099,7 @@ export default function MovieScreen() {
                     <View style={styles.divider} />
                     <Pressable
                       style={styles.trailerRow}
+                      accessibilityRole="link"
                       onPress={() => Linking.openURL(`https://www.youtube.com/watch?v=${trailer}`)}>
                       <View style={styles.trailerThumb}>
                         <Image
@@ -1144,6 +1154,9 @@ export default function MovieScreen() {
                     <Pressable
                       key={tile.name}
                       style={{ alignItems: 'center', width: 82 }}
+                      accessibilityRole="radio"
+                      accessibilityLabel={t(tile.labelKey)}
+                      accessibilityState={{ selected: watchedOn === i }}
                       onPress={() =>
                         requireWatched(() => {
                           const next = watchedOn === i ? null : i;
@@ -1167,7 +1180,13 @@ export default function MovieScreen() {
                     treatment as the episode screen, from the same design */}
                 <View style={styles.rateBox}>
                   {STARS.map((lblKey, i) => (
-                    <Pressable key={lblKey} style={styles.starCell} onPress={() => rate(i)}>
+                    <Pressable
+                      key={lblKey}
+                      style={styles.starCell}
+                      accessibilityRole="radio"
+                      accessibilityLabel={`${t('a11y.stars', { count: i + 1 })}, ${t(lblKey)}`}
+                      accessibilityState={{ selected: stars === i }}
+                      onPress={() => rate(i)}>
                       <Text style={{ fontSize: 30, color: stars != null && i <= stars ? colors.brand : colors.pillGrey }}>★</Text>
                     </Pressable>
                   ))}
@@ -1202,6 +1221,9 @@ export default function MovieScreen() {
                       <Pressable
                         key={e.label}
                         style={[styles.emo, emotions.has(i) && { backgroundColor: colors.brand }]}
+                        accessibilityRole="checkbox"
+                        accessibilityLabel={pct != null ? `${t(e.label)}, ${pct}%` : t(e.label)}
+                        accessibilityState={{ checked: emotions.has(i) }}
                         onPress={() => feel(i)}>
                         <Text style={{ fontSize: 24 }}>{e.face}</Text>
                         <Text style={[styles.emoLabel, emotions.has(i) && { color: colors.onBrand }]}>{t(e.label)}</Text>
@@ -1236,6 +1258,9 @@ export default function MovieScreen() {
                           <Pressable
                             key={`${c.name}-${i}`}
                             style={[{ width: 96, alignItems: 'center' }, dimmed && styles.charDim]}
+                            accessibilityRole="radio"
+                            accessibilityLabel={charPct[label] != null ? `${label}, ${charPct[label]}%` : label}
+                            accessibilityState={{ selected: picked }}
                             onPress={() => label && pickCharacter(label)}>
                             <View style={[styles.charCard, picked && styles.charPicked]}>
                               {face ? (
@@ -1265,7 +1290,7 @@ export default function MovieScreen() {
 
           {/* comments float over More, spoiler-guarded while unwatched */}
           {tab === 'More' && inDb && (
-            <Pressable style={styles.commentsPill} onPress={openComments}>
+            <Pressable style={styles.commentsPill} onPress={openComments} accessibilityRole="button">
               <Text style={styles.commentsText}>{t('media.commentsPill')}</Text>
               <Ionicons name={I18nManager.isRTL ? 'arrow-back' : 'arrow-forward'} size={16} color="#FFF" />
             </Pressable>
@@ -1273,7 +1298,7 @@ export default function MovieScreen() {
 
           {/* untracked movies get the full-width add bar, like the real app */}
           {!inDb && (
-            <Pressable style={[styles.addBar, { paddingBottom: insets.bottom + 14 }]} onPress={addToWatchlist}>
+            <Pressable style={[styles.addBar, { paddingBottom: insets.bottom + 14 }]} onPress={addToWatchlist} accessibilityRole="button">
               <Ionicons name="add" size={24} color={colors.onYellow} />
               <Text style={styles.addBarText}>{t('movie.addMovieButton')}</Text>
             </Pressable>

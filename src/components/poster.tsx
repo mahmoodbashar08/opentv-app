@@ -2,10 +2,21 @@ import { Image } from 'expo-image';
 import { useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 
+import { t } from '@/i18n';
 import { posterLabel } from '@/pure';
 import { colors, radius } from '@/theme';
 
 export type ShowStatus = 'watching' | 'upToDate' | 'finished' | 'stopped' | 'none';
+
+/**
+ * The one line a poster CARD reads as under a screen reader: the title, then
+ * what matters — "Silo, 45% watched". Goes on the Pressable around the tile,
+ * never on the tile: see the note on `Poster`.
+ */
+export function posterSpeech(name: string, s: { progress?: number; status?: ShowStatus } = {}): string {
+  const { key, vars } = posterLabel(name, s);
+  return t(key, vars);
+}
 
 /** Stable pastel-on-dark tile color derived from the show name. */
 function tileColor(name: string): string {
@@ -82,12 +93,16 @@ export function Poster({
   const color = progressColor ?? colors.brand;
 
   return (
-    // A poster is artwork with no text, so without an explicit label the tile
-    // aggregates to an empty one and a screen reader sees an unlabelled
-    // element — the whole library grid was unnavigable by VoiceOver.
+    // DECORATIVE, DELIBERATELY. The tile used to carry its own label, and that
+    // was the wrong element: every poster sits inside a Pressable, and on
+    // Android a focusable tile inside a focusable card is TWO stops — an empty
+    // "button", then the title — for every show in the grid. The CARD is the
+    // element now (`posterSpeech`), and the artwork says nothing on its own, so
+    // the initials placeholder cannot be read out as "BB" inside a collage.
     <View
-      accessible
-      accessibilityLabel={posterLabel(name, { progress, status })}
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
       style={[styles.tile, { backgroundColor: tileColor(name) }, aspect != null && { aspectRatio: aspect }]}>
       {uri ? (
         <Image source={{ uri }} style={StyleSheet.absoluteFill} contentFit="cover" transition={150} cachePolicy="disk" />

@@ -4,7 +4,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { Keyboard, FlatList, Pressable, StyleSheet, Text, TextInput, View, useWindowDimensions } from 'react-native';
 
 import { ActionSheet, type SheetAction } from '@/components/action-sheet';
-import { Poster } from '@/components/poster';
+import { a11yAction } from '@/a11y';
+import { Poster, posterSpeech } from '@/components/poster';
 import { NavHeader, Screen } from '@/components/ui';
 import db, { getShowProgress, setFollowing, setShowArchived, setShowFavorited, setShowFinished, getRecentShows } from '@/db';
 import { tapLight } from '@/haptics';
@@ -138,7 +139,7 @@ export default function AllShowsScreen() {
           what makes it worth a card. Hidden under two, because no grid tiles
           one poster. */}
       {watchedCount >= 2 && (
-        <Pressable
+        <Pressable accessibilityRole="button"
           style={styles.shareRow}
           onPress={() => {
             tapLight();
@@ -150,7 +151,7 @@ export default function AllShowsScreen() {
       )}
       <View style={styles.searchRow}>
         <Ionicons name="search" size={17} color={colors.faint} />
-        <TextInput
+        <TextInput accessibilityLabel={t('allShows.searchPlaceholder')}
           value={query}
           onChangeText={setQuery}
           placeholder={t('allShows.searchPlaceholder')}
@@ -160,7 +161,7 @@ export default function AllShowsScreen() {
           returnKeyType="search"
         />
         {query.length > 0 && (
-          <Pressable hitSlop={8} onPress={() => setQuery('')}>
+          <Pressable accessibilityRole="button" accessibilityLabel={t('a11y.clearSearch')} hitSlop={8} onPress={() => setQuery('')}>
             <Ionicons name="close-circle" size={17} color={colors.faint} />
           </Pressable>
         )}
@@ -182,6 +183,10 @@ export default function AllShowsScreen() {
           <Pressable
             style={{ flex: 1 / cols }}
             onPress={() => router.push(`/show/${item.tvdbId}`)}
+            accessibilityRole="button"
+            accessibilityLabel={posterSpeech(item.name, { progress: progressOf(item) })}
+            // A long press has no screen-reader gesture; the menu is offered as an action instead.
+            {...a11yAction('menu', t('a11y.more'), () => setMenu({ id: item.tvdbId, name: item.name }))}
             // TV Time muscle memory: hold a poster to manage it without
             // opening the show first
             onLongPress={() => {
@@ -206,7 +211,7 @@ export default function AllShowsScreen() {
         actions={menu ? manageActions(menu.id, menu.name) : []}
         onClose={() => setMenu(null)}
       />
-      <Pressable style={styles.filtersFab} onPress={() => router.push('/filters')}>
+      <Pressable accessibilityRole="button" style={styles.filtersFab} onPress={() => router.push('/filters')}>
         <Ionicons name="options-outline" size={16} color={colors.onYellow} />
         <Text style={styles.filtersText}>{t('allShows.filters')}</Text>
         {/* filters outlive the visit now, so the pill has to say so — an

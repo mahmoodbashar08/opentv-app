@@ -225,6 +225,8 @@ export function renderWidget(
             <Pressable
               key={`${l.service}:${l.url}`}
               style={s2.linkChip}
+              accessibilityRole="link"
+              accessibilityLabel={linkServiceName(l.service)}
               // While arranging, the tap belongs to the block's menu.
               disabled={slots?.editing}
               onPress={() => {
@@ -449,7 +451,19 @@ export function renderWidget(
       );
     return (
       <WidgetBox label={t('profile.widgetEmotionCalendar')} span={span}>
-        {isVisitor ? body : <Pressable style={{ flex: 1 }} disabled={slots?.editing} onPress={() => router.push('/emotion-calendar')}>{body}</Pressable>}
+        {isVisitor ? (
+          body
+        ) : (
+          <Pressable
+            style={{ flex: 1 }}
+            disabled={slots?.editing}
+            accessibilityRole="button"
+            // The grid inside is colour and nothing else; the box's label is the button's.
+            accessibilityLabel={t('profile.widgetEmotionCalendar')}
+            onPress={() => router.push('/emotion-calendar')}>
+            {body}
+          </Pressable>
+        )}
       </WidgetBox>
     );
   }
@@ -573,7 +587,7 @@ function Slot({ slots, n, children }: { slots?: SlotEdit; n: number; at: number;
     <View style={s.posterCell}>
       {children}
       {slots?.editing && n > 1 && (
-        <Pressable style={s.slotMinus} hitSlop={8} onPress={() => slots.onCount(n - 1)}>
+        <Pressable style={s.slotMinus} hitSlop={8} onPress={() => slots.onCount(n - 1)} accessibilityRole="button" accessibilityLabel={t('a11y.oneFewer')}>
           <Ionicons name="remove" size={13} color="#000" />
         </Pressable>
       )}
@@ -588,7 +602,7 @@ function AddSlot({ id, slots, n }: { id: string; slots?: SlotEdit; n: number }) 
   const max = counts?.[counts.length - 1] ?? 0;
   if (!slots?.editing || n >= max) return null;
   return (
-    <Pressable style={[s.posterCell, s.addSlot]} onPress={() => slots.onCount(n + 1)}>
+    <Pressable style={[s.posterCell, s.addSlot]} onPress={() => slots.onCount(n + 1)} accessibilityRole="button" accessibilityLabel={t('a11y.oneMore')}>
       <Ionicons name="add" size={22} color={colors.dim} />
     </Pressable>
   );
@@ -750,6 +764,28 @@ const EMOTION_FACES = ['😯', '😤', '😭', '🤔', '🥹', '😆', '😱', '
  * like itself without shipping any artwork. `website` gets a globe — the one
  * slot that is not a named service should not pretend to be one.
  */
+/** What the icon stands for, for a screen reader. Brand names are not translated. */
+export function linkServiceName(service: LinkService): string {
+  switch (service) {
+    case 'instagram':
+      return 'Instagram';
+    case 'tiktok':
+      return 'TikTok';
+    case 'x':
+      return 'X';
+    case 'youtube':
+      return 'YouTube';
+    case 'reddit':
+      return 'Reddit';
+    case 'discord':
+      return 'Discord';
+    case 'letterboxd':
+      return 'Letterboxd';
+    default:
+      return t('a11y.website');
+  }
+}
+
 export function linkServiceIcon(service: LinkService): keyof typeof Ionicons.glyphMap {
   switch (service) {
     case 'instagram':

@@ -135,6 +135,7 @@ export default function SelfHostScreen() {
           value={url}
           onChangeText={setUrl}
           placeholder={t('selfHost.serverHint')}
+          accessibilityLabel={t('selfHost.serverHint')}
           placeholderTextColor={colors.faint}
           autoCapitalize="none"
           autoCorrect={false}
@@ -151,6 +152,7 @@ export default function SelfHostScreen() {
           value={tmdb}
           onChangeText={setTmdb}
           placeholder={t('selfHost.tmdbHint')}
+          accessibilityLabel={t('selfHost.tmdbHint')}
           placeholderTextColor={colors.faint}
           autoCapitalize="none"
           autoCorrect={false}
@@ -165,6 +167,7 @@ export default function SelfHostScreen() {
           value={tvdb}
           onChangeText={setTvdb}
           placeholder={t('selfHost.tvdbHint')}
+          accessibilityLabel={t('selfHost.tvdbHint')}
           placeholderTextColor={colors.faint}
           autoCapitalize="none"
           autoCorrect={false}

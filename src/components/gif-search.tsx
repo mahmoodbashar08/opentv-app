@@ -219,6 +219,7 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
         value={query}
         onChangeText={setQuery}
         placeholder={t('pickGif.searchPlaceholder')}
+        accessibilityLabel={t('pickGif.searchPlaceholder')}
         placeholderTextColor={colors.faint}
         /* CORRECTION ON. It was off, which on iOS also takes the prediction bar
            away -- so this was the one search box on the phone that offered no
@@ -258,7 +259,7 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           style={s.chipsRow}
           contentContainerStyle={s.chips}>
           {matching.map((c) => (
-            <Pressable key={c.key} style={s.chip} onPress={() => setQuery(c.name)}>
+            <Pressable accessibilityRole="button" key={c.key} style={s.chip} onPress={() => setQuery(c.name)}>
               <Text style={s.chipText} numberOfLines={1}>
                 {c.name}
               </Text>
@@ -302,7 +303,7 @@ export function GifSearch({ onPick, busyId }: { onPick: (hit: GifHit) => void; b
           contentContainerStyle={{ padding: space.lg, gap: GAP }}
           columnWrapperStyle={{ gap: GAP }}
           renderItem={({ item }) => (
-            <Pressable onPress={() => onPick(item)} style={{ width: cell }}>
+            <Pressable accessibilityRole="button" accessibilityLabel={t('pickGif.gif')} onPress={() => onPick(item)} style={{ width: cell }}>
               <Image source={{ uri: item.preview }} style={[s.gif, { width: cell }]} contentFit="cover" cachePolicy="memory-disk" recyclingKey={item.id} />
               {busyId === item.id && (
                 <View style={s.savingVeil}>
