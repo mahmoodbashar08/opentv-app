@@ -15,6 +15,7 @@ import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { ratingAt, starSlots, stepRating, type StarSlot } from '@/star-rating';
 import { tapSelection } from '@/haptics';
+import { a11yHidden } from '@/a11y';
 import { t } from '@/i18n';
 
 /**
@@ -69,7 +70,7 @@ export function StarGlyph({ fill, size, on, off, lineHeight }: { fill: StarSlot;
  */
 export function HalfStarHint({ color }: { color: string }) {
   return (
-    <View style={s.hint} accessible={false} importantForAccessibility="no-hide-descendants">
+    <View style={s.hint} {...a11yHidden()}>
       <Ionicons name="star-half" size={13} color={color} style={I18nManager.isRTL ? s.mirror : undefined} />
       <Text style={[s.hintText, { color }]}>{t('halfStars.hint')}</Text>
     </View>

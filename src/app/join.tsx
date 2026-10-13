@@ -25,6 +25,7 @@ import { friendsHereCount } from '@/community-seed';
 import { getToken, hasAccount, joinCommunity, rememberAccount, signIn, tvtimeAccount, useLastAccount } from '@/community-session';
 import { ContentColumn, Screen } from '@/components/ui';
 import { tapLight } from '@/haptics';
+import { a11yHidden } from '@/a11y';
 import { t } from '@/i18n';
 import { communityErrorText } from '@/community-error-text';
 import { colors, radius, space, ls } from '@/theme';
@@ -197,7 +198,8 @@ export default function JoinScreen() {
           enough to write it down.
         */}
         <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.body} showsVerticalScrollIndicator={false}>
-          <Text style={styles.emoji}>🍿</Text>
+          {/* a picture, not a word: VoiceOver read it as "popcorn" */}
+          <Text style={styles.emoji} {...a11yHidden()}>🍿</Text>
           <Text accessibilityRole="header" style={styles.title}>{t('community.join.title')}</Text>
           <Text style={styles.sub}>{t('community.join.sub')}</Text>
 

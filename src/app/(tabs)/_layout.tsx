@@ -50,6 +50,17 @@ export default function TabsLayout() {
     return () => task.cancel();
   }, []);
 
+  /*
+   * "Profile, tab, 5 of 5" WITH FOUR TABS ON SCREEN. The tab bar counts its
+   * routes, and the hidden `index` (href: null) is one of them — and it says
+   * "tab" and "of" in English whatever the app's language. So each tab names
+   * its own place among the four that are drawn, in the reader's language,
+   * through the same string the screens' own tab rows use. iOS only, as the
+   * library's own label is; TalkBack counts the tabs itself.
+   */
+  const tabLabel = (label: string, n: number) =>
+    Platform.OS === 'ios' ? t('a11y.tabOf', { label, n, total: 4 }) : undefined;
+
   return (
     <>
     <WhatsNew />
@@ -73,6 +84,7 @@ export default function TabsLayout() {
         name="shows"
         options={{
           title: t('tabBar.shows'),
+          tabBarAccessibilityLabel: tabLabel(t('tabBar.shows'), 1),
           tabBarIcon: ({ color, size }) => <Ionicons name="tv-outline" size={size} color={color} />,
         }}
       />
@@ -80,6 +92,7 @@ export default function TabsLayout() {
         name="movies"
         options={{
           title: t('tabBar.movies'),
+          tabBarAccessibilityLabel: tabLabel(t('tabBar.movies'), 2),
           tabBarIcon: ({ color, size }) => <Ionicons name="film-outline" size={size} color={color} />,
         }}
       />
@@ -87,6 +100,7 @@ export default function TabsLayout() {
         name="explore"
         options={{
           title: t('tabBar.explore'),
+          tabBarAccessibilityLabel: tabLabel(t('tabBar.explore'), 3),
           tabBarIcon: ({ color, size }) => <Ionicons name="search" size={size} color={color} />,
         }}
       />
@@ -94,6 +108,7 @@ export default function TabsLayout() {
         name="profile"
         options={{
           title: t('tabBar.profile'),
+          tabBarAccessibilityLabel: tabLabel(t('tabBar.profile'), 4),
           tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
         }}
       />

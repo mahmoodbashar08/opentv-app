@@ -12,7 +12,8 @@ import {
   unmarkWatched,
 } from '@/db';
 import { tapLight } from '@/haptics';
-import { t } from '@/i18n';
+import { a11yHidden } from '@/a11y';
+import { currentLocale, t } from '@/i18n';
 import { calendarMonth, recentDayOptions, shiftMonth } from '@/pure';
 import { colors, space } from '@/theme';
 
@@ -73,15 +74,19 @@ export default function MarkAsSheet() {
 
   const weeks = calendarMonth(month);
   const atCurrentMonth = month >= today.slice(0, 7);
-  const monthLabel = new Date(`${month}-01T12:00:00`).toLocaleDateString(undefined, {
+  // THE APP'S LANGUAGE, NOT THE PHONE'S: `undefined` here is the device
+  // locale, so an Arabic phone set to English read the month, the weekdays and
+  // every day button in Arabic. `currentLocale()`, as the show screen does.
+  const locale = currentLocale();
+  const monthLabel = new Date(`${month}-01T12:00:00`).toLocaleDateString(locale, {
     month: 'long',
     year: 'numeric',
   });
-  // Weekday initials from the device's own locale, so this reads correctly in
+  // Weekday initials from the app's own locale, so this reads correctly in
   // Arabic and French rather than being hard-coded English. 1 Feb 2026 is a
   // Sunday, which is where `calendarMonth` starts its weeks.
   const weekdays = Array.from({ length: 7 }, (_, i) =>
-    new Date(2026, 1, 1 + i).toLocaleDateString(undefined, { weekday: 'narrow' }),
+    new Date(2026, 1, 1 + i).toLocaleDateString(locale, { weekday: 'narrow' }),
   );
 
   return (
@@ -112,7 +117,10 @@ export default function MarkAsSheet() {
               </Pressable>
             </View>
 
-            <View style={styles.week}>
+            {/* Letters for the eye. Read aloud they were "S, M, T, W, T, F,
+                S", one stop each — and every day button already says its
+                weekday in full. */}
+            <View style={styles.week} {...a11yHidden()}>
               {weekdays.map((d, i) => (
                 <Text key={i} style={styles.weekday}>
                   {d}
@@ -133,7 +141,7 @@ export default function MarkAsSheet() {
                       accessible={day != null}
                       importantForAccessibility={day != null ? 'yes' : 'no-hide-descendants'}
                       accessibilityRole="button"
-                      accessibilityLabel={day ? new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }) : undefined}
+                      accessibilityLabel={day ? new Date(`${day}T12:00:00`).toLocaleDateString(locale, { weekday: 'long', day: 'numeric', month: 'long' }) : undefined}
                       onPress={() => day && act(() => setDay(day))}>
                       {day && (
                         <View style={[styles.dayInner, day === today && styles.dayToday]}>
@@ -162,7 +170,7 @@ export default function MarkAsSheet() {
                       : // Weekday AND date: "Friday" alone is ambiguous the
                         // moment a week has passed, and the number is what
                         // somebody checks their memory against.
-                        `${new Date(`${day}T12:00:00`).toLocaleDateString(undefined, { weekday: 'long' })} ${Number(day.slice(-2))}`}
+                        `${new Date(`${day}T12:00:00`).toLocaleDateString(locale, { weekday: 'long' })} ${Number(day.slice(-2))}`}
                 </Text>
               </Pressable>
             ))}

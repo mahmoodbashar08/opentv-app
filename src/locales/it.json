@@ -300,7 +300,10 @@
     "runtimeStandard": "Standard",
     "runtimeLong": "Lunga",
     "ratingUnrated": "Senza voto",
-    "ratingMin": "{{stars}} stelle e oltre",
+    "ratingMin": {
+      "one": "{{count}} stella e oltre",
+      "other": "{{count}} stelle e oltre"
+    },
     "resultShows": {
       "one": "{{n}} di {{count}} serie",
       "other": "{{n}} di {{count}} serie"
@@ -3333,7 +3336,33 @@
     "roomMore": {
       "one": "e {{count}} altro",
       "other": "e altri {{count}}"
-    }
+    },
+    "tabOf": "{{label}}, scheda, {{n}} di {{total}}",
+    "opensMarkAs": "Apre le opzioni Segna come…",
+    "tvdbScore": "Punteggio TheTVDB, {{percent}}%",
+    "tvdbRating": "Voto TheTVDB, {{score}} su 5",
+    "tvdbUnrated": "Ancora nessun voto su TheTVDB",
+    "airDay": "Giorno di messa in onda, {{day}}",
+    "runtime": {
+      "one": "Durata, {{count}} minuto",
+      "other": "Durata, {{count}} minuti"
+    },
+    "ofWatched": "{{n}} di {{total}} visti",
+    "aired": "Andato in onda il {{date}}",
+    "released": "Uscito il {{date}}",
+    "watchedBy": {
+      "one": "Visto da {{n}} persona",
+      "other": "Visto da {{n}} persone"
+    },
+    "iconOrange": "Arancione",
+    "iconPurple": "Viola",
+    "iconTeal": "Verde acqua",
+    "iconHalloween": "Halloween",
+    "iconChristmas": "Natale",
+    "puzzleRight": "giusto",
+    "puzzleWrong": "sbagliato",
+    "puzzleSkipped": "saltato",
+    "puzzleTries": "{{n}} su {{total}} tentativi"
   },
   "simkl": {
     "title": "Simkl",

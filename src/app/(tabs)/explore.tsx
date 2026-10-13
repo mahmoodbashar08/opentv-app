@@ -4,6 +4,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { tabA11y } from '@/a11y';
 import { FeedList } from '@/components/feed-list';
 import { PuzzleCard } from '@/components/puzzle-card';
 import { ContentColumn, EmptyState, Screen } from '@/components/ui';
@@ -262,7 +263,9 @@ function FeedCard({ item }: { item: FeedItem }) {
           </Text>
         </View>
       ) : (
-        <View style={styles.watchedBy}>
+        // One sentence, "Watched by 83.4K people", not a label and then a
+        // bare "+83.4K" as a second stop.
+        <View style={styles.watchedBy} accessible accessibilityLabel={t('a11y.watchedBy', { count: item.votes, n: countLabel(item.votes) })}>
           <Text style={styles.watchedByLabel}>{t('explore.watchedBy')}</Text>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, marginTop: 8 }}>
             <View style={styles.watcherCircle}>
@@ -301,13 +304,13 @@ export default function ExploreScreen() {
         contentContainerStyle={styles.pillRow}>
         {/* GROUPS HIDDEN (5 Oct): a mockup with made-up member counts
             ("54.9K") and a Join that did nothing. Back when groups are real. */}
-        {PILLS.filter((p) => p !== 'Groups').map((p) => (
+        {PILLS.filter((p) => p !== 'Groups').map((p, i, shown) => (
           <Pressable
             key={p}
             style={[styles.pill, p === pill && styles.pillActive]}
             onPress={() => setPill(p)}
-            accessibilityRole="tab"
-            accessibilityState={{ selected: p === pill }}>
+            // a tab on iOS too — see `tabA11y`
+            {...tabA11y(t(PILL_LABEL_KEYS[p]), i, shown.length, p === pill)}>
             <Text style={[styles.pillText, p === pill && { color: colors.onYellow }]}>{t(PILL_LABEL_KEYS[p])}</Text>
           </Pressable>
         ))}

@@ -16,7 +16,7 @@ import { Image } from 'expo-image';
 import { StyleSheet, Text, View } from 'react-native';
 
 import { t } from '@/i18n';
-import { MAX_TRIES, SKIP, squares, type Game } from '@/puzzle';
+import { MAX_TRIES, SKIP, type Game } from '@/puzzle';
 import { SITE } from '@/share-link';
 import { ls } from '@/theme';
 
@@ -42,9 +42,14 @@ export function Squares({ game, size = 40, gap = 8 }: { game: Game; size?: numbe
   return (
     <View
       style={{ flexDirection: 'row', gap }}
-      // Read as the text grid: "🟥🟥🟩", then the empty tries.
+      // IN WORDS: "Wrong, skipped, right, 3 of 6 tries". The text grid this
+      // used to hand over was read as "red square, red square, green square,
+      // 3 slash 6" — the share line's emoji are for a post, not for an ear.
       accessible
-      accessibilityLabel={`${squares(game)} ${game.guesses.length}/${MAX_TRIES}`}>
+      accessibilityLabel={[
+        ...game.guesses.map((g) => t(g === game.id ? 'a11y.puzzleRight' : g === SKIP ? 'a11y.puzzleSkipped' : 'a11y.puzzleWrong')),
+        t('a11y.puzzleTries', { n: game.guesses.length, total: MAX_TRIES }),
+      ].join(', ')}>
       {Array.from({ length: MAX_TRIES }, (_, i) => {
         const g = game.guesses[i];
         const color = g == null ? UNUSED : g === game.id ? RIGHT : g === SKIP ? SKIPPED : WRONG;
@@ -78,7 +83,11 @@ export function PuzzleShareCard({
       </View>
       <View style={s.figures}>
         <Text style={s.score}>{score}</Text>
-        {streak > 0 && <Text style={s.streak}>🔥 {t('puzzle.streakDays', { count: streak })}</Text>}
+        {streak > 0 && (
+          <Text style={s.streak} accessibilityLabel={t('puzzle.streakDays', { count: streak })}>
+            🔥 {t('puzzle.streakDays', { count: streak })}
+          </Text>
+        )}
       </View>
       <View style={s.brandBar}>
         <View style={s.brandLeft}>

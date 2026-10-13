@@ -300,7 +300,10 @@
     "runtimeStandard": "Standard",
     "runtimeLong": "Long",
     "ratingUnrated": "Unrated",
-    "ratingMin": "{{stars}} stars and up",
+    "ratingMin": {
+      "one": "{{count}} star and up",
+      "other": "{{count}} stars and up"
+    },
     "resultShows": {
       "one": "{{n}} of {{count}} show",
       "other": "{{n}} of {{count}} shows"
@@ -3333,7 +3336,33 @@
     "roomMore": {
       "one": "and {{count}} more",
       "other": "and {{count}} more"
-    }
+    },
+    "tabOf": "{{label}}, tab, {{n}} of {{total}}",
+    "opensMarkAs": "Opens the Mark as… options",
+    "tvdbScore": "TheTVDB score, {{percent}}%",
+    "tvdbRating": "TheTVDB rating, {{score}} out of 5",
+    "tvdbUnrated": "No TheTVDB rating yet",
+    "airDay": "Air day, {{day}}",
+    "runtime": {
+      "one": "Runtime, {{count}} minute",
+      "other": "Runtime, {{count}} minutes"
+    },
+    "ofWatched": "{{n}} of {{total}} watched",
+    "aired": "Aired {{date}}",
+    "released": "Released {{date}}",
+    "watchedBy": {
+      "one": "Watched by {{n}} person",
+      "other": "Watched by {{n}} people"
+    },
+    "iconOrange": "Orange",
+    "iconPurple": "Purple",
+    "iconTeal": "Teal",
+    "iconHalloween": "Halloween",
+    "iconChristmas": "Christmas",
+    "puzzleRight": "right",
+    "puzzleWrong": "wrong",
+    "puzzleSkipped": "skipped",
+    "puzzleTries": "{{n}} of {{total}} tries"
   },
   "simkl": {
     "title": "Simkl",
