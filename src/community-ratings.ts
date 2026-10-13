@@ -570,6 +570,27 @@ export function postRating(vote: RatingPost): void {
   });
   notifyAggregates();
 
+  /*
+   * ONE REQUEST PER TARGET AT A TIME. A slide to 4.5 and a tap on 5 a moment
+   * later sent two upserts that crossed on the server: both read "no vote
+   * yet", so the rollup counted a 9 AND a 10 for one person (Hidden Figures,
+   * 13 Oct). A vote made while one is in flight waits, and only the LATEST
+   * waits — the upsert carries the whole current state, so the ones between
+   * have nothing left to say.
+   */
+  if (sending.has(flight)) {
+    const prev = queued.get(flight);
+    queued.set(flight, prev ? { ...prev, ...vote, emotions: vote.emotions ?? prev.emotions } : vote);
+    return;
+  }
+  send(vote, flight);
+}
+
+const sending = new Set<string>();
+const queued = new Map<string, RatingPost>();
+
+function send(vote: RatingPost, flight: string): void {
+  sending.add(flight);
   void (async () => {
     try {
       const token = await getToken();
@@ -645,11 +666,20 @@ export function postRating(vote: RatingPost): void {
     } catch {
       // Silent by contract. See the note above.
     } finally {
-      // Cleared whatever happened. A failed vote must not leave the screen
-      // waiting for a number that is never coming — it falls back to the
-      // rollup it has, which is the honest one for a vote that did not land.
-      inFlight.delete(flight);
-      notifyAggregates();
+      sending.delete(flight);
+      const next = queued.get(flight);
+      if (next) {
+        // Still in flight, from the screen's point of view: the vote it is
+        // showing has not landed yet.
+        queued.delete(flight);
+        send(next, flight);
+      } else {
+        // Cleared whatever happened. A failed vote must not leave the screen
+        // waiting for a number that is never coming — it falls back to the
+        // rollup it has, which is the honest one for a vote that did not land.
+        inFlight.delete(flight);
+        notifyAggregates();
+      }
     }
   })();
 }
