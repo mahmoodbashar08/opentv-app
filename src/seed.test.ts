@@ -261,10 +261,12 @@ describe('localRatingToSeed', () => {
     });
   });
 
+  // A film's stars are out of ten since 2.0.0 — the server's scale already, so
+  // a half star (7) goes up as 7 and is not doubled again.
   it('maps a film through the shared identity key, with no season or episode', () => {
     expect(
       localRatingToSeed(
-        { kind: 'movie', title: 'Dune', year: '2021', season: null, episode: null, stars: 3, emotions: [2] },
+        { kind: 'movie', title: 'Dune', year: '2021', season: null, episode: null, stars: 7, emotions: [2] },
         resolveRating,
       ),
     ).toEqual({
@@ -272,9 +274,17 @@ describe('localRatingToSeed', () => {
       target_key: 'dune|2021',
       season: null,
       episode: null,
-      score: 6,
+      score: 7,
       emotions: ['sad'],
     });
+  });
+
+  it('refuses a film score outside one to ten', () => {
+    const film = (stars: number) =>
+      localRatingToSeed({ kind: 'movie', title: 'Dune', year: '2021', season: null, episode: null, stars, emotions: [] }, resolveRating);
+    expect(film(0)).toBeNull();
+    expect(film(11)).toBeNull();
+    expect(film(10)).toMatchObject({ score: 10 });
   });
 
   it('refuses a vote whose entity nothing in the library resolves', () => {

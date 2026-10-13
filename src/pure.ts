@@ -5,6 +5,9 @@
  * import diagnostics) so that logic has real test coverage.
  */
 
+// Also dependency-free: a film's rating out of ten (2.0.0, half stars).
+import { filmFromTen } from '@/film-rating';
+
 /*
  * THE TV TIME EXPORT ITSELF IS READ BY `packages/tvtime-export`, a standalone
  * MPL-2.0 package other tracker apps may use (2.0.0 plan item 16). These four
@@ -1939,12 +1942,19 @@ function countsObject(counts: unknown): Record<string, unknown> | null {
  * claiming nobody voted has nothing to show whatever its blob says, and the
  * two can disagree while the server's nightly `counter_repair` catches up.
  */
-export function starPercents(counts: unknown, voteCount: number): number[] | null {
+/*
+ * `halves` (2.0.0) is for FILMS, which now take half stars and so send odd
+ * scores. Under five labelled stars a 7 has to stand under one of them, and
+ * it stands under the fourth: half rounds up, the rule every film importer
+ * here uses. Episodes leave it off — they never send an odd score, and an odd
+ * one on an episode is still somebody else's mistake to ignore.
+ */
+export function starPercents(counts: unknown, voteCount: number, halves = false): number[] | null {
   if (!Number.isFinite(voteCount) || voteCount <= 0) return null;
   const obj = countsObject(counts);
   if (!obj) return null;
 
-  const raw = SCORE_BUCKETS.map((b) => countAt(obj, String(b)));
+  const raw = SCORE_BUCKETS.map((b) => countAt(obj, String(b)) + (halves ? countAt(obj, String(b - 1)) : 0));
   const total = raw.reduce((a, b) => a + b, 0);
   if (total <= 0) return null;
   return largestRemainder(raw, total);
@@ -2872,7 +2882,8 @@ export type LocalRatingRow = {
   year?: string | null;
   season?: number | null;
   episode?: number | null;
-  /** `episode_ratings.stars` / `movies.stars` — 1–5, or null for feeling-only. */
+  /** `episode_ratings.stars` 1–5, or `movies.stars` OUT OF TEN (2.0.0, half
+   *  stars) — null for feeling-only. `kind` says which. */
   stars: number | null;
   /** Grid indexes 0–11 — ALL of them. Both local emotion tables are
    *  multi-select, and so is the server's set: see `mergeRatingAndEmotion`. */
@@ -2911,7 +2922,8 @@ export function localRatingToSeed(
   row: LocalRatingRow,
   resolveTarget: RatingTargetResolver,
 ): RatingSeedItem | null {
-  const score = seedScore(row.stars);
+  // A film's stars are already the server's ten points; an episode's double.
+  const score = row.kind === 'movie' ? filmFromTen(row.stars) : seedScore(row.stars);
   const emotions = emotionNames(row.emotions);
   if (score === null && emotions.length === 0) return null;
 
@@ -5924,7 +5936,8 @@ export type TitleFacts = {
   runtime: RuntimeBand | null;
   /** Calendar years this title was watched in, 'YYYY'. */
   watchedYears: readonly string[];
-  /** The USER'S own rating, 1-5 -- null means they never rated it. */
+  /** The USER'S own rating, 1-5 -- null means they never rated it. A film
+   *  may be a half (3.5), so "4 and up" leaves a three-and-a-half out. */
   stars: number | null;
 };
 

@@ -252,8 +252,8 @@ function apply(a: Action, ts = 0): void {
       setMovieWatched(a.name, a.on);
       break;
     case 'movieStars':
-      if (a.stars == null) clearMovieStars(a.name);
-      else setMovieStars(a.name, a.stars);
+      if (a.ten == null) clearMovieStars(a.name);
+      else setMovieStars(a.name, a.ten);
       break;
     case 'emotion': {
       // The op says what should be TRUE; the local call is a toggle. Only act

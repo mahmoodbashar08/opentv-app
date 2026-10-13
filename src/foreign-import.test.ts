@@ -71,7 +71,7 @@ describe('letterboxdRows', () => {
     expect(out.movieRows[0]).toMatchObject({ type: 'towatch', movie_name: 'Stalker' });
   });
 
-  it('rounds a half star UP, never down', () => {
+  it('keeps a half star a half star — out of ten since 2.0.0', () => {
     const out = letterboxdRows({
       'ratings.csv': csv([
         ['Date', 'Name', 'Year', 'Letterboxd URI', 'Rating'],
@@ -80,12 +80,11 @@ describe('letterboxdRows', () => {
         ['2026-01-01', 'Cats', '2019', '', '0.5'],
       ]),
     });
-    // 3.5 must not become 3: that quietly makes somebody's opinion worse than
-    // they gave it, on a screen where they would never notice.
+    // 3.5 is 7, not 4 (what it became before half stars) and not 3.
     expect(out.movieRatings).toEqual([
-      { name: 'Arrival', stars: 4 },
-      { name: 'Heat', stars: 5 },
-      { name: 'Cats', stars: 1 },
+      { name: 'Arrival', ten: 7 },
+      { name: 'Heat', ten: 10 },
+      { name: 'Cats', ten: 1 },
     ]);
   });
 
@@ -159,8 +158,8 @@ describe('traktRows', () => {
     });
     expect(out.movieRows.find((r) => r.movie_name === 'Heat')).toMatchObject({ type: 'watch', movie_year: '1995' });
     expect(out.movieRows.find((r) => r.movie_name === 'Stalker')).toMatchObject({ type: 'towatch' });
-    // 9 of 10 is 4.5 stars, and half a star always goes up.
-    expect(out.movieRatings).toEqual([{ name: 'Heat', stars: 5 }]);
+    // 9 of 10 stays 9: four and a half stars, no longer folded into five.
+    expect(out.movieRatings).toEqual([{ name: 'Heat', ten: 9 }]);
   });
 
   it('survives an empty payload', () => {
@@ -195,7 +194,7 @@ describe('simklRows', () => {
     });
     expect(out.movieRows.find((r) => r.movie_name === 'Heat')?.type).toBe('watch');
     expect(out.movieRows.find((r) => r.movie_name === 'Stalker')?.type).toBe('towatch');
-    expect(out.movieRatings).toEqual([{ name: 'Heat', stars: 4 }]);
+    expect(out.movieRatings).toEqual([{ name: 'Heat', ten: 8 }]);
   });
 
   it('survives a file that is not what anybody expected', () => {
@@ -284,8 +283,8 @@ describe('imdb', () => {
         created_at: '2026-09-24 12:00:00',
       },
     ]);
-    // 9/10 halves to 4.5 and rounds to 5 — `starsFromTen`, same as everywhere.
-    expect(rows.movieRatings).toEqual([{ name: 'Pulp Fiction', stars: 5 }]);
+    // 9/10 is kept as 9 — four and a half stars on the film screen.
+    expect(rows.movieRatings).toEqual([{ name: 'Pulp Fiction', ten: 9 }]);
   });
 
   /** A rated film is treated as a watched film — IMDb has no watch history, so
@@ -298,7 +297,7 @@ describe('imdb', () => {
       ]),
     );
     expect(rows.movieRows[0]).toMatchObject({ type: 'watch', movie_name: "Schindler's List" });
-    expect(rows.movieRatings).toEqual([{ name: "Schindler's List", stars: 5 }]);
+    expect(rows.movieRatings).toEqual([{ name: "Schindler's List", ten: 10 }]);
   });
 
   /** No score means it was never watched — that is a watchlist row, and its
@@ -425,9 +424,8 @@ describe('letterboxd import shape', () => {
         created_at: '2026-03-04 12:00:00',
       },
     ]);
-    // 4.5 of 5 rounds UP — the same rule letterboxdRows keeps, for the same
-    // reason: rounding down makes somebody's opinion worse than they said.
-    expect(rows.movieRatings).toEqual([{ name: 'Parasite', stars: 5 }]);
+    // 4.5 of 5 is 9 of 10, exactly — the same as letterboxdRows.
+    expect(rows.movieRatings).toEqual([{ name: 'Parasite', ten: 9 }]);
   });
 
   /** Ten points beats five when a file carries both: 7/10 is unambiguous where
@@ -436,7 +434,7 @@ describe('letterboxd import shape', () => {
     const rows = letterboxdImportRows(
       csv(['Title,Rating,Rating10,WatchedDate'.split(','), 'Heat,1,7,2026-01-01'.split(',')]),
     );
-    expect(rows.movieRatings).toEqual([{ name: 'Heat', stars: 4 }]);
+    expect(rows.movieRatings).toEqual([{ name: 'Heat', ten: 7 }]);
   });
 
   /** No date and no score is a watchlist row — this format has no "seen" flag,
@@ -453,7 +451,7 @@ describe('letterboxd import shape', () => {
   it('keeps a rated film that carries no date', () => {
     const rows = letterboxdImportRows(csv(['Title,Rating,WatchedDate'.split(','), 'Alien,5,'.split(',')]));
     expect(rows.movieRows[0]).toMatchObject({ type: 'watch', created_at: '' });
-    expect(rows.movieRatings).toEqual([{ name: 'Alien', stars: 5 }]);
+    expect(rows.movieRatings).toEqual([{ name: 'Alien', ten: 10 }]);
   });
 });
 

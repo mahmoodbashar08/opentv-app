@@ -3362,5 +3362,10 @@
     "syncFailed": "Questa volta non è stato possibile leggere la cronologia di Nuvio. Non è cambiato nulla. Riprova più tardi, oppure collega Simkl, dove Nuvio invia anche la tua cronologia.",
     "profileTitle": "Qual è il tuo profilo?",
     "disconnectTitle": "Scollegare Nuvio?"
+  },
+  "halfStars": {
+    "label": "Il tuo voto",
+    "value": "{{value}} su 5 stelle",
+    "unrated": "Nessun voto"
   }
 }

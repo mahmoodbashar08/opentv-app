@@ -24,6 +24,7 @@
  */
 
 import { starsFromTen } from '@/pure';
+import { filmFromStars, filmFromTen } from '@/film-rating';
 
 /** The GDPR-shaped rows the importer consumes. Strings throughout, as CSV. */
 export type ForeignRows = {
@@ -33,8 +34,9 @@ export type ForeignRows = {
   episodeRows: Record<string, string>[];
   /** `tracking-prod-records.csv` shape — watches, rewatches and watchlist. */
   movieRows: Record<string, string>[];
-  /** Film ratings, already on the app's 1–5 star scale. */
-  movieRatings: { name: string; stars: number }[];
+  /** Film ratings OUT OF TEN, the scale `movies.stars` holds since 2.0.0 —
+   *  so a Letterboxd 3.5 arrives as 7 and a Trakt 7 stays 7. */
+  movieRatings: { name: string; ten: number }[];
   /**
    * Episode scores on the app's 1–5 scale, keyed by show NAME because that is
    * how the GDPR votes file arrives and how the importer places them. Only
@@ -144,16 +146,14 @@ export function letterboxdRows(files: Record<string, Record<string, string>[]>):
   }
 
   /*
-   * RATINGS ARE HALVED, and this is the one number that must not be fudged.
-   * Letterboxd runs 0.5–5 in half stars; this app stores 1–5 whole ones. A
-   * half star has to go somewhere, and it goes UP: rounding 3.5 down to 3
-   * silently makes somebody's opinion worse than they said, and there is no
-   * screen anywhere that would let them notice it happened.
+   * HALF STARS ARRIVE AS HALF STARS (2.0.0). Letterboxd runs 0.5–5 and films
+   * here are now out of ten, so 3.5 is 7 exactly. Until 2.0.0 the half had to
+   * go somewhere and went up, which made 3.5 and 4 the same film.
    */
   for (const r of table('ratings')) {
-    const stars = Math.round(Number(r.rating));
-    if (!r.name || !Number.isFinite(stars) || stars < 1) continue;
-    rows.movieRatings.push({ name: r.name, stars: Math.min(5, stars) });
+    const ten = filmFromStars(Number(r.rating));
+    if (!r.name || ten == null) continue;
+    rows.movieRatings.push({ name: r.name, ten });
   }
 
   return rows;
@@ -277,13 +277,7 @@ export function letterboxdImportRows(table: readonly Record<string, string>[]): 
        two resolutions, and ten points survives the trip better: 3.5 stars is
        7, and reading the 3.5 means deciding where the half goes all over
        again. */
-    const ten = Number(r.rating10);
-    const five = Number(r.rating);
-    const stars = Number.isFinite(ten) && ten >= 1
-      ? starsFromTen(ten)
-      : Number.isFinite(five) && five >= 0.5
-        ? Math.min(5, Math.max(1, Math.round(five)))
-        : null;
+    const ten = filmFromTen(Number(r.rating10)) ?? filmFromStars(Number(r.rating));
 
     /*
      * A DATE OR A SCORE MEANS WATCHED; NEITHER MEANS WATCHLIST.
@@ -292,7 +286,7 @@ export function letterboxdImportRows(table: readonly Record<string, string>[]): 
      * row. A watchlist export from any of these tools is titles and years and
      * nothing else, which is exactly the row that falls through to `towatch`.
      */
-    if (watched || stars != null) {
+    if (watched || ten != null) {
       rows.movieRows.push({
         type: 'watch',
         entity_type: 'movie',
@@ -300,7 +294,7 @@ export function letterboxdImportRows(table: readonly Record<string, string>[]): 
         movie_year: year,
         created_at: imdbDay(watched),
       });
-      if (stars != null) rows.movieRatings.push({ name, stars });
+      if (ten != null) rows.movieRatings.push({ name, ten });
       continue;
     }
 
@@ -358,9 +352,10 @@ export function imdbRows(table: readonly Record<string, string>[]): ForeignRows 
 
     const year = r.year ?? '';
     const score = Number(r['your rating'] || r['you rated']);
-    const stars = starsFromTen(score);
+    // Out of ten, kept out of ten: a 7 and an 8 are two different films.
+    const ten = filmFromTen(score);
 
-    if (stars == null) {
+    if (ten == null) {
       /* No score: a watchlist or a list row. `Created` is when it went on the
          list, which is the only date that file has. */
       rows.movieRows.push({
@@ -380,7 +375,7 @@ export function imdbRows(table: readonly Record<string, string>[]): ForeignRows 
       movie_year: year,
       created_at: imdbDay(r['date rated'] || r.created),
     });
-    rows.movieRatings.push({ name, stars });
+    rows.movieRatings.push({ name, ten });
   }
 
   return rows;
@@ -566,8 +561,8 @@ export function traktRows(payload: {
     const movie = item.movie ?? (item.type === 'movie' ? item : null);
     const score = item.rating ?? item.user_rating;
     if (!movie?.title || score == null) continue;
-    const stars = starsFromTen(score);
-    if (stars != null) rows.movieRatings.push({ name: movie.title, stars });
+    const ten = filmFromTen(score);
+    if (ten != null) rows.movieRatings.push({ name: movie.title, ten });
   }
 
   for (const [tvdbId, name] of shows) {

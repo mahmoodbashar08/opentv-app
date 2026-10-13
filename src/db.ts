@@ -12,6 +12,7 @@ import { designSnapshot, isDesignKey } from '@/sync-ops';
 import { interestKey, libraryOwnerFrom, parseInterest, disambiguatedMovieName, displayTitle, episodeKey, type MemoryEvent, mayFoldDuplicateShow, mergeCustomLists, movedListIndex, movieIdentityMatches, nextCharacterVote, renumberLists, resolveMovieRow, slug, watchRuntimeSeconds, type ArchiveCounts } from '@/pure';
 import seed from '@/seed';
 import { COMMSUNI_ELIGIBLE_WHERE } from '@/commsuni-scope';
+import { wholeStars } from '@/film-rating';
 
 const db = SQLite.openDatabaseSync('ourtvtime.db');
 
@@ -480,6 +481,29 @@ try {
   // column already there
 }
 
+/*
+ * FILM RATINGS ARE OUT OF TEN FROM 2.0.0 — half stars (plan item 14). Until
+ * now `movies.stars` held whole stars, 1–5; from here it holds 1–10, the
+ * server's own scale, so 3.5 stars is 7. See `film-rating.ts`.
+ *
+ * ONCE, IN THE SAME TRANSACTION AS ITS FLAG. Doubling is not idempotent: a
+ * second pass would turn a four-star film into a ten. The flag and the UPDATE
+ * commit together or not at all, so a crash between them cannot leave a
+ * library doubled and unflagged. Runs on an empty table too (a new install),
+ * which is what marks a fresh library as already being on the new scale.
+ *
+ * Episodes are NOT touched: `episode_ratings.stars` stays five whole stars.
+ * Anything that brings OLD whole-star film values in later — a backup ZIP
+ * written before 2.0.0, a sync op from a phone on 1.7 — converts at the door
+ * (`_opentv_extras.json`'s `movieScale`, `parseOp`'s `ten`).
+ */
+if (db.getFirstSync<{ value: string }>("SELECT value FROM meta WHERE key = 'movieStarsScale'")?.value !== '10') {
+  db.withTransactionSync(() => {
+    db.runSync('UPDATE movies SET stars = stars * 2 WHERE stars BETWEEN 1 AND 5');
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('movieStarsScale', '10')");
+  });
+}
+
 // ---- library ownership -------------------------------------------------------
 // public builds never auto-seed: a virgin install starts with an empty
 // library and the welcome screen offers Import / Start Fresh only
@@ -549,9 +573,10 @@ const MOVIES_VERSION = '3';
     db.withTransactionSync(() => {
       db.runSync('DELETE FROM movies');
       for (const mv of seed.movies) {
-        // export stored stars 0-based (0=BAD..4=WOW); normalize to 1-5,
-        // drop the misfiled out-of-range vote rows
-        const stars = mv.stars != null && mv.stars >= 0 && mv.stars <= 4 ? mv.stars + 1 : null;
+        // export stored stars 0-based (0=BAD..4=WOW); normalize to 1-5 and
+        // then out of ten (see `movieStarsScale` above), dropping the
+        // misfiled out-of-range vote rows
+        const stars = mv.stars != null && mv.stars >= 0 && mv.stars <= 4 ? (mv.stars + 1) * 2 : null;
         db.runSync(
           'INSERT OR REPLACE INTO movies (name, originalName, poster, year, tmdbId, stars, watchedAt, runtime) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
           [mv.name, mv.originalName ?? null, mv.poster ?? null, mv.year ?? null, mv.tmdbId ?? null, stars, mv.watchedAt ?? null, mv.runtime ?? null],
@@ -2123,6 +2148,7 @@ export function getSeedableEpisodeEmotions(): SeedableEpisodeEmotion[] {
  * `postRating`, so a film rated in 2019 and a film rated today land on one
  * thread instead of two.
  */
+/** `stars` is out of ten, already the server's scale. */
 export type SeedableMovieVote = { name: string; year: string | null; stars: number | null };
 
 export function getSeedableMovieVotes(): SeedableMovieVote[] {
@@ -2523,6 +2549,9 @@ export function wipeAllData(): void {
     // be gone. Dropped, matching what discarding the snapshot does.
     db.execSync('DROP TABLE IF EXISTS pre_tvdb_rows');
     db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('libraryOwner', 'fresh')");
+    // The emptied table is already on the ten-point scale. Without this the
+    // next launch finds no flag and doubles whatever was imported since.
+    db.runSync("INSERT OR REPLACE INTO meta (key, value) VALUES ('movieStarsScale', '10')");
   });
   // After the transaction: the listeners re-read `meta`, so they must see the
   // wiped state, not the state inside it.
@@ -2587,6 +2616,7 @@ export type MovieRow = {
   poster: string | null;
   year: string | null;
   tmdbId: number | null;
+  /** OUT OF TEN since 2.0.0 (7 = three and a half stars) — see `film-rating.ts`. */
   stars: number | null;
   watchedAt: string | null;
   runtime: number | null;
@@ -2729,9 +2759,17 @@ export function deleteMovie(name: string): void {
   queueOp({ t: 'movieDelete', name });
 }
 
-export function setMovieStars(name: string, stars: number): void {
-  db.runSync('UPDATE movies SET stars = ? WHERE name = ? OR originalName = ?', [stars, name, name]);
-  queueOp({ t: 'movieStars', name, stars });
+/**
+ * A film's rating, OUT OF TEN — 7 is three and a half stars. See
+ * `film-rating.ts`; `episode_ratings` is still five whole stars.
+ *
+ * The sync op carries both: `ten` for a 2.0.0 phone, and `stars` rounded to a
+ * whole star for one still on 1.7, which reads only that field and would
+ * otherwise store a 7 as seven of its five stars.
+ */
+export function setMovieStars(name: string, ten: number): void {
+  db.runSync('UPDATE movies SET stars = ? WHERE name = ? OR originalName = ?', [ten, name, name]);
+  queueOp({ t: 'movieStars', name, ten, stars: wholeStars(ten) });
 }
 
 /**
@@ -2744,7 +2782,7 @@ export function setMovieStars(name: string, stars: number): void {
  */
 export function clearMovieStars(name: string): void {
   db.runSync('UPDATE movies SET stars = NULL WHERE name = ? OR originalName = ?', [name, name]);
-  queueOp({ t: 'movieStars', name, stars: null });
+  queueOp({ t: 'movieStars', name, ten: null, stars: null });
 }
 
 /** "+1 Rewatched" for a movie. */

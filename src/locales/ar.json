@@ -3854,5 +3854,10 @@
     "syncFailed": "تعذّرت قراءة سجل Nuvio هذه المرة، ولم يتغيّر شيء. حاول لاحقًا، أو اربط Simkl الذي يرسل إليه Nuvio سجلك أيضًا.",
     "profileTitle": "أيّ ملف شخصي هو ملفك؟",
     "disconnectTitle": "فصل Nuvio؟"
+  },
+  "halfStars": {
+    "label": "تقييمك",
+    "value": "{{value}} من 5 نجوم",
+    "unrated": "بلا تقييم"
   }
 }

@@ -3362,5 +3362,10 @@
     "syncFailed": "Impossible de lire votre historique Nuvio cette fois-ci. Rien n'a été modifié. Réessayez plus tard, ou connectez Simkl, où Nuvio envoie aussi votre historique.",
     "profileTitle": "Quel profil est le vôtre ?",
     "disconnectTitle": "Déconnecter Nuvio ?"
+  },
+  "halfStars": {
+    "label": "Votre note",
+    "value": "{{value}} sur 5 étoiles",
+    "unrated": "Pas noté"
   }
 }
