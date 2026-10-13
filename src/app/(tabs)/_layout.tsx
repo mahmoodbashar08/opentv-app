@@ -1,4 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+// TV Time's own two: a set with an antenna, and a clapperboard.
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 import { Tabs } from 'expo-router';
 import { useEffect } from 'react';
 import { InteractionManager, Platform } from 'react-native';
@@ -11,6 +13,9 @@ import { t } from '@/i18n';
 import { colors } from '@/theme';
 import { WhatsNew } from '@/whats-new';
 
+/** TV Time's tab icons are about a third larger than the library's 24. */
+const TAB_ICON = 30;
+
 export default function TabsLayout() {
   /*
    * THE NAVIGATION BAR WAS SITTING ON THE TAB LABELS.
@@ -21,12 +26,16 @@ export default function TabsLayout() {
    * "Shows", "Movies" and "Explore" — unreadable, and the tabs under them hard
    * to hit. Never seen because nothing in this app had been run on Android.
    *
-   * iOS is left alone. Its tab bar already clears the home indicator, and
-   * adding the inset a second time would float it off the bottom of the
-   * screen.
+   * iOS TOO, and this is where it went wrong for a year. The note here said
+   * iOS's tab bar "already clears the home indicator" — it does, but only at
+   * its own height. The fixed `height: 58` below overrode it, so the bar's
+   * home-indicator padding was squeezed INSIDE those 58 points: the icons and
+   * the labels sat crammed against the bottom edge, and next to TV Time's
+   * (design/referance/03-movies-watchlist.png) the whole bar read small and
+   * low (developer, 14 Oct). Both platforms now add the inset to the height.
    */
   const insets = useSafeAreaInsets();
-  const bottom = Platform.OS === 'android' ? insets.bottom : 0;
+  const bottom = insets.bottom;
   // The community offer for everyone who imported before this update existed
   // — and, one screen later, for the user who has just finished an import
   // through the notification opt-in. `offerCommunityIfDue` stamps its own flag
@@ -71,12 +80,15 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.bg,
           borderTopColor: colors.line,
-          height: 58 + bottom,
+          // TV Time's proportions: a taller band above the inset, the icon
+          // larger than the label, a little air above the icon.
+          height: 60 + bottom,
+          paddingTop: 6,
           paddingBottom: bottom,
         },
         tabBarActiveTintColor: colors.text,
         tabBarInactiveTintColor: colors.faint,
-        tabBarLabelStyle: { fontSize: 11, fontWeight: '500' },
+        tabBarLabelStyle: { fontSize: 11, fontWeight: '500', marginTop: 2 },
       }}>
       {/* "/" only redirects to Explore — hidden from the tab bar */}
       <Tabs.Screen name="index" options={{ href: null }} />
@@ -85,7 +97,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabBar.shows'),
           tabBarAccessibilityLabel: tabLabel(t('tabBar.shows'), 1),
-          tabBarIcon: ({ color, size }) => <Ionicons name="tv-outline" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="television-classic" size={TAB_ICON} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -93,7 +105,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabBar.movies'),
           tabBarAccessibilityLabel: tabLabel(t('tabBar.movies'), 2),
-          tabBarIcon: ({ color, size }) => <Ionicons name="film-outline" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <MaterialCommunityIcons name="movie-open-outline" size={TAB_ICON} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -101,7 +113,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabBar.explore'),
           tabBarAccessibilityLabel: tabLabel(t('tabBar.explore'), 3),
-          tabBarIcon: ({ color, size }) => <Ionicons name="search" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="search" size={TAB_ICON} color={color} />,
         }}
       />
       <Tabs.Screen
@@ -109,7 +121,7 @@ export default function TabsLayout() {
         options={{
           title: t('tabBar.profile'),
           tabBarAccessibilityLabel: tabLabel(t('tabBar.profile'), 4),
-          tabBarIcon: ({ color, size }) => <Ionicons name="person-outline" size={size} color={color} />,
+          tabBarIcon: ({ color }) => <Ionicons name="person-outline" size={TAB_ICON} color={color} />,
         }}
       />
     </Tabs>
