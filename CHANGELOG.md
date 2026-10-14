@@ -9,6 +9,7 @@ Play Console record rather than per-change.
 
 | Version | Android versionCode | iOS build | Status |
 |---|---|---|---|
+| 1.7.1 | 97 | 76 | **built 14 Oct 2026** — a fix release: email sign-up finishes joining (11 users were left without a handle since 4 Oct), no false "Backup hasn't worked" after iOS cuts an upload short, sync polls every 20 s, lists no longer show a series as its TheTVDB number, privacy copy that admits Backup/Sync store the history, developer messages no longer open the chat, Test Lab robots not counted |
 | 1.7.0 | 96 | 74 | **built 12 Oct 2026** (AAB in ~/Downloads, iOS archive in Organizer) — the finished half of the 2.0.0 plan: stats names, iPad card grids, self-hosted sync without Plus, one phone publishes the profile, the Wrapped overlap, Moving from another phone?, server-managed templates, Your devices (cap of five), the GitHub APK, a yearly goal, Serializd import, and the empty-owner library fix. The daily puzzle and the social features stay in 2.0.0 |
 | 1.6.8 | 95 | 73 | **released 12 Oct 2026, both stores** — Add your shows in three steps, Message the developer, the inbox back, OpenTV Backup that catches up on open and only starts sync once a copy has landed, Google Drive on the Android welcome |
 | 1.6.7 | 84 | 68 | **submitted 7 Oct 2026, both stores** — creator codes only: "Have a code?" on the Plus screen (Apple's redeem sheet on iPhone; a half-price Play offer on Android, codes listed in RevenueCat) |
