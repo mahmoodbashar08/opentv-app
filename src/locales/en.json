@@ -3521,5 +3521,12 @@
     "remindSub": "Once a day at this hour, only if you haven't played yet.",
     "public": "Puzzle on your public profile",
     "publicSub": "Days, colours and stats only, never which title."
+  },
+  "puzzleFair": {
+    "close": "Right series, wrong part!",
+    "closeA11y": "right series",
+    "inLibrary": "In your library",
+    "beatMe": "Can you beat me?",
+    "playFree": "Play free in OpenTV"
   }
 }

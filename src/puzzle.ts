@@ -172,6 +172,56 @@ function byId(a: PuzzleId, b: PuzzleId): number {
 /** Below this many library candidates the bundled classics join the pool. */
 export const MIN_LIBRARY_POOL = 10;
 
+// ── who qualifies ───────────────────────────────────────────────────────────
+
+/**
+ * How many watched episodes make a show fair to ask, strictest first.
+ *
+ * FAIR, NOT MERELY WATCHED (14 Oct). One episode of a show sampled and dropped
+ * in 2015 was as likely to be the answer as the show somebody watched for six
+ * years, and a still of it is a guess nobody could make. So a show qualifies
+ * with at least FOUR watched episodes, OR at least half of what has aired —
+ * whichever is easier, so a two-episode miniseries watched to the end counts
+ * and a long-running show is not asked to be half done.
+ *
+ * A SMALL LIBRARY RELAXES BEFORE THE CLASSICS JOIN: four, then three, two,
+ * one. A library of nine fair shows and twenty sampled ones would otherwise
+ * be padded with classics it never watched while titles it did watch sat
+ * out. Only when even "one episode" leaves fewer than `MIN_LIBRARY_POOL` do
+ * the classics come in (`candidatePool`), exactly as before.
+ *
+ * A FILM qualifies by being marked watched; there is no half of a film.
+ */
+export const EPISODE_STEPS = [4, 3, 2, 1] as const;
+
+/** A watched show as the qualifying rule sees it: distinct episodes seen,
+ *  and how many have aired (null when the phone does not know). */
+export type ShowSeen = { id: PuzzleId; seen: number; aired: number | null };
+
+export function showQualifies(s: ShowSeen, min: number): boolean {
+  if (s.seen <= 0) return false;
+  return s.seen >= min || (!!s.aired && s.seen * 2 >= s.aired);
+}
+
+/**
+ * The library's candidates and the bar they were held to: the first step of
+ * `EPISODE_STEPS` that yields `MIN_LIBRARY_POOL` titles, films included, or
+ * the last step (any watched episode) when none does — and then the classics
+ * join in `candidatePool`. `step` is the episode bar in force: 4 for a
+ * library with plenty of fair shows, 1 for a new or tiny one.
+ */
+export function libraryCandidates(
+  shows: readonly ShowSeen[],
+  films: readonly PuzzleId[],
+): { ids: PuzzleId[]; step: number } {
+  let ids: PuzzleId[] = [];
+  for (const step of EPISODE_STEPS) {
+    ids = [...shows.filter((s) => showQualifies(s, step)).map((s) => s.id), ...films];
+    if (ids.length >= MIN_LIBRARY_POOL) return { ids, step };
+  }
+  return { ids, step: EPISODE_STEPS[EPISODE_STEPS.length - 1] };
+}
+
 /**
  * The ids today may be picked from: the library's watched shows AND films
  * with a picture, and the bundled classics only while those are fewer than
@@ -307,6 +357,37 @@ export function archiveDays(today: string, firstPlayed: string | null): string[]
 /** A skipped try. Shown as ⬛: it cost a try, it was not a wrong show. */
 export const SKIP = 0;
 
+/**
+ * A guess that was a DIFFERENT FILM OF THE ANSWER'S SERIES — Deathly Hallows
+ * Part 1 when the answer is Part 2. Shown as 🟨: "right series, wrong part".
+ * It is still a miss — it costs a try and unlocks the next clue — but it is
+ * not the same miss as a guess at a stranger, and the grid should say so.
+ *
+ * STORED IN THE GUESS ITSELF as `c:` + the film's id (`c:m:12445`), so the
+ * game, the history and the share text all read it from the one list, and an
+ * old save, which never has it, reads exactly as it did. Films only: shows
+ * have no collections. `guessedId` takes the marker off again.
+ */
+const CLOSE = 'c:';
+
+export function isClose(g: PuzzleId): boolean {
+  return typeof g === 'string' && g.startsWith(CLOSE);
+}
+
+/** The title a guess named, close or not. */
+export function guessedId(g: PuzzleId): PuzzleId {
+  return isClose(g) ? (g as string).slice(CLOSE.length) : g;
+}
+
+/** A stored guess: an id as `parseId` reads it, or a close marker on a film. */
+function parseGuess(v: unknown): PuzzleId | null {
+  if (typeof v === 'string' && v.startsWith(CLOSE)) {
+    const id = parseId(v.slice(CLOSE.length));
+    return id != null && isFilmId(id) ? v : null;
+  }
+  return parseId(v);
+}
+
 export type Game = {
   day: string;
   /** The answer: a show's TheTVDB id, or a film's `m:` key. */
@@ -324,10 +405,24 @@ export function isOver(g: Game): boolean {
   return g.won || g.guesses.length >= MAX_TRIES;
 }
 
-/** One try. A finished game ignores further guesses rather than growing. */
-export function guess(g: Game, id: PuzzleId): Game {
+/** One try. A finished game ignores further guesses rather than growing.
+ *  `close` marks a film of the answer's series (`isClose`); it is ignored on
+ *  the answer itself and on anything that is not a film. */
+export function guess(g: Game, id: PuzzleId, close = false): Game {
   if (isOver(g)) return g;
-  return { ...g, guesses: [...g.guesses, id], won: id === g.id };
+  const entry = close && id !== g.id && isFilmId(id) ? CLOSE + id : id;
+  return { ...g, guesses: [...g.guesses, entry], won: id === g.id };
+}
+
+/**
+ * Mark try `i` close after the fact. The guessed film's series may only be
+ * known once its details arrive, a moment after the guess was counted — the
+ * try was already a miss either way, so only the square changes colour.
+ */
+export function markClose(g: Game, i: number): Game {
+  const id = g.guesses[i];
+  if (id == null || id === g.id || isClose(id) || !isFilmId(id)) return g;
+  return { ...g, guesses: g.guesses.map((x, j) => (j === i ? CLOSE + id : x)) };
 }
 
 /** Wrong tries so far — what decides which clues are showing. */
@@ -345,9 +440,9 @@ export function blurFor(g: Game): number {
   return isOver(g) ? 0 : BLUR[Math.min(misses(g), BLUR.length - 1)];
 }
 
-/** 🟥 wrong, 🟩 right, ⬛ skipped — the grid people post. */
+/** 🟥 wrong, 🟨 right series, 🟩 right, ⬛ skipped — the grid people post. */
 export function squares(g: Game): string {
-  return g.guesses.map((id) => (id === g.id ? '🟩' : id === SKIP ? '⬛' : '🟥')).join('');
+  return g.guesses.map((id) => (id === g.id ? '🟩' : id === SKIP ? '⬛' : isClose(id) ? '🟨' : '🟥')).join('');
 }
 
 /**
@@ -367,7 +462,9 @@ export function shareText(number: number, g: Game): string {
 
 // ── history: the month of squares ───────────────────────────────────────────
 
-export type Result = { d: string; id: PuzzleId; tries: number; won: boolean };
+/** `close`: how many tries were the right series (🟨). Absent on every row
+ *  written before 14 Oct and on any day without one. */
+export type Result = { d: string; id: PuzzleId; tries: number; won: boolean; close?: number };
 
 /**
  * Ten years of days, about 50 bytes each.
@@ -380,7 +477,8 @@ export type Result = { d: string; id: PuzzleId; tries: number; won: boolean };
 export const HISTORY_MAX = 3650;
 
 export function resultOf(g: Game): Result {
-  return { d: g.day, id: g.id, tries: g.guesses.length, won: g.won };
+  const close = g.guesses.filter(isClose).length;
+  return { d: g.day, id: g.id, tries: g.guesses.length, won: g.won, ...(close ? { close } : {}) };
 }
 
 /** One row per day, newest last. A day replayed (it cannot be, but a bad
@@ -393,9 +491,16 @@ export function withResult(history: readonly Result[], r: Result): Result[] {
  * How strongly a day's square is coloured: 6 for a first-try win down to 1 for
  * a sixth-try one, 0 for a loss. The block mixes the green by this, so "dark
  * green = first try … grey = lost" is one number, not six colours.
+ *
+ * -1 (14 Oct) is a loss that found the right series — the block draws it
+ * yellow. A build before then clamps it to 0 and draws a plain loss, which is
+ * what it was to that build.
  */
+export const CLOSE_LEVEL = -1;
+
 export function winLevel(r: Result): number {
-  return r.won ? Math.max(1, MAX_TRIES + 1 - r.tries) : 0;
+  if (r.won) return Math.max(1, MAX_TRIES + 1 - r.tries);
+  return r.close ? CLOSE_LEVEL : 0;
 }
 
 // ── the stats ───────────────────────────────────────────────────────────────
@@ -407,6 +512,8 @@ export function winLevel(r: Result): number {
  * loss has no try count worth averaging — it is six misses, and folding it in
  * would make a player who never gives up look worse than one who never plays.
  * Null with no win yet, which the block draws as a dash rather than "0".
+ * A 🟨 is a try like any other: "right series" is a kinder miss, not a
+ * cheaper one, so a win after one counts it in full.
  */
 export type Stats = { played: number; win: number; avg: number | null };
 
@@ -449,7 +556,7 @@ export function parsePublicPuzzle(v: unknown): PublicPuzzle | null {
     for (const item of o.days) {
       if (!Array.isArray(item) || typeof item[0] !== 'string' || typeof item[1] !== 'number') continue;
       if (!/^\d{4}-\d{2}-\d{2}$/.test(item[0])) continue;
-      days.push([item[0], Math.min(MAX_TRIES, Math.max(0, Math.floor(item[1])))]);
+      days.push([item[0], Math.min(MAX_TRIES, Math.max(CLOSE_LEVEL, Math.floor(item[1])))]);
     }
   }
   const st = o.stats as Partial<Record<keyof Stats, unknown>> | null | undefined;
@@ -478,7 +585,7 @@ export function parseGame(v: unknown, day: string): Game | null {
   const o = v as Partial<Record<keyof Game, unknown>>;
   const id = parseId(o.id);
   if (o.day !== day || id == null || !Array.isArray(o.guesses)) return null;
-  const guesses = o.guesses.map(parseId);
+  const guesses = o.guesses.map(parseGuess);
   if (guesses.some((x) => x == null)) return null;
   return { day, id, guesses: guesses as PuzzleId[], won: o.won === true };
 }
@@ -493,7 +600,8 @@ export function parseHistory(v: unknown): Result[] {
     const o = r as Partial<Record<keyof Result, unknown>>;
     const id = parseId(o.id);
     if (typeof o.d !== 'string' || id == null) continue;
-    out.push({ d: o.d, id, tries: typeof o.tries === 'number' ? o.tries : 0, won: o.won === true });
+    const close = typeof o.close === 'number' && o.close > 0 ? Math.floor(o.close) : 0;
+    out.push({ d: o.d, id, tries: typeof o.tries === 'number' ? o.tries : 0, won: o.won === true, ...(close ? { close } : {}) });
   }
   return out;
 }

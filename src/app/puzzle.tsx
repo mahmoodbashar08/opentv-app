@@ -34,7 +34,7 @@ import { ActivityIndicator, Alert, Keyboard, Pressable, ScrollView, Share, Style
 import { track } from '@/analytics';
 import { ActionSheet } from '@/components/action-sheet';
 import { StatsRow } from '@/components/puzzle-block';
-import { PuzzleShareCard, Squares } from '@/components/puzzle-share-card';
+import { CLOSE_SQUARE, PuzzleShareCard, Squares } from '@/components/puzzle-share-card';
 import { ContentColumn, NavHeader, Screen } from '@/components/ui';
 import { addShow, puzzleMemory } from '@/db';
 import { tapLight } from '@/haptics';
@@ -49,7 +49,10 @@ import {
   clueParts,
   cluesShown,
   guess as applyGuess,
+  guessedId,
+  isClose,
   isOver,
+  markClose,
   puzzleNumber,
   shareText,
   titleMatches,
@@ -66,8 +69,11 @@ import {
   devFreshGame,
   finishGame,
   gameFor,
+  loadGame,
   pictureFor,
   saveGame,
+  sameSeries,
+  sameSeriesNow,
   today,
   type Answer,
 } from '@/puzzle-data';
@@ -142,7 +148,7 @@ export default function PuzzleScreen() {
     };
   }, [answer, day]);
 
-  const guessed = useMemo(() => new Set<PuzzleId>(game?.guesses ?? []), [game]);
+  const guessed = useMemo(() => new Set<PuzzleId>((game?.guesses ?? []).map(guessedId)), [game]);
   const suggestions = useMemo(
     () =>
       query.trim()
@@ -157,7 +163,31 @@ export default function PuzzleScreen() {
     Keyboard.dismiss();
     setQuery('');
     if (game.guesses.length === 0) track('puzzle_played');
-    const next = applyGuess(game, id);
+    /*
+     * THE RIGHT SERIES, THE WRONG PART (14 Oct). Known now when both films'
+     * details are cached; otherwise the try counts at once as a plain miss —
+     * nobody waits on TMDB to see their square — and turns yellow when the
+     * guessed film's details arrive and say it is the same collection. The
+     * saved game is read back first: it is what every guess writes, so a
+     * later guess, or "play another", is never overwritten by a stale copy.
+     */
+    const picked = pool.find((a) => a.id === id);
+    const close = answer ? sameSeriesNow(answer, picked) : false;
+    const next = applyGuess(game, id, close === true);
+    if (close === null && answer) {
+      const at = next.guesses.length - 1;
+      void sameSeries(answer, picked)
+        .then((yes) => {
+          const saved = yes ? loadGame(day, archive) : null;
+          if (!saved || saved.id !== next.id || saved.guesses[at] !== id) return;
+          const up = markClose(saved, at);
+          if (isOver(up)) finishGame(up, archive);
+          else saveGame(up, archive);
+          setGame(up);
+          if (isOver(up) && !archive) setStats(currentStats());
+        })
+        .catch(() => {});
+    }
     setGame(next);
     if (!isOver(next)) {
       saveGame(next, archive);
@@ -309,6 +339,16 @@ export default function PuzzleScreen() {
                     read as the letters of the answer, Wordle-style, to the
                     developer the first time he played (14 Oct). They are tries. */}
                 <Text style={s.tryLine}>{t('puzzle.tryOf', { n: Math.min(game.guesses.length + 1, MAX_TRIES), total: MAX_TRIES })}</Text>
+                {/* The last try was another film of the answer's series. Live,
+                    so it is spoken when the square turns yellow late. */}
+                {isClose(game.guesses[game.guesses.length - 1] ?? SKIP) && (
+                  <View style={s.closeRow}>
+                    <View style={s.closeSquare} />
+                    <Text style={s.closeLine} accessibilityLiveRegion="polite">
+                      {t('puzzleFair.close')}
+                    </Text>
+                  </View>
+                )}
               </View>
 
               {/* The text clues: one row per miss, the kind first. A locked
@@ -357,14 +397,28 @@ export default function PuzzleScreen() {
                   style={s.row}
                   onPress={() => play(a.id)}
                   accessibilityRole="button"
-                  accessibilityLabel={`${a.name}, ${t(a.kind === 'film' ? 'puzzleTitles.kindFilm' : 'puzzleTitles.kindShow')}`}>
+                  accessibilityLabel={[
+                    a.name,
+                    a.year,
+                    t(a.kind === 'film' ? 'puzzleTitles.kindFilm' : 'puzzleTitles.kindShow'),
+                    a.mine ? t('puzzleFair.inLibrary') : null,
+                  ]
+                    .filter(Boolean)
+                    .join(', ')}>
                   {a.poster ? (
                     <Image source={{ uri: a.poster }} style={s.thumb} contentFit="cover" cachePolicy="disk" />
                   ) : (
                     <View style={[s.thumb, { backgroundColor: colors.raise }]} />
                   )}
-                  <Text style={s.rowName} numberOfLines={1}>
+                  {/* THE WHOLE TITLE AND ITS YEAR (14 Oct). One line with "…"
+                      cut "Harry Potter and the Deathly Hallows – Part 1" and
+                      "– Part 2" to the same row, and two Avatars to one name:
+                      the very guesses that need telling apart. So it wraps,
+                      never truncates, and the year follows in a quieter
+                      colour. */}
+                  <Text style={s.rowName}>
                     {a.name}
+                    {a.year ? <Text style={s.rowYear}>{` (${a.year})`}</Text> : null}
                   </Text>
                   {/* Which kind, for the eye — the label above says it for the ear. */}
                   <Ionicons name={a.kind === 'film' ? 'film-outline' : 'tv-outline'} size={16} color={colors.faint} />
@@ -421,7 +475,7 @@ export default function PuzzleScreen() {
 
               {/* The card is what the image share captures — see `puzzle-share-card.tsx`. */}
               <View style={s.cardFrame}>
-                <PuzzleShareCard number={number} game={game} stats={archive ? null : stats} cardRef={cardRef} />
+                <PuzzleShareCard number={number} day={day} game={game} stats={archive ? null : stats} cardRef={cardRef} />
               </View>
               <View style={s.actions}>
                 <Pressable style={s.shareBtn} onPress={() => setSharing(true)} accessibilityRole="button" accessibilityLabel={t('puzzle.share')}>
@@ -489,6 +543,9 @@ const s = StyleSheet.create({
   pillText: { color: colors.onArt, fontSize: 11, fontWeight: '800', letterSpacing: ls(0.6), textTransform: 'uppercase' },
   squares: { alignItems: 'center', paddingVertical: 14, gap: 8 },
   tryLine: { color: colors.dim, fontSize: 13, fontWeight: '600' },
+  closeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  closeSquare: { width: 12, height: 12, borderRadius: 3, backgroundColor: CLOSE_SQUARE },
+  closeLine: { color: colors.text, fontSize: 14, fontWeight: '800' },
   clues: { marginHorizontal: space.lg, gap: 8, marginBottom: 10 },
   clueRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   clueText: { color: colors.text, fontSize: 14.5, flex: 1 },
@@ -513,7 +570,8 @@ const s = StyleSheet.create({
     borderBottomColor: colors.line,
   },
   thumb: { width: 34, height: 51, borderRadius: radius.poster, backgroundColor: colors.card },
-  rowName: { color: colors.text, fontSize: 16, fontWeight: '600', flex: 1 },
+  rowName: { color: colors.text, fontSize: 15.5, fontWeight: '600', lineHeight: 20, flex: 1 },
+  rowYear: { color: colors.dim, fontWeight: '500' },
   skip: { alignSelf: 'center', marginTop: 16, paddingHorizontal: 18, paddingVertical: 8 },
   skipText: { color: colors.dim, fontSize: 13.5, fontWeight: '700' },
   resultTitle: { color: colors.text, fontSize: 22, fontWeight: '900', textAlign: 'center', paddingTop: 16, paddingHorizontal: space.lg },

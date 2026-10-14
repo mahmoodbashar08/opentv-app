@@ -8,6 +8,7 @@
  *
  *   green  — solved early; it shades towards amber the later the solve,
  *   red    — missed,
+ *   yellow — missed, but a guess was the right series (14 Oct),
  *   empty  — not played (a hollow cell, so it is visibly NOT a result).
  *
  * Under it — or beside it, in a wide block — Played, Win %, Average tries:
@@ -26,6 +27,7 @@ import { useState } from 'react';
 import { StyleSheet, Text, View, type LayoutChangeEvent } from 'react-native';
 
 import { todayISO } from '@/components/heatmap';
+import { CLOSE_SQUARE } from '@/components/puzzle-share-card';
 import { t } from '@/i18n';
 import type { WidgetSpan } from '@/profile-layout';
 import { MAX_TRIES, type PublicPuzzle, type Stats } from '@/puzzle';
@@ -40,6 +42,8 @@ const GAP = 3;
  * scale — 0 is the danger red, and a day not played has no fill at all.
  */
 export function levelColor(level: number): string {
+  // A loss that found the right series (`CLOSE_LEVEL`): the 🟨 of its grid.
+  if (level < 0) return CLOSE_SQUARE;
   if (level <= 0) return colors.danger;
   return mixHex(colors.green, ACCENTS.orange, (MAX_TRIES - Math.min(level, MAX_TRIES)) / (MAX_TRIES - 1));
 }

@@ -3521,5 +3521,12 @@
     "remindSub": "Une fois par jour à cette heure, seulement si vous n'avez pas encore joué.",
     "public": "Puzzle sur votre profil public",
     "publicSub": "Jours, couleurs et statistiques seulement, jamais le titre."
+  },
+  "puzzleFair": {
+    "close": "Bonne saga, mauvais volet !",
+    "closeA11y": "bonne saga",
+    "inLibrary": "Dans votre bibliothèque",
+    "beatMe": "Ferez-vous mieux ?",
+    "playFree": "Jouez gratuitement sur OpenTV"
   }
 }
