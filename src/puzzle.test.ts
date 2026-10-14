@@ -655,3 +655,20 @@ describe('right series, wrong part', () => {
     expect(rows[1].close).toBe(2);
   });
 });
+
+describe('the whole library goes round before anything repeats (14 Oct)', () => {
+  it('asks every title once before any title comes back, even after 60 days', () => {
+    const library = Array.from({ length: 90 }, (_, i) => i + 1);
+    const pinned: { d: string; id: number }[] = [];
+    const start = Date.UTC(2026, 10, 1);
+    const seen = new Set<number>();
+    for (let i = 0; i < 90; i++) {
+      const day = new Date(start + i * 86400000).toISOString().slice(0, 10);
+      const id = pickAnswer(day, library, [], pinned as never) as number;
+      expect(seen.has(id)).toBe(false);
+      seen.add(id);
+      pinned.push({ d: day, id });
+    }
+    expect(seen.size).toBe(90);
+  });
+});

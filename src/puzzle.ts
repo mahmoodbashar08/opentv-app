@@ -309,6 +309,17 @@ export function pickAnswer(
   const near = nearIds(pinned, day);
   const pool = candidatePool(library, classics);
   const fresh = pool.filter((id) => !near.has(id));
+  /*
+   * NEVER ASKED BEFORE COMES FIRST. The 60-day rule alone let a title come
+   * back on day 61 while others in the library had never been asked at all
+   * (developer, 14 Oct: "not the same one twice until the library is
+   * finished"). So the whole library goes round once, a title newly watched
+   * joins the unasked ones the next day it is opened, and only when every
+   * title has been asked does the 60-day rule decide the repeats.
+   */
+  const asked = new Set(pinned.filter((p) => p.d !== day).map((p) => p.id));
+  const unasked = fresh.filter((id) => !asked.has(id));
+  if (unasked.length) return pickForDay(day, unasked);
   if (fresh.length) return pickForDay(day, fresh);
   const freshClassics = classics.filter((id) => !near.has(id));
   if (freshClassics.length) return pickForDay(day, freshClassics);
