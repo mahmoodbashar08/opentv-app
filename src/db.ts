@@ -4588,12 +4588,16 @@ export function templateTitles(): { kind: 'show' | 'movie'; name: string; tvdbId
  * them are what the answer box suggests — somebody may guess a show they only
  * follow. A row with no name is dropped, as `titleChoices` drops it: it cannot
  * be typed, so it cannot be guessed.
+ *
+ * `watched` is DISTINCT episodes (14 Oct), since it now decides whether a show
+ * is fair to ask (four episodes, or half of what aired): the pilot rewatched
+ * four times is still one episode of the show.
  */
 export function puzzleShows(): { tvdbId: number; tmdbId: number | null; name: string; posterUrl: string | null; watched: number }[] {
   return db
     .getAllSync<{ tvdbId: number; tmdbId: number | null; name: string; posterUrl: string | null; watched: number }>(
       `SELECT s.tvdbId, s.tmdbId, s.name, s.posterUrl,
-              (SELECT COUNT(*) FROM watches w WHERE w.showId = s.tvdbId) AS watched
+              (SELECT COUNT(DISTINCT w.season || '-' || w.episode) FROM watches w WHERE w.showId = s.tvdbId) AS watched
          FROM shows s`,
     )
     .filter((s) => s.name?.trim());

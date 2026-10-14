@@ -12,9 +12,10 @@
  * of 10 Oct is gone (14 Oct); an old `puzzle.streak` is never read again.
  * `wipeAllData` clears `meta` with everything else.
  *
- * WHERE TODAY'S TITLE COMES FROM. The library first — a show with at least
- * one watched episode, or (14 Oct) a film marked watched, with a picture to
- * blur — which is the edge no catalogue game has. When fewer than ten of those
+ * WHERE TODAY'S TITLE COMES FROM. The library first — a show watched enough
+ * to be fair (four episodes or half of what aired, relaxed for a small
+ * library: `libraryCandidates`), or (14 Oct) a film marked watched, with a
+ * picture to blur — which is the edge no catalogue game has. When fewer than ten of those
  * exist (a new install, a watchlist-only library), the bundled classics
  * (`src/data/metadata.json`, 113 shows with artwork) are added to the pool, so
  * the first day has a puzzle too. There are no bundled classic FILMS: the
@@ -40,6 +41,7 @@ import { displayTitle, localDayStamp, parseAltTitles } from '@/pure';
 import {
   filmId,
   isOver,
+  libraryCandidates,
   newGame,
   parseGame,
   parseHistory,
@@ -60,6 +62,7 @@ import {
   type Result,
   type Stats,
 } from '@/puzzle';
+import { airedTotalOf } from '@/show-status';
 import { tmdb } from '@/tmdb';
 
 const K = {
@@ -181,9 +184,17 @@ export type Answer = {
   poster: string | null;
   /** In this phone's library at all. */
   mine: boolean;
-  /** With at least one watched episode, or a film marked watched — what makes
-   *  it a candidate. */
+  /** With at least one watched episode, or a film marked watched — the first
+   *  half of what makes it a candidate; `libraryCandidates` is the second. */
   watched: boolean;
+  /** Shows in the library: distinct episodes watched. */
+  seen?: number;
+  /**
+   * First-air year for a show, release year for a film, or null. Printed
+   * after every suggestion (14 Oct), because a title alone cannot tell
+   * Avatar: The Last Airbender 2005 from 2024, nor the two Deathly Hallows.
+   */
+  year: string | null;
   /** Films only, from the library row: the key `/movie/[name]` opens, the
    *  year and runtime (minutes) the clues start from, and when it was watched. */
   film?: { name: string; year: string | null; runtime: number | null; watchedAt: string | null };
@@ -211,12 +222,24 @@ export function answerPool(): Answer[] {
       poster: s.posterUrl ?? m?.poster ?? null,
       mine: true,
       watched: s.watched > 0,
+      seen: s.watched,
+      year: m?.year?.slice(0, 4) || null,
     });
   }
   for (const [key, m] of Object.entries(metadata)) {
     const id = Number(key);
     if (out.has(id) || !m.name) continue;
-    out.set(id, { id, kind: 'show', tmdbId: m.tmdbId || null, name: m.name, names: [m.name], poster: m.poster, mine: false, watched: false });
+    out.set(id, {
+      id,
+      kind: 'show',
+      tmdbId: m.tmdbId || null,
+      name: m.name,
+      names: [m.name],
+      poster: m.poster,
+      mine: false,
+      watched: false,
+      year: m.year?.slice(0, 4) || null,
+    });
   }
   /* FILMS, every name they answer to: the library's key, the original title
      and whatever `alt-titles.ts` learnt — so "Pap" finds Paprika whichever
@@ -235,6 +258,7 @@ export function answerPool(): Answer[] {
       poster: f.poster,
       mine: true,
       watched: f.watchedAt != null,
+      year: f.year?.slice(0, 4) || movieMeta(f.tmdbId)?.release?.slice(0, 4) || null,
       // `movies.runtime` is SECONDS (TV Time's unit); every clue speaks minutes.
       film: { name: f.name, year: f.year, runtime: f.runtime ? Math.round(f.runtime / 60) : null, watchedAt: f.watchedAt },
     });
@@ -267,14 +291,18 @@ function hasPicture(a: Answer): boolean {
   return !!m?.backdrop || watchedStills(id, m).length > 0;
 }
 
-/** What a day may be picked from: the watched library with a picture, and
- *  the classics. `pickAnswer` decides how they mix. Every bundled classic
- *  carries a backdrop, so none needs the check. */
+/** What a day may be picked from: the watched library with a picture, held
+ *  to the fairness bar (`libraryCandidates`), and the classics.
+ *  `pickAnswer` decides how they mix. Every bundled classic carries a
+ *  backdrop, so none needs the check. `airedTotalOf` is asked only of the
+ *  shows that got this far, not of the whole answer box. */
 function candidates(pool: readonly Answer[]): { library: PuzzleId[]; classics: PuzzleId[] } {
-  return {
-    library: pool.filter((a) => a.mine && a.watched && hasPicture(a)).map((a) => a.id),
-    classics: pool.filter((a) => !a.mine).map((a) => a.id),
-  };
+  const mine = pool.filter((a) => a.mine && a.watched && hasPicture(a));
+  const { ids } = libraryCandidates(
+    mine.filter((a) => a.kind === 'show').map((a) => ({ id: a.id, seen: a.seen ?? 0, aired: airedTotalOf(a.id as number) })),
+    mine.filter((a) => a.kind === 'film').map((a) => a.id),
+  );
+  return { library: ids, classics: pool.filter((a) => !a.mine).map((a) => a.id) };
 }
 
 /**
@@ -384,6 +412,13 @@ type FilmDetail = {
   runtime: number | null;
   actor: string | null;
   character: string | null;
+  /**
+   * TMDB's `belongs_to_collection` id (14 Oct), null when the film is in none.
+   * ABSENT on a detail cached before then, which means "not known": the
+   * answer's is fetched again once (`fetchFilmDetail`), a guess's is fetched
+   * the first time it is guessed.
+   */
+  collection?: number | null;
 };
 
 const filmKey = (tmdbId: number) => `puzzle.film:${tmdbId}`;
@@ -406,12 +441,13 @@ function filmDetail(tmdbId: number | null): FilmDetail | null {
  */
 async function fetchFilmDetail(tmdbId: number): Promise<FilmDetail | null> {
   const known = filmDetail(tmdbId);
-  if (known) return known;
+  if (known && known.collection !== undefined) return known;
   try {
     const d = await tmdb<{
       runtime?: number | null;
       genres?: { name?: string }[];
       release_date?: string;
+      belongs_to_collection?: { id?: number } | null;
       credits?: { cast?: { name?: string; character?: string }[]; crew?: { name?: string; job?: string }[] };
       images?: { backdrops?: { file_path?: string | null }[] };
     }>(`/movie/${tmdbId}?append_to_response=credits,images&include_image_language=null`);
@@ -426,13 +462,47 @@ async function fetchFilmDetail(tmdbId: number): Promise<FilmDetail | null> {
       runtime: d.runtime || null,
       actor: lead?.name ?? null,
       character: lead?.character ?? null,
+      collection: d.belongs_to_collection?.id ?? null,
     };
     setMeta(filmKey(tmdbId), JSON.stringify(detail));
     return detail;
   } catch {
-    // Offline or rate-limited: nothing is remembered.
-    return null;
+    // Offline or rate-limited: nothing is remembered. A detail cached before
+    // collections were is still good for the clues and the picture.
+    return known;
   }
+}
+
+// ── the right series, the wrong part ────────────────────────────────────────
+
+/**
+ * Whether `guessed` is another film of the answer's TMDB collection, from
+ * what is cached: true or false when both are known, null when one is not
+ * fetched yet. Anything but two different films is false — shows have no
+ * collections.
+ */
+export function sameSeriesNow(answer: Answer, guessed: Answer | undefined): boolean | null {
+  if (!guessed || answer.kind !== 'film' || guessed.kind !== 'film' || guessed.id === answer.id) return false;
+  if (!answer.tmdbId || !guessed.tmdbId) return false;
+  const a = filmDetail(answer.tmdbId)?.collection;
+  // The answer in no series settles it without asking about the guess.
+  if (a === null) return false;
+  const b = filmDetail(guessed.tmdbId)?.collection;
+  if (a === undefined || b === undefined) return null;
+  return a === b;
+}
+
+/**
+ * The same question, fetching what is missing — the guessed film's details,
+ * once, and remembered like the answer's. Never on the guess's critical path:
+ * the screen counts the try as a plain miss at once and turns it yellow when
+ * this says so. Offline, it is false, and the miss stays a plain one.
+ */
+export async function sameSeries(answer: Answer, guessed: Answer | undefined): Promise<boolean> {
+  const now = sameSeriesNow(answer, guessed);
+  if (now !== null) return now;
+  const [a, b] = await Promise.all([fetchFilmDetail(answer.tmdbId!), fetchFilmDetail(guessed!.tmdbId!)]);
+  return a?.collection != null && a.collection === b?.collection;
 }
 
 // ── the picture ─────────────────────────────────────────────────────────────

@@ -15,6 +15,13 @@ import {
   blurFor,
   archiveDays,
   candidatePool,
+  CLOSE_LEVEL,
+  EPISODE_STEPS,
+  guessedId,
+  isClose,
+  libraryCandidates,
+  markClose,
+  showQualifies,
   clueParts,
   cluesShown,
   daysBetween,
@@ -198,10 +205,11 @@ describe('history and the month of squares', () => {
     expect(parsePublicPuzzle('x')).toBeNull();
     expect(parsePublicPuzzle({})).toEqual({ days: [], stats: null });
     // A value from before 14 Oct: the streak is ignored, and there are no stats.
-    expect(parsePublicPuzzle({ n: 3.7, days: [['2026-11-02', 9], ['bad', 1], [1, 2], ['2026-11-03', -1]] })).toEqual({
+    // Levels clamp to -1 (a close loss) … 6.
+    expect(parsePublicPuzzle({ n: 3.7, days: [['2026-11-02', 9], ['bad', 1], [1, 2], ['2026-11-03', -3]] })).toEqual({
       days: [
         ['2026-11-02', 6],
-        ['2026-11-03', 0],
+        ['2026-11-03', -1],
       ],
       stats: null,
     });
@@ -533,5 +541,117 @@ describe('the archive', () => {
     // Played before the epoch (a test build): the archive still starts at #1.
     expect(archiveDays('2026-11-03', '2026-10-20')).toEqual(['2026-11-02', PUZZLE_EPOCH]);
     expect(archiveDays('2026-11-02', '2026-11-02')).toEqual([]);
+  });
+});
+
+describe('fair candidates', () => {
+  it('a show qualifies with four episodes, or half of what aired, whichever is easier', () => {
+    expect(showQualifies({ id: 1, seen: 4, aired: 200 }, 4)).toBe(true);
+    expect(showQualifies({ id: 1, seen: 3, aired: 200 }, 4)).toBe(false);
+    // A two-part miniseries watched to the end, and half of a six-parter.
+    expect(showQualifies({ id: 1, seen: 2, aired: 2 }, 4)).toBe(true);
+    expect(showQualifies({ id: 1, seen: 3, aired: 6 }, 4)).toBe(true);
+    expect(showQualifies({ id: 1, seen: 2, aired: 6 }, 4)).toBe(false);
+    // Aired unknown: only the episode bar applies. Nothing watched never does.
+    expect(showQualifies({ id: 1, seen: 3, aired: null }, 4)).toBe(false);
+    expect(showQualifies({ id: 1, seen: 0, aired: 0 }, 1)).toBe(false);
+  });
+
+  it('a big library holds every show to four episodes', () => {
+    const shows = Array.from({ length: 12 }, (_, i) => ({ id: i + 1, seen: 10, aired: 100 }));
+    const sampled = [{ id: 99, seen: 1, aired: 100 }];
+    const r = libraryCandidates([...shows, ...sampled], []);
+    expect(r.step).toBe(4);
+    expect(r.ids).not.toContain(99);
+  });
+
+  it('a small library relaxes 4 → 3 → 2 → 1 before the classics join', () => {
+    expect(EPISODE_STEPS).toEqual([4, 3, 2, 1]);
+    // Eight shows on 3 episodes and two films: ten at the "3" step.
+    const three = Array.from({ length: 8 }, (_, i) => ({ id: i + 1, seen: 3, aired: 100 }));
+    const r3 = libraryCandidates(three, ['m:1', 'm:2']);
+    expect(r3.step).toBe(3);
+    expect(r3.ids).toHaveLength(MIN_LIBRARY_POOL);
+    // Add two-episode shows: still only ten at "3", so it stops there.
+    const r3b = libraryCandidates([...three, { id: 50, seen: 2, aired: 100 }], ['m:1', 'm:2']);
+    expect(r3b.step).toBe(3);
+    expect(r3b.ids).not.toContain(50);
+    // Nine on 2, one on 1: the "2" step has nine, the "1" step has ten.
+    const two = Array.from({ length: 9 }, (_, i) => ({ id: i + 1, seen: 2, aired: 100 }));
+    expect(libraryCandidates(two, ['m:1']).step).toBe(2);
+    const r1 = libraryCandidates([...two, { id: 77, seen: 1, aired: 100 }], []);
+    expect(r1.step).toBe(1);
+    expect(r1.ids).toContain(77);
+  });
+
+  it('a library still short at one episode is all of it, and the classics join', () => {
+    const r = libraryCandidates([{ id: 5, seen: 1, aired: 100 }, { id: 6, seen: 0, aired: 10 }], ['m:9']);
+    expect(r.step).toBe(1);
+    expect(r.ids).toEqual([5, 'm:9']);
+    expect(candidatePool(r.ids, [1000, 1001])).toEqual([5, 'm:9', 1000, 1001]);
+  });
+});
+
+describe('right series, wrong part', () => {
+  const answer = 'm:12445';
+  const part1 = 'm:12444';
+
+  it('a close guess is a distinct marker that still costs a try', () => {
+    const g = guess(newGame('2026-11-02', answer), part1, true);
+    expect(g.guesses).toEqual([`c:${part1}`]);
+    expect(isClose(g.guesses[0])).toBe(true);
+    expect(guessedId(g.guesses[0])).toBe(part1);
+    expect(g.won).toBe(false);
+    expect(misses(g)).toBe(1);
+    expect(cluesShown(g)).toBe(2);
+    expect(squares(g)).toBe('🟨');
+  });
+
+  it('is never set on the answer, a show or a skip', () => {
+    expect(guess(newGame('2026-11-02', answer), answer, true).guesses).toEqual([answer]);
+    expect(guess(newGame('2026-11-02', answer), 81189, true).guesses).toEqual([81189]);
+    expect(guess(newGame('2026-11-02', answer), SKIP, true).guesses).toEqual([SKIP]);
+  });
+
+  it('can be marked after the fact, once, on a plain film miss only', () => {
+    let g = guess(guess(newGame('2026-11-02', answer), part1), 81189);
+    g = markClose(g, 0);
+    expect(g.guesses).toEqual([`c:${part1}`, 81189]);
+    expect(markClose(g, 0)).toBe(g);
+    expect(markClose(g, 1)).toBe(g);
+  });
+
+  it('the share text, the history row, the level and the stats', () => {
+    let g = newGame('2026-11-02', answer);
+    for (const id of [81189, part1, answer]) g = guess(g, id, id === part1);
+    expect(shareText(2, g)).toBe('OpenTV #2 · 3/6\n🟥🟨🟩');
+    expect(resultOf(g)).toEqual({ d: '2026-11-02', id: answer, tries: 3, won: true, close: 1 });
+    expect(puzzleStats([resultOf(g)]).avg).toBe(3);
+    // A loss with a close guess is the yellow day; without one, the red.
+    let lost = newGame('2026-11-03', answer);
+    for (let i = 0; i < MAX_TRIES; i++) lost = guess(lost, i === 0 ? part1 : SKIP, i === 0);
+    expect(winLevel(resultOf(lost))).toBe(CLOSE_LEVEL);
+    expect(winLevel({ d: '2026-11-03', id: answer, tries: 6, won: false })).toBe(0);
+    expect(publicPuzzle([resultOf(lost)], '2026-11').days).toEqual([['2026-11-03', CLOSE_LEVEL]]);
+    expect(parsePublicPuzzle({ days: [['2026-11-03', -1], ['2026-11-04', -7]] })?.days).toEqual([
+      ['2026-11-03', CLOSE_LEVEL],
+      ['2026-11-04', CLOSE_LEVEL],
+    ]);
+  });
+
+  it('round-trips through a save, and old saves read as they did', () => {
+    const g = guess(newGame('2026-11-02', answer), part1, true);
+    expect(parseGame(JSON.parse(JSON.stringify(g)), '2026-11-02')).toEqual(g);
+    // A save from before 14 Oct: no marker anywhere, nothing changes.
+    const old = { day: '2026-11-02', id: 81189, guesses: [121361, 0], won: false };
+    expect(parseGame(old, '2026-11-02')).toEqual(old);
+    // A marker on something that is not a film is not a save this build wrote.
+    expect(parseGame({ ...old, guesses: ['c:81189'] }, '2026-11-02')).toBeNull();
+    const rows = parseHistory([
+      { d: '2026-11-01', id: 81189, tries: 3, won: true },
+      { d: '2026-11-02', id: answer, tries: 6, won: false, close: 2 },
+    ]);
+    expect(rows[0]).toEqual({ d: '2026-11-01', id: 81189, tries: 3, won: true });
+    expect(rows[1].close).toBe(2);
   });
 });
